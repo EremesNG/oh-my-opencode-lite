@@ -1,11 +1,11 @@
 {
-  "name": "oh-my-opencode-slim",
+  "name": "oh-my-opencode-lite",
   "version": "0.8.1",
   "description": "Lightweight agent orchestration plugin for OpenCode - a slimmed-down fork of oh-my-opencode",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "oh-my-opencode-slim": "./dist/cli/index.js"
+    "oh-my-opencode-lite": "./dist/cli/index.js"
   },
   "type": "module",
   "license": "MIT",

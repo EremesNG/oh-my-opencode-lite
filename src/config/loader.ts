@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { stripJsonComments } from '../cli/config-io';
 import { type PluginConfig, PluginConfigSchema } from './schema';
 
-const PROMPTS_DIR_NAME = 'oh-my-opencode-slim';
+const PROMPTS_DIR_NAME = 'omolite';
 
 /**
  * Get the user's configuration directory following XDG Base Directory specification.
@@ -33,7 +33,7 @@ function loadConfigFromPath(configPath: string): PluginConfig | null {
     const result = PluginConfigSchema.safeParse(rawConfig);
 
     if (!result.success) {
-      console.warn(`[oh-my-opencode-slim] Invalid config at ${configPath}:`);
+      console.warn(`[omolite] Invalid config at ${configPath}:`);
       console.warn(result.error.format());
       return null;
     }
@@ -47,7 +47,7 @@ function loadConfigFromPath(configPath: string): PluginConfig | null {
       (error as NodeJS.ErrnoException).code !== 'ENOENT'
     ) {
       console.warn(
-        `[oh-my-opencode-slim] Error reading config from ${configPath}:`,
+        `[omolite] Error reading config from ${configPath}:`,
         error.message,
       );
     }
@@ -133,14 +133,10 @@ export function loadPluginConfig(directory: string): PluginConfig {
   const userConfigBasePath = path.join(
     getUserConfigDir(),
     'opencode',
-    'oh-my-opencode-slim',
+    'omolite',
   );
 
-  const projectConfigBasePath = path.join(
-    directory,
-    '.opencode',
-    'oh-my-opencode-slim',
-  );
+  const projectConfigBasePath = path.join(directory, '.opencode', 'omolite');
 
   // Find existing config files (preferring .jsonc over .json)
   const userConfigPath = findConfigPath(userConfigBasePath);
@@ -164,7 +160,7 @@ export function loadPluginConfig(directory: string): PluginConfig {
   }
 
   // Override preset from environment variable if set
-  const envPreset = process.env.OH_MY_OPENCODE_SLIM_PRESET;
+  const envPreset = process.env.OMOLITE_PRESET;
   if (envPreset) {
     config.preset = envPreset;
   }
@@ -183,7 +179,7 @@ export function loadPluginConfig(directory: string): PluginConfig {
         ? Object.keys(config.presets).join(', ')
         : 'none';
       console.warn(
-        `[oh-my-opencode-slim] Preset "${config.preset}" not found (from ${presetSource}). Available presets: ${availablePresets}`,
+        `[omolite] Preset "${config.preset}" not found (from ${presetSource}). Available presets: ${availablePresets}`,
       );
     }
   }
@@ -234,7 +230,7 @@ export function loadAgentPrompt(
         return fs.readFileSync(promptPath, 'utf-8');
       } catch (error) {
         console.warn(
-          `[oh-my-opencode-slim] ${errorPrefix} ${promptPath}:`,
+          `[omolite] ${errorPrefix} ${promptPath}:`,
           error instanceof Error ? error.message : String(error),
         );
       }

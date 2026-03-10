@@ -1,12 +1,4 @@
-import type { AgentConfig } from '@opencode-ai/sdk/v2';
-
-export interface AgentDefinition {
-  name: string;
-  description?: string;
-  config: AgentConfig;
-  /** Priority-ordered model entries for runtime fallback resolution. */
-  _modelArray?: Array<{ id: string; variant?: string }>;
-}
+import type { AgentDefinition } from './types';
 
 const ORCHESTRATOR_PROMPT = `<Role>
 You are an AI coding orchestrator that optimizes for quality, speed, cost, and reliability by delegating to specialists when it provides net efficiency gains.
@@ -143,9 +135,7 @@ When user's approach seems problematic:
 `;
 
 export function createOrchestratorAgent(
-  model?:
-    | string
-    | Array<string | { id: string; variant?: string }>,
+  model?: string | Array<string | { id: string; variant?: string }>,
   customPrompt?: string,
   customAppendPrompt?: string,
 ): AgentDefinition {
