@@ -43,6 +43,12 @@ Key behaviors:
         .describe('Short description of the task (5-10 words)'),
       prompt: z.string().describe('The task prompt for the agent'),
       agent: z.string().describe(`Agent to use: ${agentNames}`),
+      effort: z
+        .enum(['quick', 'deep'])
+        .optional()
+        .describe(
+          'Effort level for junior agent. quick=fast no-think execution, deep=thoughtful implementation. Only applies to junior agent.',
+        ),
     },
     async execute(args, toolContext) {
       if (
@@ -70,6 +76,7 @@ Key behaviors:
         prompt,
         description,
         parentSessionId,
+        effort: args.effort as 'quick' | 'deep' | undefined,
       });
 
       return `Background task launched.

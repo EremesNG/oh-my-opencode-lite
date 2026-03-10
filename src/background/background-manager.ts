@@ -74,6 +74,7 @@ export interface BackgroundTask {
   startedAt: Date; // Task creation timestamp
   completedAt?: Date; // Task completion/failure timestamp
   prompt: string; // Initial prompt
+  effort?: 'quick' | 'deep'; // Effort level (only applies to junior agent)
 }
 
 /**
@@ -84,6 +85,7 @@ export interface LaunchOptions {
   prompt: string; // Initial prompt to send to the agent
   description: string; // Human-readable task description
   parentSessionId: string; // Parent session ID for task hierarchy
+  effort?: 'quick' | 'deep'; // Effort level (only applies to junior agent)
 }
 
 function generateTaskId(): string {
@@ -181,6 +183,12 @@ export class BackgroundTaskManager {
    * @returns The created background task with pending status
    */
   launch(opts: LaunchOptions): BackgroundTask {
+    // Apply effort prefix for junior agent
+    let prompt = opts.prompt;
+    if (opts.effort && opts.agent === 'junior') {
+      prompt = `[EFFORT: ${opts.effort.toUpperCase()}]\n\n${prompt}`;
+    }
+
     const task: BackgroundTask = {
       id: generateTaskId(),
       sessionId: undefined,
@@ -192,7 +200,8 @@ export class BackgroundTaskManager {
         maxConcurrentStarts: this.maxConcurrentStarts,
       },
       parentSessionId: opts.parentSessionId,
-      prompt: opts.prompt,
+      prompt,
+      effort: opts.effort,
     };
 
     this.tasks.set(task.id, task);
