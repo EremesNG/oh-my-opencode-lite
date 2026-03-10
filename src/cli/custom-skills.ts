@@ -34,6 +34,36 @@ export const CUSTOM_SKILLS: CustomSkill[] = [
     allowedAgents: ['engineer', 'explorer'],
     sourcePath: 'src/skills/cartography',
   },
+  {
+    name: 'brainstorming',
+    description: 'Structured requirements interview and design exploration',
+    allowedAgents: ['planner', 'engineer'],
+    sourcePath: 'src/skills/brainstorming',
+  },
+  {
+    name: 'writing-plans',
+    description: 'Create structured implementation plans in .omolite/plans/',
+    allowedAgents: ['planner', 'engineer'],
+    sourcePath: 'src/skills/writing-plans',
+  },
+  {
+    name: 'executing-plans',
+    description: 'Execute implementation plans task by task with verification',
+    allowedAgents: ['architect', 'engineer'],
+    sourcePath: 'src/skills/executing-plans',
+  },
+  {
+    name: 'verification',
+    description: 'Verify work is complete and correct before claiming success',
+    allowedAgents: ['architect', 'engineer'],
+    sourcePath: 'src/skills/verification',
+  },
+  {
+    name: 'code-review',
+    description: 'Review code changes for correctness and quality',
+    allowedAgents: ['architect', 'engineer', 'oracle'],
+    sourcePath: 'src/skills/code-review',
+  },
 ];
 
 /**
