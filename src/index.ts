@@ -89,7 +89,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
   const jsonErrorRecoveryHook = createJsonErrorRecoveryHook(ctx);
 
   return {
-    name: 'oh-my-opencode-slim',
+    name: 'oh-my-opencode-lite',
 
     agent: agents,
 
@@ -107,8 +107,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     mcp: mcps,
 
     config: async (opencodeConfig: Record<string, unknown>) => {
-      (opencodeConfig as { default_agent?: string }).default_agent =
-        'orchestrator';
+      (opencodeConfig as { default_agent?: string }).default_agent = 'engineer';
 
       // Merge Agent configs
       if (!opencodeConfig.agent) {
@@ -128,9 +127,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
           (opencodeConfig.provider as Record<string, unknown>) ?? {};
         const configuredProviders = Object.keys(providerConfig);
 
-        for (const [agentName, modelArray] of Object.entries(
-          modelArrayMap,
-        )) {
+        for (const [agentName, modelArray] of Object.entries(modelArrayMap)) {
           let resolved = false;
           for (const modelEntry of modelArray) {
             const slashIdx = modelEntry.id.indexOf('/');

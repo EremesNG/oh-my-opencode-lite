@@ -1,6 +1,11 @@
-// Agent names
+// Agent name constants
+
 export const AGENT_ALIASES: Record<string, string> = {
   explore: 'explorer',
+  plan: 'planner',
+  arch: 'architect',
+  eng: 'engineer',
+  fix: 'junior',
   'frontend-ui-ux-engineer': 'designer',
 };
 
@@ -9,50 +14,49 @@ export const SUBAGENT_NAMES = [
   'librarian',
   'oracle',
   'designer',
-  'fixer',
+  'junior',
 ] as const;
 
-export const ORCHESTRATOR_NAME = 'orchestrator' as const;
+export const PRIMARY_NAMES = ['planner', 'architect', 'engineer'] as const;
 
-export const ALL_AGENT_NAMES = [ORCHESTRATOR_NAME, ...SUBAGENT_NAMES] as const;
+export const DEFAULT_PRIMARY = 'engineer' as const;
 
-// Agent name type (for use in DEFAULT_MODELS)
+export const ALL_AGENT_NAMES = [...PRIMARY_NAMES, ...SUBAGENT_NAMES] as const;
+
 export type AgentName = (typeof ALL_AGENT_NAMES)[number];
 
-// Subagent delegation rules: which agents can spawn which subagents
-// orchestrator: can spawn all subagents (full delegation)
-// fixer: leaf node — prompt forbids delegation; use grep/glob for lookups
-// designer: can spawn explorer (for research during design)
-// explorer/librarian/oracle: cannot spawn any subagents (leaf nodes)
-// Unknown agent types not listed here default to explorer-only access
+// Subagent delegation rules
 export const SUBAGENT_DELEGATION_RULES: Record<AgentName, readonly string[]> = {
-  orchestrator: SUBAGENT_NAMES,
-  fixer: [],
+  planner: ['explorer', 'librarian'],
+  architect: [...SUBAGENT_NAMES],
+  engineer: [...SUBAGENT_NAMES],
+  oracle: [],
   designer: [],
   explorer: [],
   librarian: [],
-  oracle: [],
+  junior: [],
 };
 
-// Default models for each agent
-// orchestrator is undefined so its model is fully resolved at runtime via priority fallback
+// Default models per agent (undefined = resolved at runtime via fallback)
 export const DEFAULT_MODELS: Record<AgentName, string | undefined> = {
-  orchestrator: undefined,
+  planner: undefined,
+  architect: undefined,
+  engineer: undefined,
   oracle: 'openai/gpt-5.2-codex',
   librarian: 'openai/gpt-5.1-codex-mini',
   explorer: 'openai/gpt-5.1-codex-mini',
   designer: 'kimi-for-coding/k2p5',
-  fixer: 'openai/gpt-5.1-codex-mini',
+  junior: 'openai/gpt-5.1-codex-mini',
 };
 
-// Polling configuration
+// Polling
 export const POLL_INTERVAL_MS = 500;
 export const POLL_INTERVAL_SLOW_MS = 1000;
 export const POLL_INTERVAL_BACKGROUND_MS = 2000;
 
 // Timeouts
-export const DEFAULT_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
-export const MAX_POLL_TIME_MS = 5 * 60 * 1000; // 5 minutes
+export const DEFAULT_TIMEOUT_MS = 2 * 60 * 1000;
+export const MAX_POLL_TIME_MS = 5 * 60 * 1000;
 export const FALLBACK_FAILOVER_TIMEOUT_MS = 15_000;
 
 // Polling stability

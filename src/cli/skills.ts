@@ -41,7 +41,7 @@ export const RECOMMENDED_SKILLS: RecommendedSkill[] = [
     name: 'simplify',
     repo: 'https://github.com/brianlovin/claude-config',
     skillName: 'simplify',
-    allowedAgents: ['orchestrator'],
+    allowedAgents: ['engineer'],
     description: 'YAGNI code simplification expert',
   },
   {
@@ -126,7 +126,9 @@ export function getSkillPermissionsForAgent(
 ): Record<string, 'allow' | 'ask' | 'deny'> {
   // Orchestrator gets all skills by default, others are restricted
   const permissions: Record<string, 'allow' | 'ask' | 'deny'> = {
-    '*': agentName === 'orchestrator' ? 'allow' : 'deny',
+    '*': ['planner', 'architect', 'engineer'].includes(agentName)
+      ? 'allow'
+      : 'deny',
   };
 
   // If the user provided an explicit skill list (even empty), honor it

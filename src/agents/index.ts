@@ -6,22 +6,31 @@ import {
   getAgentOverride,
   loadAgentPrompt,
   type PluginConfig,
+  PRIMARY_NAMES,
   SUBAGENT_NAMES,
 } from '../config';
 import { getAgentMcpList } from '../config/agent-mcps';
 
+import { createArchitectAgent } from './architect';
 import { createDesignerAgent } from './designer';
+import { createEngineerAgent } from './engineer';
 import { createExplorerAgent } from './explorer';
-import { createFixerAgent } from './fixer';
+import { createJuniorAgent } from './junior';
 import { createLibrarianAgent } from './librarian';
 import { createOracleAgent } from './oracle';
-import { createOrchestratorAgent } from './orchestrator';
+import { createPlannerAgent } from './planner';
 import type { AgentDefinition } from './types';
 
 export type { AgentDefinition } from './types';
 
-type AgentFactory = (
+type SubagentFactory = (
   model: string,
+  customPrompt?: string,
+  customAppendPrompt?: string,
+) => AgentDefinition;
+
+type PrimaryFactory = (
+  model?: string | Array<string | { id: string; variant?: string }>,
   customPrompt?: string,
   customAppendPrompt?: string,
 ) => AgentDefinition;
@@ -87,89 +96,84 @@ function applyDefaultPermissions(
 // Agent Classification
 
 export type SubagentName = (typeof SUBAGENT_NAMES)[number];
+export type PrimaryName = (typeof PRIMARY_NAMES)[number];
 
 export function isSubagent(name: string): name is SubagentName {
   return (SUBAGENT_NAMES as readonly string[]).includes(name);
 }
 
+export function isPrimary(name: string): name is PrimaryName {
+  return (PRIMARY_NAMES as readonly string[]).includes(name);
+}
+
 // Agent Factories
 
-const SUBAGENT_FACTORIES: Record<SubagentName, AgentFactory> = {
+const SUBAGENT_FACTORIES: Record<SubagentName, SubagentFactory> = {
   explorer: createExplorerAgent,
   librarian: createLibrarianAgent,
   oracle: createOracleAgent,
   designer: createDesignerAgent,
-  fixer: createFixerAgent,
+  junior: createJuniorAgent,
+};
+
+const PRIMARY_FACTORIES: Record<PrimaryName, PrimaryFactory> = {
+  planner: createPlannerAgent,
+  architect: createArchitectAgent,
+  engineer: createEngineerAgent,
 };
 
 // Public API
 
 /**
  * Create all agent definitions with optional configuration overrides.
- * Instantiates the orchestrator and all subagents, applying user config and defaults.
+ * Instantiates primaries and all subagents, applying user config and defaults.
  *
  * @param config - Optional plugin configuration with agent overrides
- * @returns Array of agent definitions (orchestrator first, then subagents)
+ * @returns Array of agent definitions (primaries first, then subagents)
  */
 export function createAgents(config?: PluginConfig): AgentDefinition[] {
-  // TEMP: If fixer has no config, inherit from librarian's model to avoid breaking
-  // existing users who don't have fixer in their config yet
-  const getModelForAgent = (name: SubagentName): string => {
-    if (name === 'fixer' && !getAgentOverride(config, 'fixer')?.model) {
-      const librarianOverride = getAgentOverride(config, 'librarian')?.model;
-      let librarianModel: string | undefined;
-      if (Array.isArray(librarianOverride)) {
-        const first = librarianOverride[0];
-        librarianModel = typeof first === 'string' ? first : first?.id;
-      } else {
-        librarianModel = librarianOverride;
-      }
-      return librarianModel ?? (DEFAULT_MODELS.librarian as string);
-    }
-    // Subagents always have a defined default model; cast is safe here
-    return DEFAULT_MODELS[name] as string;
-  };
-
   // 1. Gather all sub-agent definitions with custom prompts
-  const protoSubAgents = (
-    Object.entries(SUBAGENT_FACTORIES) as [SubagentName, AgentFactory][]
+  const subAgents = (
+    Object.entries(SUBAGENT_FACTORIES) as [SubagentName, SubagentFactory][]
   ).map(([name, factory]) => {
     const customPrompts = loadAgentPrompt(name, config?.preset);
+    // Subagents always have a defined default model; cast is safe here
     return factory(
-      getModelForAgent(name),
+      DEFAULT_MODELS[name] as string,
       customPrompts.prompt,
       customPrompts.appendPrompt,
     );
   });
 
-  // 2. Apply overrides and default permissions to each agent
-  const allSubAgents = protoSubAgents.map((agent) => {
+  // 2. Apply overrides and default permissions to each subagent
+  for (const agent of subAgents) {
     const override = getAgentOverride(config, agent.name);
     if (override) {
       applyOverrides(agent, override);
     }
     applyDefaultPermissions(agent, override?.skills);
+  }
+
+  // 3. Create primary agents
+  const primaries = (
+    Object.entries(PRIMARY_FACTORIES) as [PrimaryName, PrimaryFactory][]
+  ).map(([name, factory]) => {
+    const override = getAgentOverride(config, name);
+    const model = override?.model ?? DEFAULT_MODELS[name];
+    const customPrompts = loadAgentPrompt(name, config?.preset);
+    const agent = factory(
+      model,
+      customPrompts.prompt,
+      customPrompts.appendPrompt,
+    );
+    applyDefaultPermissions(agent, override?.skills);
+    if (override) {
+      applyOverrides(agent, override);
+    }
     return agent;
   });
 
-  // 3. Create Orchestrator (with its own overrides and custom prompts)
-  // DEFAULT_MODELS.orchestrator is undefined; model is resolved via override or
-  // left unset so the runtime chat.message hook can pick it from _modelArray.
-  const orchestratorOverride = getAgentOverride(config, 'orchestrator');
-  const orchestratorModel =
-    orchestratorOverride?.model ?? DEFAULT_MODELS.orchestrator;
-  const orchestratorPrompts = loadAgentPrompt('orchestrator', config?.preset);
-  const orchestrator = createOrchestratorAgent(
-    orchestratorModel,
-    orchestratorPrompts.prompt,
-    orchestratorPrompts.appendPrompt,
-  );
-  applyDefaultPermissions(orchestrator, orchestratorOverride?.skills);
-  if (orchestratorOverride) {
-    applyOverrides(orchestrator, orchestratorOverride);
-  }
-
-  return [orchestrator, ...allSubAgents];
+  return [...primaries, ...subAgents];
 }
 
 /**
@@ -194,7 +198,7 @@ export function getAgentConfigs(
       // Apply classification-based visibility and mode
       if (isSubagent(a.name)) {
         sdkConfig.mode = 'subagent';
-      } else if (a.name === 'orchestrator') {
+      } else if (isPrimary(a.name)) {
         sdkConfig.mode = 'primary';
       }
 

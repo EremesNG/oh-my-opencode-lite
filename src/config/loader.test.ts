@@ -87,7 +87,19 @@ describe('loadPluginConfig', () => {
       path.join(projectConfigDir, 'omolite.json'),
       JSON.stringify({
         manualPlan: {
-          orchestrator: {
+          planner: {
+            primary: 'openai/gpt-5.3-codex',
+            fallback1: 'anthropic/claude-opus-4-6',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          architect: {
+            primary: 'openai/gpt-5.3-codex',
+            fallback1: 'anthropic/claude-opus-4-6',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          engineer: {
             primary: 'openai/gpt-5.3-codex',
             fallback1: 'anthropic/claude-opus-4-6',
             fallback2: 'chutes/kimi-k2.5',
@@ -97,30 +109,6 @@ describe('loadPluginConfig', () => {
             primary: 'openai/gpt-5.3-codex',
             fallback1: 'anthropic/claude-opus-4-6',
             fallback2: 'chutes/Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8-TEE',
-            fallback3: 'opencode/gpt-5-nano',
-          },
-          designer: {
-            primary: 'openai/gpt-5.3-codex',
-            fallback1: 'anthropic/claude-opus-4-6',
-            fallback2: 'chutes/kimi-k2.5',
-            fallback3: 'opencode/gpt-5-nano',
-          },
-          explorer: {
-            primary: 'openai/gpt-5.3-codex',
-            fallback1: 'anthropic/claude-opus-4-6',
-            fallback2: 'chutes/kimi-k2.5',
-            fallback3: 'opencode/gpt-5-nano',
-          },
-          librarian: {
-            primary: 'openai/gpt-5.3-codex',
-            fallback1: 'anthropic/claude-opus-4-6',
-            fallback2: 'chutes/kimi-k2.5',
-            fallback3: 'opencode/gpt-5-nano',
-          },
-          fixer: {
-            primary: 'openai/gpt-5.3-codex',
-            fallback1: 'anthropic/claude-opus-4-6',
-            fallback2: 'chutes/kimi-k2.5',
             fallback3: 'opencode/gpt-5-nano',
           },
         },
