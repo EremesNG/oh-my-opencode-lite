@@ -259,9 +259,43 @@ describe('providers', () => {
     // Designer should have 'agent-browser'
     expect(agents.designer.skills).toContain('agent-browser');
 
-    // Quick/deep implementer agents should have no skills by default (empty recommended list)
+    // Quick has no recommended or custom skills assigned
     expect(agents.quick.skills).toEqual([]);
-    expect(agents.deep.skills).toEqual([]);
+    // Deep gets TDD and systematic-debugging from RECOMMENDED_SKILLS
+    expect(agents.deep.skills).toContain('test-driven-development');
+    expect(agents.deep.skills).toContain('systematic-debugging');
+  });
+
+  test('generateLiteConfig includes custom skills for secondary agents', () => {
+    const config = generateLiteConfig({
+      hasAntigravity: false,
+      hasKimi: true,
+      hasOpenAI: false,
+      hasOpencodeZen: false,
+      hasTmux: false,
+      installSkills: true,
+      installCustomSkills: true,
+      setupMode: 'quick',
+    });
+
+    const agents = (config.presets as any).kimi;
+
+    // Explorer should have cartography (from CUSTOM_SKILLS, allowedAgents: ['engineer', 'explorer'])
+    expect(agents.explorer.skills).toContain('cartography');
+
+    // Oracle should have code-review (from CUSTOM_SKILLS, allowedAgents: ['architect', 'engineer', 'oracle'])
+    expect(agents.oracle.skills).toContain('code-review');
+
+    // Primary agents still use wildcard
+    expect(agents.engineer.skills).toEqual(['*']);
+    expect(agents.planner.skills).toEqual(['*']);
+    expect(agents.architect.skills).toEqual(['*']);
+
+    // quick/deep have no custom skill assignments in CUSTOM_SKILLS
+    expect(agents.quick.skills).not.toContain('cartography');
+    expect(agents.quick.skills).not.toContain('code-review');
+    expect(agents.deep.skills).not.toContain('cartography');
+    expect(agents.deep.skills).not.toContain('code-review');
   });
 
   test('generateLiteConfig includes mcps field', () => {

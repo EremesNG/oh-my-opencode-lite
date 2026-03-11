@@ -1,4 +1,5 @@
 import { DEFAULT_AGENT_MCPS } from '../config/agent-mcps';
+import { CUSTOM_SKILLS } from './custom-skills';
 import { RECOMMENDED_SKILLS } from './skills';
 import type { InstallConfig } from './types';
 
@@ -342,11 +343,18 @@ export function generateLiteConfig(
           model: manualConfig.primary,
           skills: ['planner', 'architect', 'engineer'].includes(agentName)
             ? ['*']
-            : RECOMMENDED_SKILLS.filter(
-                (s) =>
-                  s.allowedAgents.includes('*') ||
-                  s.allowedAgents.includes(agentName),
-              ).map((s) => s.skillName),
+            : [
+                ...RECOMMENDED_SKILLS.filter(
+                  (s) =>
+                    s.allowedAgents.includes('*') ||
+                    s.allowedAgents.includes(agentName),
+                ).map((s) => s.skillName),
+                ...CUSTOM_SKILLS.filter(
+                  (s) =>
+                    s.allowedAgents.includes('*') ||
+                    s.allowedAgents.includes(agentName),
+                ).map((s) => s.name),
+              ],
           mcps:
             DEFAULT_AGENT_MCPS[agentName as keyof typeof DEFAULT_AGENT_MCPS] ??
             [],
@@ -422,14 +430,21 @@ export function generateLiteConfig(
   ) => {
     const isPrimary = ['planner', 'architect', 'engineer'].includes(agentName);
 
-    // Skills: primary agents get "*", others get recommended skills for role
+    // Skills: primary agents get "*", others get recommended + custom skills for role
     const skills = isPrimary
       ? ['*']
-      : RECOMMENDED_SKILLS.filter(
-          (s) =>
-            s.allowedAgents.includes('*') ||
-            s.allowedAgents.includes(agentName),
-        ).map((s) => s.skillName);
+      : [
+          ...RECOMMENDED_SKILLS.filter(
+            (s) =>
+              s.allowedAgents.includes('*') ||
+              s.allowedAgents.includes(agentName),
+          ).map((s) => s.skillName),
+          ...CUSTOM_SKILLS.filter(
+            (s) =>
+              s.allowedAgents.includes('*') ||
+              s.allowedAgents.includes(agentName),
+          ).map((s) => s.name),
+        ];
 
     // Special case for designer and agent-browser skill
     if (agentName === 'designer' && !skills.includes('agent-browser')) {
