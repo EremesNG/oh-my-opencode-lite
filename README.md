@@ -58,6 +58,8 @@ https://raw.githubusercontent.com/EremesNG/oh-my-opencode-lite/refs/heads/master
 - **[Antigravity Setup](docs/antigravity.md)** - Complete guide for Antigravity provider configuration  
 - **[Tmux Integration](docs/tmux-integration.md)** - Real-time agent monitoring with tmux
 
+> ⚠️ **Note on Antigravity:** Please read the [Antigravity Setup Guide](docs/antigravity.md) carefully before installing, as it contains important information regarding Google's Terms of Service and account safety.
+
 ---
 
 ## 🏛️ Meet the Pantheon
