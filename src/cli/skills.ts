@@ -55,6 +55,21 @@ export const RECOMMENDED_SKILLS: RecommendedSkill[] = [
       'agent-browser install',
     ],
   },
+  {
+    name: 'test-driven-development',
+    repo: 'https://github.com/obra/superpowers',
+    skillName: 'test-driven-development',
+    allowedAgents: ['engineer', 'deep'],
+    description: 'TDD methodology: red-green-refactor cycle',
+  },
+  {
+    name: 'systematic-debugging',
+    repo: 'https://github.com/obra/superpowers',
+    skillName: 'systematic-debugging',
+    allowedAgents: ['oracle', 'engineer', 'deep'],
+    description:
+      'Four-phase debugging: root cause → pattern → hypothesis → fix',
+  },
 ];
 
 /**

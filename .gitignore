@@ -37,7 +37,6 @@ coverage/
 tmp/
 temp/
 local
-.reference/
 .omolite/
 !.omolite/plans/
 

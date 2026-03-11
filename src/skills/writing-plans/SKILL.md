@@ -1,3 +1,8 @@
+---
+name: writing-plans
+description: Use when a multi-task feature needs a structured implementation plan before coding, especially for work spanning multiple files, components, or sessions
+---
+
 # Writing Plans
 
 Create structured implementation plans that persist across sessions.
