@@ -1,6 +1,7 @@
 import { buildModelKeyAliases } from './model-key-normalization';
 import { resolveAgentWithPrecedence } from './precedence-resolver';
 import { rankModelsV2, scoreCandidateV2 } from './scoring-v2';
+import { classifyModelFamily } from './scoring-v2/model-family';
 import type {
   DiscoveredModel,
   DynamicModelPlan,
@@ -107,6 +108,15 @@ function compareVersionTuple(
   return a[2] - b[2];
 }
 
+/**
+ * Prerelease penalty: a small tiebreaker, not a generation-killer.
+ * Preview/experimental models are slightly less stable but shouldn't
+ * lose to a full generation behind (e.g. Gemini 3.1-preview vs 2.5 GA).
+ */
+function prereleasePenalty(text: string): number {
+  return /preview|experimental|exp|\brc\b/.test(text) ? -0.5 : 0;
+}
+
 function extractVersionFamily(
   model: DiscoveredModel,
 ): VersionFamilyInfo | null {
@@ -118,7 +128,7 @@ function extractVersionFamily(
       family: 'gpt',
       version: toVersionTuple(gpt[1] ?? '0', gpt[2], gpt[3]),
       confidence: 1,
-      prereleasePenalty: /preview|experimental|exp|\brc\b/.test(text) ? -2 : 0,
+      prereleasePenalty: prereleasePenalty(text),
     };
   }
 
@@ -130,7 +140,7 @@ function extractVersionFamily(
       family: 'gemini',
       version: toVersionTuple(gemini[1] ?? '0', gemini[2], gemini[3]),
       confidence: 1,
-      prereleasePenalty: /preview|experimental|exp|\brc\b/.test(text) ? -2 : 0,
+      prereleasePenalty: prereleasePenalty(text),
     };
   }
 
@@ -140,7 +150,7 @@ function extractVersionFamily(
       family: 'kimi-k',
       version: toVersionTuple(kimi[1] ?? '0', kimi[2], kimi[3]),
       confidence: 1,
-      prereleasePenalty: /preview|experimental|exp|\brc\b/.test(text) ? -2 : 0,
+      prereleasePenalty: prereleasePenalty(text),
     };
   }
 
@@ -152,7 +162,7 @@ function extractVersionFamily(
       family: generic[1] ?? 'generic',
       version: toVersionTuple(generic[2] ?? '0', generic[3], generic[4]),
       confidence: 0.7,
-      prereleasePenalty: /preview|experimental|exp|\brc\b/.test(text) ? -2 : 0,
+      prereleasePenalty: prereleasePenalty(text),
     };
   }
 
@@ -690,6 +700,25 @@ function scoreForEngine(
   return combinedScore(agent, model, externalSignals, versionRecencyMap);
 }
 
+/**
+ * Max models to keep per provider as a safety cap (after family-aware selection).
+ * Family-aware selection typically yields 2-4 per provider; this prevents
+ * degenerate cases from providers with many families.
+ */
+const MAX_MODELS_PER_PROVIDER = 6;
+
+/**
+ * Select the best representative models per provider.
+ *
+ * Strategy: keep the highest-scoring model from each model *family* per
+ * provider, then cap at MAX_MODELS_PER_PROVIDER.  Within each family,
+ * version-dedup first (keep the newest version so claude-sonnet-4-6 beats
+ * claude-3-7-sonnet) before scoring.
+ *
+ * This ensures every provider contributes its flagship, mid-tier *and*
+ * fast-tier models (e.g. Opus + Sonnet + Haiku for Anthropic) instead of
+ * the old top-2 approach that dropped entire tiers.
+ */
 function selectTopModelsPerProvider(
   models: DiscoveredModel[],
   engineVersion: ScoringEngineVersion,
@@ -707,39 +736,79 @@ function selectTopModelsPerProvider(
   const selected: DiscoveredModel[] = [];
 
   for (const providerModels of byProvider.values()) {
-    if (providerModels.length <= 2) {
+    if (providerModels.length <= MAX_MODELS_PER_PROVIDER) {
       selected.push(...providerModels);
       continue;
     }
 
-    const ranked = [...providerModels]
-      .map((model) => {
-        const total = AGENTS.reduce((sum, agent) => {
-          return (
-            sum +
-            scoreForEngine(
-              engineVersion,
-              agent,
-              model,
-              externalSignals,
-              versionRecencyMap,
-            )
-          );
-        }, 0);
+    // 1. Group by model family
+    const byFamily = new Map<string, DiscoveredModel[]>();
+    for (const model of providerModels) {
+      const family = classifyModelFamily(model);
+      const current = byFamily.get(family) ?? [];
+      current.push(model);
+      byFamily.set(family, current);
+    }
 
-        return {
-          model,
-          score: total / AGENTS.length,
-        };
-      })
-      .sort((a, b) => {
-        if (a.score !== b.score) return b.score - a.score;
-        return a.model.model.localeCompare(b.model.model);
-      })
-      .slice(0, 2)
-      .map((entry) => entry.model);
+    // 2. Within each family, pick the highest-scoring model.
+    //    Tiebreak: prefer newer versions (higher recency score).
+    const familyBest: DiscoveredModel[] = [];
+    for (const familyModels of byFamily.values()) {
+      const ranked = familyModels
+        .map((model) => {
+          const total = AGENTS.reduce((sum, agent) => {
+            return (
+              sum +
+              scoreForEngine(
+                engineVersion,
+                agent,
+                model,
+                externalSignals,
+                versionRecencyMap,
+              )
+            );
+          }, 0);
 
-    selected.push(...ranked);
+          return {
+            model,
+            score: total / AGENTS.length,
+            recency: versionRecencyMap[model.model] ?? 0,
+          };
+        })
+        .sort((a, b) => {
+          if (a.score !== b.score) return b.score - a.score;
+          if (a.recency !== b.recency) return b.recency - a.recency;
+          return a.model.model.localeCompare(b.model.model);
+        });
+
+      if (ranked[0]) familyBest.push(ranked[0].model);
+    }
+
+    // 3. Cap at MAX_MODELS_PER_PROVIDER (sort by score to drop least useful)
+    if (familyBest.length <= MAX_MODELS_PER_PROVIDER) {
+      selected.push(...familyBest);
+    } else {
+      const capped = familyBest
+        .map((model) => {
+          const total = AGENTS.reduce((sum, agent) => {
+            return (
+              sum +
+              scoreForEngine(
+                engineVersion,
+                agent,
+                model,
+                externalSignals,
+                versionRecencyMap,
+              )
+            );
+          }, 0);
+          return { model, score: total / AGENTS.length };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, MAX_MODELS_PER_PROVIDER)
+        .map((entry) => entry.model);
+      selected.push(...capped);
+    }
   }
 
   return selected;
@@ -959,6 +1028,7 @@ function selectPrimaryWithDiversity(
   remainingSlots: number,
   externalSignals?: ExternalSignalMap,
   versionRecencyMap?: Record<string, number>,
+  engineVersion?: ScoringEngineVersion,
 ): DiscoveredModel | null {
   if (candidates.length === 0) return null;
 
@@ -970,11 +1040,12 @@ function selectPrimaryWithDiversity(
     const deficit = Math.max(0, target - usage);
     const softOverflow = Math.max(0, usage + 1 - softCap);
     const hardOverflow = Math.max(0, usage + 1 - hardCap);
-    const rawScore = combinedScore(
+    const rawScore = scoreForEngine(
+      engineVersion ?? 'v1',
       agent,
       model,
       externalSignals,
-      versionRecencyMap,
+      versionRecencyMap ?? {},
     );
     const adjustedScore =
       rawScore + deficit * 14 - softOverflow * 18 - hardOverflow * 100;
@@ -1017,6 +1088,11 @@ function selectPrimaryWithDiversity(
     if (ratioA !== ratioB) return ratioA - ratioB;
 
     if (a.rawScore !== b.rawScore) return b.rawScore - a.rawScore;
+
+    // Prefer newer versions when scores are tied
+    const recencyA = versionRecencyMap?.[a.model.model] ?? 0;
+    const recencyB = versionRecencyMap?.[b.model.model] ?? 0;
+    if (recencyA !== recencyB) return recencyB - recencyA;
 
     const providerTie = a.model.providerID.localeCompare(b.model.providerID);
     if (providerTie !== 0) return providerTie;
@@ -1116,7 +1192,7 @@ export function buildDynamicModelPlan(
   ].reduce((acc, modelID) => ensureSyntheticModel(acc, modelID), catalog);
 
   const enabledProviders = new Set(getEnabledProviders(config));
-  const providerUniverse = catalogWithSelectedModels.filter((m) => {
+  const providerFiltered = catalogWithSelectedModels.filter((m) => {
     if (!enabledProviders.has(m.providerID)) return false;
 
     if (m.providerID === 'chutes' && /qwen/i.test(m.model)) {
@@ -1125,8 +1201,35 @@ export function buildDynamicModelPlan(
 
     return true;
   });
+
+  // When Kimi is enabled, ensure a Kimi model exists under the
+  // 'kimi-for-coding' provider.  This provider typically has 0
+  // discoverable models (requires separate auth), but Kimi models
+  // live under opencode/, azure/, chutes/, etc.  We clone the best
+  // available Kimi model into kimi-for-coding so it's treated as a
+  // paid-provider model (not filtered by FREE_BIASED_PROVIDERS).
+  if (config.hasKimi) {
+    const hasKimiNative = providerFiltered.some(
+      (m) => m.providerID === 'kimi-for-coding',
+    );
+    if (!hasKimiNative) {
+      const kimiSource = catalogWithSelectedModels.find((m) =>
+        isKimiK25Model(m),
+      );
+      if (kimiSource) {
+        const baseName = kimiSource.model.split('/').slice(1).join('/');
+        providerFiltered.push({
+          ...kimiSource,
+          providerID: 'kimi-for-coding',
+          model: `kimi-for-coding/${baseName}`,
+        });
+      }
+    }
+  }
+
+  const providerUniverse = providerFiltered;
   const engineVersion =
-    options?.scoringEngineVersion ?? config.scoringEngineVersion ?? 'v1';
+    options?.scoringEngineVersion ?? config.scoringEngineVersion ?? 'v2';
   const versionRecencyMap = getVersionRecencyMap(providerUniverse);
 
   const providerCandidates = selectTopModelsPerProvider(
@@ -1245,6 +1348,7 @@ export function buildDynamicModelPlan(
         remainingSlots,
         externalSignals,
         versionRecencyMap,
+        engineVersion,
       ) ?? ranked[0];
     if (!primary) continue;
 
