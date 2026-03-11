@@ -1,3 +1,8 @@
+---
+name: verification
+description: Use when about to claim work is complete, fixed, or passing - requires running verification commands and confirming output before making any success claims
+---
+
 # Verification
 
 Verify that work is actually complete and correct before claiming success.

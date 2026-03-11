@@ -1,3 +1,8 @@
+---
+name: executing-plans
+description: Use when resuming work from a previous session or executing an existing implementation plan from .omolite/plans/ task by task with verification checkpoints
+---
+
 # Executing Plans
 
 Follow an implementation plan from .omolite/plans/ task by task.

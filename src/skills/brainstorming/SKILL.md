@@ -1,3 +1,8 @@
+---
+name: brainstorming
+description: Use when facing complex features with ambiguous scope, new projects, major architecture changes, or when the user says "help me think through" or "I want to build" - explores intent and requirements before implementation
+---
+
 # Brainstorming
 
 Explore user intent and requirements through structured dialogue before any implementation.

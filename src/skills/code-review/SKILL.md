@@ -1,3 +1,8 @@
+---
+name: code-review
+description: Use when reviewing code changes after subagent work, before merging or committing significant changes, or when explicitly asked to review code for correctness and quality
+---
+
 # Code Review
 
 Review code changes for correctness, quality, and adherence to project conventions.
