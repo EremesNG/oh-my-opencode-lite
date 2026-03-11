@@ -121,7 +121,7 @@ describe('config-io', () => {
   });
 
   test('writeLiteConfig writes lite config', () => {
-    const litePath = join(tmpDir, 'opencode', 'oh-my-opencode-lite.json');
+    const litePath = join(tmpDir, 'opencode', 'omolite.json');
     paths.ensureConfigDir();
 
     const result = writeLiteConfig({
@@ -156,7 +156,7 @@ describe('config-io', () => {
 
   test('detectCurrentConfig detects installed status', () => {
     const configPath = join(tmpDir, 'opencode', 'opencode.json');
-    const litePath = join(tmpDir, 'opencode', 'oh-my-opencode-lite.json');
+    const litePath = join(tmpDir, 'opencode', 'omolite.json');
     paths.ensureConfigDir();
 
     writeFileSync(
@@ -198,7 +198,7 @@ describe('config-io', () => {
 
   test('addChutesProvider keeps OpenCode auth-based chutes flow intact', () => {
     const configPath = join(tmpDir, 'opencode', 'opencode.json');
-    const litePath = join(tmpDir, 'opencode', 'oh-my-opencode-lite.json');
+    const litePath = join(tmpDir, 'opencode', 'omolite.json');
     paths.ensureConfigDir();
 
     writeFileSync(

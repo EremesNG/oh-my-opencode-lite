@@ -687,7 +687,8 @@ async function runManualSetupMode(
     'designer',
     'explorer',
     'librarian',
-    'junior',
+    'quick',
+    'deep',
   ];
 
   for (const agentName of agentNames) {
@@ -880,7 +881,7 @@ async function runInteractiveMode(
             rl,
             openCodeSupportList,
             openCodeSupportDefault,
-            'Choose support model for explorer/librarian/junior',
+            'Choose support model for explorer/librarian/quick',
           );
         }
 
@@ -989,7 +990,7 @@ async function runInteractiveMode(
             rl,
             chutesSupportList,
             chutesSupportDefault,
-            'Choose Chutes support model for explorer/librarian/junior',
+            'Choose Chutes support model for explorer/librarian/quick',
           );
         }
 

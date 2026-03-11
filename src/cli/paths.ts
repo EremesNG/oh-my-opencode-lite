@@ -26,11 +26,11 @@ export function getConfigJsonc(): string {
 }
 
 export function getLiteConfig(): string {
-  return join(getConfigDir(), 'oh-my-opencode-lite.json');
+  return join(getConfigDir(), 'omolite.json');
 }
 
 export function getLiteConfigJsonc(): string {
-  return join(getConfigDir(), 'oh-my-opencode-lite.jsonc');
+  return join(getConfigDir(), 'omolite.jsonc');
 }
 
 export function getExistingLiteConfigPath(): string {

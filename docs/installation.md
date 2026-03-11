@@ -69,7 +69,7 @@ Paste this into Claude Code, AmpCode, Cursor, or any coding agent:
 
 ```
 Install and configure by following the instructions here:
-https://raw.githubusercontent.com/alvinunreal/oh-my-opencode-lite/refs/heads/master/README.md
+https://raw.githubusercontent.com/EremesNG/oh-my-opencode-lite/refs/heads/master/README.md
 ```
 
 ---

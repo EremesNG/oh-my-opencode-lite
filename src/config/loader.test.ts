@@ -1070,4 +1070,28 @@ describe('loadAgentPrompt', () => {
     const result = loadAgentPrompt('xdg-agent');
     expect(result.prompt).toBe('xdg prompt');
   });
+
+  test('loads legacy alias prompt files for quick agent', () => {
+    const promptsDir = path.join(tempDir, 'opencode', 'omolite');
+    fs.mkdirSync(promptsDir, { recursive: true });
+    fs.writeFileSync(path.join(promptsDir, 'junior.md'), 'legacy prompt');
+    fs.writeFileSync(
+      path.join(promptsDir, 'junior_append.md'),
+      'legacy append',
+    );
+
+    const result = loadAgentPrompt('quick');
+    expect(result.prompt).toBe('legacy prompt');
+    expect(result.appendPrompt).toBe('legacy append');
+  });
+
+  test('prefers quick prompt files over legacy alias files', () => {
+    const promptsDir = path.join(tempDir, 'opencode', 'omolite');
+    fs.mkdirSync(promptsDir, { recursive: true });
+    fs.writeFileSync(path.join(promptsDir, 'quick.md'), 'quick prompt');
+    fs.writeFileSync(path.join(promptsDir, 'junior.md'), 'legacy prompt');
+
+    const result = loadAgentPrompt('quick');
+    expect(result.prompt).toBe('quick prompt');
+  });
 });

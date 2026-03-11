@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { stripJsonComments } from '../cli/config-io';
+import { AGENT_ALIASES } from './constants';
 import { type PluginConfig, PluginConfigSchema } from './schema';
 
 const PROMPTS_DIR_NAME = 'omolite';
@@ -190,6 +191,7 @@ export function loadPluginConfig(directory: string): PluginConfig {
 /**
  * Load custom prompt for an agent from the prompts directory.
  * Checks for {agent}.md (replaces default) and {agent}_append.md (appends to default).
+ * Also supports legacy alias names (e.g., junior -> quick).
  * If preset is provided and safe for paths, it first checks {preset}/ subdirectory,
  * then falls back to the root prompts directory.
  *
@@ -214,25 +216,31 @@ export function loadAgentPrompt(
   const promptSearchDirs = presetDirName
     ? [path.join(promptsDir, presetDirName), promptsDir]
     : [promptsDir];
+  const aliasNames = Object.keys(AGENT_ALIASES).filter(
+    (alias) => AGENT_ALIASES[alias] === agentName,
+  );
+  const candidateNames = [agentName, ...aliasNames];
   const result: { prompt?: string; appendPrompt?: string } = {};
 
   const readFirstPrompt = (
-    fileName: string,
+    fileNames: string[],
     errorPrefix: string,
   ): string | undefined => {
     for (const dir of promptSearchDirs) {
-      const promptPath = path.join(dir, fileName);
-      if (!fs.existsSync(promptPath)) {
-        continue;
-      }
+      for (const fileName of fileNames) {
+        const promptPath = path.join(dir, fileName);
+        if (!fs.existsSync(promptPath)) {
+          continue;
+        }
 
-      try {
-        return fs.readFileSync(promptPath, 'utf-8');
-      } catch (error) {
-        console.warn(
-          `[omolite] ${errorPrefix} ${promptPath}:`,
-          error instanceof Error ? error.message : String(error),
-        );
+        try {
+          return fs.readFileSync(promptPath, 'utf-8');
+        } catch (error) {
+          console.warn(
+            `[omolite] ${errorPrefix} ${promptPath}:`,
+            error instanceof Error ? error.message : String(error),
+          );
+        }
       }
     }
 
@@ -241,13 +249,13 @@ export function loadAgentPrompt(
 
   // Check for replacement prompt
   result.prompt = readFirstPrompt(
-    `${agentName}.md`,
+    candidateNames.map((name) => `${name}.md`),
     'Error reading prompt file',
   );
 
   // Check for append prompt
   result.appendPrompt = readFirstPrompt(
-    `${agentName}_append.md`,
+    candidateNames.map((name) => `${name}_append.md`),
     'Error reading append prompt file',
   );
 
