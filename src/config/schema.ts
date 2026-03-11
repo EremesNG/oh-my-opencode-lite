@@ -58,6 +58,11 @@ export const ManualPlanSchema = z
     planner: ManualAgentPlanSchema.optional(),
     architect: ManualAgentPlanSchema.optional(),
     engineer: ManualAgentPlanSchema.optional(),
+    designer: ManualAgentPlanSchema.optional(),
+    explorer: ManualAgentPlanSchema.optional(),
+    librarian: ManualAgentPlanSchema.optional(),
+    quick: ManualAgentPlanSchema.optional(),
+    deep: ManualAgentPlanSchema.optional(),
     oracle: ManualAgentPlanSchema,
   })
   .strict();

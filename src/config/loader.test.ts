@@ -105,6 +105,36 @@ describe('loadPluginConfig', () => {
             fallback2: 'chutes/kimi-k2.5',
             fallback3: 'opencode/gpt-5-nano',
           },
+          designer: {
+            primary: 'openai/gpt-5.3-codex',
+            fallback1: 'anthropic/claude-opus-4-6',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          explorer: {
+            primary: 'openai/gpt-5.1-codex-mini',
+            fallback1: 'anthropic/claude-haiku-4-5',
+            fallback2: 'google/antigravity-gemini-3-flash',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          librarian: {
+            primary: 'openai/gpt-5.1-codex-mini',
+            fallback1: 'anthropic/claude-sonnet-4-5',
+            fallback2: 'chutes/minimax-m2.1',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          quick: {
+            primary: 'openai/gpt-5.1-codex-mini',
+            fallback1: 'anthropic/claude-haiku-4-5',
+            fallback2: 'chutes/minimax-m2.1',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          deep: {
+            primary: 'openai/gpt-5.3-codex',
+            fallback1: 'anthropic/claude-sonnet-4-5',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
           oracle: {
             primary: 'openai/gpt-5.3-codex',
             fallback1: 'anthropic/claude-opus-4-6',
@@ -118,6 +148,10 @@ describe('loadPluginConfig', () => {
     const config = loadPluginConfig(projectDir);
     expect(config.manualPlan?.oracle?.fallback2).toBe(
       'chutes/Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8-TEE',
+    );
+    expect(config.manualPlan?.deep?.primary).toBe('openai/gpt-5.3-codex');
+    expect(config.manualPlan?.explorer?.fallback1).toBe(
+      'anthropic/claude-haiku-4-5',
     );
   });
 
