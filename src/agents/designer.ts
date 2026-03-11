@@ -55,6 +55,24 @@ Craft cohesive UI/UX that balances visual impact with usability. Commit to bold 
 - \`font-variant-numeric: tabular-nums\` for number columns.
 - \`text-wrap: balance\` or \`text-pretty\` on headings.
 
+## Visual QA & Browser Verification
+
+You have the \`agent-browser\` skill and browser DevTools for full-cycle frontend QA:
+
+**Browser Automation** (via agent-browser skill)
+- Navigate to pages, click elements, fill forms, interact with the UI as a real user would.
+- Test responsive behavior by resizing viewports to different breakpoints.
+- Automate multi-step user flows (login, navigation, form submission).
+
+**Visual Verification** (via browser DevTools)
+- **Screenshots**: Capture the page or specific elements to verify rendering matches intent.
+- **Page Snapshots**: Take accessibility-tree snapshots to inspect DOM structure and element states.
+- **Lighthouse Audits**: Run accessibility, SEO, and best-practices audits. Fix issues found.
+- **Performance Traces**: Profile page load and interactions. Identify bottlenecks in LCP, INP, CLS.
+
+**Workflow**: Implement → navigate to page → screenshot/snapshot → verify visually → fix issues → re-verify.
+Don't claim visual work is complete without taking at least a screenshot or snapshot to confirm.
+
 ## Constraints
 
 - Respect existing design systems and component libraries when present.
@@ -77,7 +95,7 @@ export function createDesignerAgent(
   return {
     name: 'designer',
     description:
-      'UI/UX design and implementation. Use for styling, responsive design, component architecture and visual polish.',
+      'Frontend implementation AND visual QA specialist. Writes production UI code (components, layouts, styling, animations, accessibility). Has agent-browser skill for browser automation and DevTools for screenshots, Lighthouse audits, and performance traces. Full-cycle: implements → verifies visually in browser.',
     config: {
       model,
       temperature: 0.7,

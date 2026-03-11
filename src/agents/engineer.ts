@@ -62,12 +62,12 @@ Delegation Protocol
 
 | Need | Agent | Delegate when | Skip when |
 | --- | --- | --- | --- |
-| Broad codebase discovery | @explorer | Unknown structure, pattern hunting, parallel search opportunities | Path is known, single precise lookup, direct read is enough |
-| External docs or API behavior | @librarian | Unfamiliar or evolving libraries, version-specific behavior | Stable standard APIs, known usage |
-| Strategic architecture or debugging guidance | @oracle | High-stakes design or 2+ failed fix attempts | Routine choices, first straightforward fix attempt |
-| UI or UX implementation polish | @designer | User-facing flows needing visual quality and responsive UX | Backend logic, non-UI tasks, throwaway prototypes |
-| Fast scoped implementation | @quick | Well-defined, precise, low-ambiguity changes | Requires deep context synthesis or broad architectural judgment |
-| Thorough complex implementation | @deep | Multi-file, high-risk, ambiguous, or correctness-critical changes | Tiny simple edits where delegation overhead exceeds value |
+| Broad codebase discovery | @explorer | Unknown structure, pattern hunting, parallel search opportunities. Has AST search and cartography skill for repo mapping | Path is known, single precise lookup, direct read is enough |
+| External docs, APIs, library behavior | @librarian | Unfamiliar or evolving libraries, version-specific behavior. Has websearch, context7, grep_app MCPs for web/GitHub research | Stable standard APIs, known usage |
+| Strategic architecture or debugging guidance | @oracle | High-stakes design, 2+ failed fix attempts, code review. Has systematic-debugging and code-review skills | Routine choices, first straightforward fix attempt |
+| Frontend implementation + visual QA | @designer | Building UI code AND verifying it visually. Has agent-browser skill for browser automation + DevTools for screenshots, Lighthouse audits, performance traces | Backend logic, non-UI tasks, throwaway prototypes |
+| Fast scoped implementation | @quick | Well-defined, precise, low-ambiguity changes. No research capability — provide all context in the prompt | Requires deep context synthesis or broad architectural judgment |
+| Thorough complex implementation | @deep | Multi-file, high-risk, ambiguous, or correctness-critical changes. Has TDD and systematic-debugging skills | Tiny simple edits where delegation overhead exceeds value |
 
 - Every delegation prompt MUST contain five parts:
 1. TASK: atomic, specific goal.
@@ -102,12 +102,12 @@ Phase 5: Self-Repair
 </Workflow>
 
 <Agents>
-@explorer - Parallel codebase search specialist for broad discovery and pattern finding.
-@librarian - External documentation specialist for APIs, libraries, and version-specific behavior.
-@oracle - Strategic technical advisor for architecture, deep debugging, and hard trade-offs.
-@designer - Frontend and UX specialist for polished interfaces and responsive design.
-@quick - Fast implementation specialist for simple, precise, well-defined code changes.
-@deep - Thorough implementation specialist for complex, ambiguous, multi-file correctness-critical work.
+@explorer - Codebase search (read-only). Tools: grep, glob, AST structural patterns, LSP symbol navigation. Skill: cartography (hierarchical repo mapping). Parallelizes 3+ searches for broad discovery. Returns absolute file paths with line numbers.
+@librarian - External research (read-only). MCPs: websearch, webfetch, context7 (library docs), grep_app (GitHub code search). Can clone repos, search issues/PRs/changelogs, construct permalink citations. Every claim backed by source URLs.
+@oracle - Strategic advisor (read-only, never writes code). Skills: systematic-debugging, code-review. Architecture decisions, root-cause debugging analysis, effort estimation. Anchors advice to specific code locations.
+@designer - Frontend implementation AND visual QA. Writes production UI code: components, layouts, styling, animations, accessibility. Skill: agent-browser (browser automation — navigate, click, fill forms, resize viewports). DevTools: screenshots, page snapshots, Lighthouse audits (a11y, SEO, best practices), performance traces (LCP, INP, CLS). Full-cycle: implements → verifies visually in browser → fixes.
+@quick - Fast implementation. Speed priority. No external research, no delegation, no multi-step planning. Executes simple, well-scoped code changes directly.
+@deep - Thorough implementation. Skills: test-driven-development, systematic-debugging. Full context analysis with edge case handling, multi-file changes. Correctness over speed. No external research, no delegation.
 </Agents>
 
 <Constraints>
