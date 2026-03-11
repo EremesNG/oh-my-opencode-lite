@@ -11,7 +11,9 @@ export type ScoreFeatureName =
   | 'quality'
   | 'coding'
   | 'latencyPenalty'
-  | 'pricePenalty';
+  | 'pricePenalty'
+  | 'roleAffinity'
+  | 'tierBonus';
 
 export type FeatureVector = Record<ScoreFeatureName, number>;
 
