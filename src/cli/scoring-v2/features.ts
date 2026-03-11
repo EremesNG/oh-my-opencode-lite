@@ -4,6 +4,9 @@ import type {
   ExternalModelSignal,
   ExternalSignalMap,
 } from '../types';
+import { getIntraProviderTierBonus } from './intra-provider-tier';
+import { classifyModelFamily } from './model-family';
+import { getRoleAffinity } from './role-affinity';
 import type { FeatureVector, ScoringAgentName } from './types';
 
 function modelLookupKeys(model: DiscoveredModel): string[] {
@@ -121,5 +124,7 @@ export function extractFeatureVector(
     coding,
     latencyPenalty: Math.min(latency, 20) * explorerLatencyMultiplier,
     pricePenalty,
+    roleAffinity: getRoleAffinity(agent, classifyModelFamily(model)),
+    tierBonus: getIntraProviderTierBonus(agent, model),
   };
 }
