@@ -682,6 +682,8 @@ async function runManualSetupMode(
   // Configure each agent manually
   const manualAgentConfigs: Record<string, ManualAgentConfig> = {};
   const agentNames = [
+    'planner',
+    'architect',
     'engineer',
     'oracle',
     'designer',

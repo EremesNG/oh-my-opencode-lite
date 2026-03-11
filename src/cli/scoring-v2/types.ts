@@ -18,6 +18,8 @@ export type FeatureVector = Record<ScoreFeatureName, number>;
 export type FeatureWeights = Record<ScoreFeatureName, number>;
 
 export type ScoringAgentName =
+  | 'planner'
+  | 'architect'
   | 'engineer'
   | 'oracle'
   | 'designer'

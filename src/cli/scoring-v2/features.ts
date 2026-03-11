@@ -53,6 +53,8 @@ function kimiVersionBonus(
   const isMinimaxM21 = isChutes && /minimax[-_ ]?m2\.1/.test(lowered);
 
   const qwenPenalty: Record<ScoringAgentName, number> = {
+    planner: -6,
+    architect: -6,
     engineer: -6,
     oracle: -6,
     designer: -8,
@@ -62,6 +64,8 @@ function kimiVersionBonus(
     deep: -6,
   };
   const kimiBonus: Record<ScoringAgentName, number> = {
+    planner: 1,
+    architect: 1,
     engineer: 1,
     oracle: 1,
     designer: 3,
@@ -71,6 +75,8 @@ function kimiVersionBonus(
     deep: 1,
   };
   const minimaxBonus: Record<ScoringAgentName, number> = {
+    planner: 1,
+    architect: 1,
     engineer: 1,
     oracle: 1,
     designer: 2,

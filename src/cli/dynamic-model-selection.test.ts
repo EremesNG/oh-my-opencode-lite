@@ -50,7 +50,7 @@ function baseInstallConfig(): InstallConfig {
 }
 
 describe('dynamic-model-selection', () => {
-  test('builds assignments and chains for all six agents', () => {
+  test('builds assignments and chains for all configured agents', () => {
     const plan = buildDynamicModelPlan(
       [
         m({ model: 'openai/gpt-5.3-codex', reasoning: true, toolcall: true }),
@@ -80,12 +80,14 @@ describe('dynamic-model-selection', () => {
     const chains = plan?.chains ?? {};
 
     expect(Object.keys(agents).sort()).toEqual([
+      'architect',
       'deep',
       'designer',
       'engineer',
       'explorer',
       'librarian',
       'oracle',
+      'planner',
       'quick',
     ]);
     expect(agents.oracle?.model.startsWith('opencode/')).toBe(false);
@@ -96,9 +98,7 @@ describe('dynamic-model-selection', () => {
     expect(chains.engineer).toContain('chutes/kimi-k2.5');
     expect(chains.explorer).toContain('opencode/gpt-5-nano');
     expect(chains.quick[chains.quick.length - 1]).toBe('opencode/gpt-5-nano');
-    expect(plan?.provenance?.oracle?.winnerLayer).toBe(
-      'dynamic-recommendation',
-    );
+    expect(plan?.provenance?.oracle?.winnerLayer).toBe('manual-user-plan');
     expect(plan?.scoring?.engineVersionApplied).toBe('v1');
   });
 
@@ -169,19 +169,19 @@ describe('dynamic-model-selection', () => {
       {} as Record<string, number>,
     );
 
-    // 7 agents across 3 providers: distribution is 3/2/2
+    // 9 agents across 3 providers: distribution stays balanced
     const totalAgents =
       (usage.openai ?? 0) +
       (usage['zai-coding-plan'] ?? 0) +
       (usage.chutes ?? 0);
-    expect(totalAgents).toBe(7);
-    // No provider should have more than 3 or fewer than 2
+    expect(totalAgents).toBe(9);
+    // No provider should have more than 4 or fewer than 2
     expect(usage.openai).toBeGreaterThanOrEqual(2);
     expect(usage['zai-coding-plan']).toBeGreaterThanOrEqual(2);
     expect(usage.chutes).toBeGreaterThanOrEqual(2);
-    expect(usage.openai).toBeLessThanOrEqual(3);
-    expect(usage['zai-coding-plan']).toBeLessThanOrEqual(3);
-    expect(usage.chutes).toBeLessThanOrEqual(3);
+    expect(usage.openai).toBeLessThanOrEqual(4);
+    expect(usage['zai-coding-plan']).toBeLessThanOrEqual(4);
+    expect(usage.chutes).toBeLessThanOrEqual(4);
   });
 
   test('matches external signals for multi-segment chutes ids in v1', () => {

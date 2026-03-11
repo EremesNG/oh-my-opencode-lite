@@ -2,7 +2,6 @@
   <img src="img/team.png" alt="Pantheon agents" width="420">
   <p><i>Nine specialized beings emerged from the dawn of code, each an immortal master of their craft awaiting your command to forge order from chaos and build what was once thought impossible.</i></p>
   <p><b>Open Multi Agent Suite</b> · Mix any models · Auto delegate tasks</p>
-  <p><a href="https://moltfounders.com/jobs/09d1c6e7-9e0e-4683-8d78-e2376aaa2333"><img src="https://moltfounders.com/badges/4.png" alt="MoltFounders" height="30"></a></p>
 </div>
 
 ---
@@ -63,24 +62,146 @@ https://raw.githubusercontent.com/EremesNG/oh-my-opencode-lite/refs/heads/master
 
 ## 🏛️ Meet the Pantheon
 
-### Primary Agents
+The suite is powered by three primary agents that drive the development lifecycle, supported by a team of specialized subagents.
 
-| Agent | Role | Prompt | Default Model |
-|---|---|---|---|
-| `planner` | Requirements analyst and plan writer (`.omolite/plans/`) | [`src/agents/planner.ts`](src/agents/planner.ts) | Runtime-resolved (preset/fallback) |
-| `architect` | Plan execution orchestrator | [`src/agents/architect.ts`](src/agents/architect.ts) | Runtime-resolved (preset/fallback) |
-| `engineer` (Orchestrator) | Main development orchestrator and delegator | [`src/agents/engineer.ts`](src/agents/engineer.ts) | Runtime-resolved (preset/fallback) |
+### 🔑 Primary Agents
 
-### Specialist Subagents
+<table width="100%">
+  <tr>
+    <td width="33%" valign="top">
+      <img src="img/planner.png" width="100%" alt="Planner">
+      <br>
+      <b>Planner</b>
+      <br>
+      <i>Requirements analyst and plan architect.</i>
+      <br><br>
+      <b>Role:</b> Interviews users, explores codebase, and creates structured implementation plans in <code>.omolite/plans/</code>.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/planner.ts">planner.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>gpt-4o</code>, <code>claude-3.5-sonnet</code>
+    </td>
+    <td width="33%" valign="top">
+      <img src="img/architect.png" width="100%" alt="Architect">
+      <br>
+      <b>Architect</b>
+      <br>
+      <i>Plan execution orchestrator.</i>
+      <br><br>
+      <b>Role:</b> Breaks down approved plans into actionable tasks and coordinates their execution across the team.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/architect.ts">architect.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>gpt-4o</code>, <code>claude-3.5-sonnet</code>
+    </td>
+    <td width="33%" valign="top">
+      <img src="img/engineer.png" width="100%" alt="Engineer">
+      <br>
+      <b>Engineer</b>
+      <br>
+      <i>Main development orchestrator.</i>
+      <br><br>
+      <b>Role:</b> The primary interface for coding tasks. Handles implementation, debugging, and direct codebase modifications.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/engineer.ts">engineer.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>gpt-4o</code>, <code>claude-3.5-sonnet</code>
+    </td>
+  </tr>
+</table>
 
-| Agent | Role | Prompt | Default Model |
-|---|---|---|---|
-| `explorer` | Codebase discovery and navigation | [`src/agents/explorer.ts`](src/agents/explorer.ts) | `openai/gpt-5.1-codex-mini` |
-| `librarian` | External docs and API research | [`src/agents/librarian.ts`](src/agents/librarian.ts) | `openai/gpt-5.1-codex-mini` |
-| `oracle` | Strategic advisor for hard decisions/debugging | [`src/agents/oracle.ts`](src/agents/oracle.ts) | `openai/gpt-5.2-codex` |
-| `designer` | UI/UX specialist | [`src/agents/designer.ts`](src/agents/designer.ts) | `kimi-for-coding/k2p5` |
-| `quick` | Fast implementation specialist | [`src/agents/junior.ts`](src/agents/junior.ts) | `openai/gpt-5.1-codex-mini` |
-| `deep` | Thorough implementation specialist | [`src/agents/junior.ts`](src/agents/junior.ts) | `openai/gpt-5.3-codex` |
+### 🛠️ Specialist Subagents
+
+<table width="100%">
+  <tr>
+    <td width="33%" valign="top">
+      <img src="img/explorer.png" width="100%" alt="Explorer">
+      <br>
+      <b>Explorer</b>
+      <br>
+      <b>Role:</b> Codebase discovery and navigation.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/explorer.ts">explorer.ts</a>
+      <br>
+      <b>Default:</b> <code>gpt-4o-mini</code>
+      <br>
+      <b>Recommended:</b> <code>gpt-4o-mini</code>, <code>claude-3-haiku</code>
+    </td>
+    <td width="33%" valign="top">
+      <img src="img/librarian.png" width="100%" alt="Librarian">
+      <br>
+      <b>Librarian</b>
+      <br>
+      <b>Role:</b> External docs and API research.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/librarian.ts">librarian.ts</a>
+      <br>
+      <b>Default:</b> <code>gpt-4o-mini</code>
+      <br>
+      <b>Recommended:</b> <code>gpt-4o-mini</code>, <code>claude-3-haiku</code>
+    </td>
+    <td width="33%" valign="top">
+      <img src="img/oracle.png" width="100%" alt="Oracle">
+      <br>
+      <b>Oracle</b>
+      <br>
+      <b>Role:</b> Strategic advisor for hard decisions.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/oracle.ts">oracle.ts</a>
+      <br>
+      <b>Default:</b> <code>gpt-4o</code>
+      <br>
+      <b>Recommended:</b> <code>gpt-4o</code>, <code>claude-3.5-sonnet</code>
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <img src="img/designer.png" width="100%" alt="Designer">
+      <br>
+      <b>Designer</b>
+      <br>
+      <b>Role:</b> UI/UX specialist.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/designer.ts">designer.ts</a>
+      <br>
+      <b>Default:</b> <code>k2p5</code>
+      <br>
+      <b>Recommended:</b> <code>k2p5</code>, <code>claude-3.5-sonnet</code>
+    </td>
+    <td width="33%" valign="top">
+      <img src="img/quick.png" width="100%" alt="Quick">
+      <br>
+      <b>Quick</b>
+      <br>
+      <b>Role:</b> Fast implementation specialist.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/junior.ts">junior.ts</a>
+      <br>
+      <b>Default:</b> <code>gpt-4o-mini</code>
+      <br>
+      <b>Recommended:</b> <code>gpt-4o-mini</code>, <code>claude-3-haiku</code>
+    </td>
+    <td width="33%" valign="top">
+      <img src="img/deep.png" width="100%" alt="Deep">
+      <br>
+      <b>Deep</b>
+      <br>
+      <b>Role:</b> Thorough implementation specialist.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/junior.ts">junior.ts</a>
+      <br>
+      <b>Default:</b> <code>gpt-4o</code>
+      <br>
+      <b>Recommended:</b> <code>gpt-4o</code>, <code>claude-3.5-sonnet</code>
+    </td>
+  </tr>
+</table>
 
 ### Aliases (Backward Compatibility)
 
@@ -107,10 +228,3 @@ https://raw.githubusercontent.com/EremesNG/oh-my-opencode-lite/refs/heads/master
 ## 📄 License
 
 MIT
-
----
-
-<!-- MoltFounders Banner -->
-<a href="https://moltfounders.com/jobs/09d1c6e7-9e0e-4683-8d78-e2376aaa2333">
-  <img src="img/moltfounders-banner.png" alt="MoltFounders - The Agent Co-Founder Network">
-</a>

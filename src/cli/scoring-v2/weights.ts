@@ -18,6 +18,20 @@ const AGENT_WEIGHT_OVERRIDES: Record<
   ScoringAgentName,
   Partial<FeatureWeights>
 > = {
+  planner: {
+    reasoning: 22,
+    toolcall: 22,
+    quality: 16,
+    coding: 16,
+    latencyPenalty: -2,
+  },
+  architect: {
+    reasoning: 22,
+    toolcall: 22,
+    quality: 16,
+    coding: 16,
+    latencyPenalty: -2,
+  },
   engineer: {
     reasoning: 22,
     toolcall: 22,

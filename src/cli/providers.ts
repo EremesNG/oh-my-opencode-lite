@@ -3,6 +3,8 @@ import { RECOMMENDED_SKILLS } from './skills';
 import type { InstallConfig } from './types';
 
 const AGENT_NAMES = [
+  'planner',
+  'architect',
   'engineer',
   'oracle',
   'designer',
@@ -63,6 +65,8 @@ export const EFFORT_MODEL_MAPPINGS: Record<
 // Model mappings by provider priority
 export const MODEL_MAPPINGS = {
   kimi: {
+    planner: { model: 'kimi-for-coding/k2p5' },
+    architect: { model: 'kimi-for-coding/k2p5' },
     engineer: { model: 'kimi-for-coding/k2p5' },
     oracle: { model: 'kimi-for-coding/k2p5', variant: 'high' },
     librarian: { model: 'kimi-for-coding/k2p5', variant: 'low' },
@@ -72,6 +76,8 @@ export const MODEL_MAPPINGS = {
     deep: EFFORT_MODEL_MAPPINGS.kimi.deep,
   },
   openai: {
+    planner: { model: 'openai/gpt-5.3-codex' },
+    architect: { model: 'openai/gpt-5.3-codex' },
     engineer: { model: 'openai/gpt-5.3-codex' },
     oracle: { model: 'openai/gpt-5.3-codex', variant: 'high' },
     librarian: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
@@ -81,6 +87,8 @@ export const MODEL_MAPPINGS = {
     deep: EFFORT_MODEL_MAPPINGS.openai.deep,
   },
   anthropic: {
+    planner: { model: 'anthropic/claude-opus-4-6' },
+    architect: { model: 'anthropic/claude-opus-4-6' },
     engineer: { model: 'anthropic/claude-opus-4-6' },
     oracle: { model: 'anthropic/claude-opus-4-6', variant: 'high' },
     librarian: { model: 'anthropic/claude-sonnet-4-5', variant: 'low' },
@@ -90,6 +98,8 @@ export const MODEL_MAPPINGS = {
     deep: EFFORT_MODEL_MAPPINGS.anthropic.deep,
   },
   copilot: {
+    planner: { model: 'github-copilot/grok-code-fast-1' },
+    architect: { model: 'github-copilot/grok-code-fast-1' },
     engineer: { model: 'github-copilot/grok-code-fast-1' },
     oracle: { model: 'github-copilot/grok-code-fast-1', variant: 'high' },
     librarian: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
@@ -99,6 +109,8 @@ export const MODEL_MAPPINGS = {
     deep: EFFORT_MODEL_MAPPINGS.copilot.deep,
   },
   'zai-plan': {
+    planner: { model: 'zai-coding-plan/glm-4.7' },
+    architect: { model: 'zai-coding-plan/glm-4.7' },
     engineer: { model: 'zai-coding-plan/glm-4.7' },
     oracle: { model: 'zai-coding-plan/glm-4.7', variant: 'high' },
     librarian: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
@@ -108,6 +120,8 @@ export const MODEL_MAPPINGS = {
     deep: EFFORT_MODEL_MAPPINGS['zai-plan'].deep,
   },
   antigravity: {
+    planner: { model: 'google/antigravity-gemini-3-flash' },
+    architect: { model: 'google/antigravity-gemini-3-flash' },
     engineer: { model: 'google/antigravity-gemini-3-flash' },
     oracle: { model: 'google/antigravity-gemini-3.1-pro' },
     librarian: {
@@ -126,6 +140,8 @@ export const MODEL_MAPPINGS = {
     deep: EFFORT_MODEL_MAPPINGS.antigravity.deep,
   },
   chutes: {
+    planner: { model: 'chutes/kimi-k2.5' },
+    architect: { model: 'chutes/kimi-k2.5' },
     engineer: { model: 'chutes/kimi-k2.5' },
     oracle: { model: 'chutes/kimi-k2.5', variant: 'high' },
     librarian: { model: 'chutes/minimax-m2.1', variant: 'low' },
@@ -135,6 +151,8 @@ export const MODEL_MAPPINGS = {
     deep: EFFORT_MODEL_MAPPINGS.chutes.deep,
   },
   'zen-free': {
+    planner: { model: 'opencode/big-pickle' },
+    architect: { model: 'opencode/big-pickle' },
     engineer: { model: 'opencode/big-pickle' },
     oracle: { model: 'opencode/big-pickle', variant: 'high' },
     librarian: { model: 'opencode/big-pickle', variant: 'low' },
@@ -157,10 +175,10 @@ export function generateAntigravityMixedPreset(
     agentName: string,
     modelInfo: { model: string; variant?: string },
   ) => {
-    const isEngineer = agentName === 'engineer';
+    const isPrimary = ['planner', 'architect', 'engineer'].includes(agentName);
 
-    // Skills: engineer gets "*", others get recommended skills for their role
-    const skills = isEngineer
+    // Skills: primary agents get "*", others get recommended skills for role
+    const skills = isPrimary
       ? ['*']
       : RECOMMENDED_SKILLS.filter(
           (s) =>
@@ -193,15 +211,34 @@ export function generateAntigravityMixedPreset(
 
   // Engineer: Kimi if hasKimi, else Chutes Kimi if enabled, else antigravity
   if (config.hasKimi) {
+    result.planner = createAgentConfig('planner', MODEL_MAPPINGS.kimi.planner);
+    result.architect = createAgentConfig(
+      'architect',
+      MODEL_MAPPINGS.kimi.architect,
+    );
     result.engineer = createAgentConfig(
       'engineer',
       MODEL_MAPPINGS.kimi.engineer,
     );
   } else if (config.hasChutes) {
+    result.planner = createAgentConfig('planner', {
+      model: chutesPrimary,
+    });
+    result.architect = createAgentConfig('architect', {
+      model: chutesPrimary,
+    });
     result.engineer = createAgentConfig('engineer', {
       model: chutesPrimary,
     });
   } else if (!result.engineer) {
+    result.planner = createAgentConfig(
+      'planner',
+      MODEL_MAPPINGS.antigravity.planner,
+    );
+    result.architect = createAgentConfig(
+      'architect',
+      MODEL_MAPPINGS.antigravity.architect,
+    );
     result.engineer = createAgentConfig(
       'engineer',
       MODEL_MAPPINGS.antigravity.engineer,
@@ -303,14 +340,13 @@ export function generateLiteConfig(
 
         manualPreset[agentName] = {
           model: manualConfig.primary,
-          skills:
-            agentName === 'engineer'
-              ? ['*']
-              : RECOMMENDED_SKILLS.filter(
-                  (s) =>
-                    s.allowedAgents.includes('*') ||
-                    s.allowedAgents.includes(agentName),
-                ).map((s) => s.skillName),
+          skills: ['planner', 'architect', 'engineer'].includes(agentName)
+            ? ['*']
+            : RECOMMENDED_SKILLS.filter(
+                (s) =>
+                  s.allowedAgents.includes('*') ||
+                  s.allowedAgents.includes(agentName),
+              ).map((s) => s.skillName),
           mcps:
             DEFAULT_AGENT_MCPS[agentName as keyof typeof DEFAULT_AGENT_MCPS] ??
             [],
@@ -384,10 +420,10 @@ export function generateLiteConfig(
     agentName: string,
     modelInfo: { model: string; variant?: string },
   ) => {
-    const isEngineer = agentName === 'engineer';
+    const isPrimary = ['planner', 'architect', 'engineer'].includes(agentName);
 
-    // Skills: engineer gets "*", others get recommended skills for their role
-    const skills = isEngineer
+    // Skills: primary agents get "*", others get recommended skills for role
+    const skills = isPrimary
       ? ['*']
       : RECOMMENDED_SKILLS.filter(
           (s) =>
@@ -459,6 +495,8 @@ export function generateLiteConfig(
     };
 
     if (!hasExternalProviders) {
+      setAgent('planner', primaryModel);
+      setAgent('architect', primaryModel);
       setAgent('engineer', primaryModel);
       setAgent('oracle', primaryModel);
       setAgent('designer', primaryModel);
@@ -496,6 +534,8 @@ export function generateLiteConfig(
       presetAgents[agentName] = createAgentConfig(agentName, { model });
     };
 
+    setAgent('planner', primaryModel);
+    setAgent('architect', primaryModel);
     setAgent('engineer', primaryModel);
     setAgent('oracle', primaryModel);
     setAgent('designer', primaryModel);

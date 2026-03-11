@@ -10,6 +10,8 @@ import type {
 } from './types';
 
 const AGENTS = [
+  'planner',
+  'architect',
   'engineer',
   'oracle',
   'designer',
@@ -30,6 +32,8 @@ export type V1RankedScore = {
 
 const FREE_BIASED_PROVIDERS = new Set(['opencode']);
 const PRIMARY_ASSIGNMENT_ORDER: AgentName[] = [
+  'planner',
+  'architect',
   'oracle',
   'engineer',
   'deep',
@@ -40,6 +44,8 @@ const PRIMARY_ASSIGNMENT_ORDER: AgentName[] = [
 ];
 
 const ROLE_VARIANT: Record<AgentName, string | undefined> = {
+  planner: undefined,
+  architect: undefined,
   engineer: undefined,
   oracle: 'high',
   designer: 'medium',
@@ -274,6 +280,8 @@ function chutesPreferenceAdjustment(
   const isMinimaxM21 = /minimax[-_ ]?m2\.1/.test(lowered);
 
   const qwenPenalty: Record<AgentName, number> = {
+    planner: -10,
+    architect: -10,
     oracle: -12,
     engineer: -10,
     quick: -22,
@@ -283,6 +291,8 @@ function chutesPreferenceAdjustment(
     explorer: -10,
   };
   const kimiBonus: Record<AgentName, number> = {
+    planner: 0,
+    architect: 0,
     oracle: 0,
     engineer: 0,
     quick: 8,
@@ -292,6 +302,8 @@ function chutesPreferenceAdjustment(
     explorer: 4,
   };
   const minimaxBonus: Record<AgentName, number> = {
+    planner: 0,
+    architect: 0,
     oracle: 0,
     engineer: 0,
     quick: 10,
@@ -336,7 +348,9 @@ function roleScore(
   const code = tokenScore(lowered, /(codex|coder|code|dev|program)/i, 1);
 
   if (
-    (agent === 'engineer' ||
+    (agent === 'planner' ||
+      agent === 'architect' ||
+      agent === 'engineer' ||
       agent === 'explorer' ||
       agent === 'librarian' ||
       agent === 'quick' ||
@@ -375,6 +389,26 @@ function roleScore(
                     : 0;
   const geminiAdjustment = geminiPreferenceAdjustment(agent, model);
   const chutesAdjustment = chutesPreferenceAdjustment(agent, model);
+
+  if (agent === 'planner' || agent === 'architect') {
+    const flashAdjustment = flash ? -22 : 0;
+    const zaiAdjustment = zai47NonFlash ? 16 : zai47Flash ? -18 : 0;
+    const nonReasoningFlashPenalty = flash && !model.reasoning ? -16 : 0;
+    return (
+      score +
+      reasoning * 40 +
+      toolcall * 25 +
+      deep * 10 +
+      code * 8 +
+      context +
+      flashAdjustment +
+      zaiAdjustment +
+      nonReasoningFlashPenalty +
+      geminiAdjustment +
+      chutesAdjustment +
+      providerBias
+    );
+  }
 
   if (agent === 'engineer') {
     const flashAdjustment = flash ? -22 : 0;
@@ -856,6 +890,7 @@ function chooseProviderRepresentative(
 
 function getQualityWindow(agent: AgentName): number {
   if (agent === 'oracle' || agent === 'engineer') return 12;
+  if (agent === 'planner' || agent === 'architect') return 12;
   if (agent === 'deep') return 12;
   if (agent === 'quick') return 15;
   if (agent === 'designer') return 16;
@@ -898,7 +933,10 @@ function getProviderBundle(
   const includeSecond =
     representative.providerID === 'chutes' ||
     gap <=
-      (agent === 'oracle' || agent === 'engineer'
+      (agent === 'oracle' ||
+      agent === 'engineer' ||
+      agent === 'planner' ||
+      agent === 'architect'
         ? 8
         : agent === 'deep'
           ? 8

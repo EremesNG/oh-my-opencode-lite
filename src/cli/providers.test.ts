@@ -147,7 +147,7 @@ describe('providers', () => {
     expect(agents.explorer.model).toBe('opencode/gpt-5-nano');
   });
 
-  test('generateLiteConfig emits fallback chains for six agents', () => {
+  test('generateLiteConfig emits fallback chains for all configured agents', () => {
     const config = generateLiteConfig({
       hasAntigravity: true,
       hasKimi: true,
@@ -168,12 +168,14 @@ describe('providers', () => {
     expect((config.fallback as any).timeoutMs).toBe(15000);
     const chains = (config.fallback as any).chains;
     expect(Object.keys(chains).sort()).toEqual([
+      'architect',
       'deep',
       'designer',
       'engineer',
       'explorer',
       'librarian',
       'oracle',
+      'planner',
       'quick',
     ]);
     expect(chains.engineer).toContain('openai/gpt-5.3-codex');
