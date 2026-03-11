@@ -87,19 +87,22 @@ When you install with `--antigravity=yes`, the preset depends on other providers
 ### antigravity-mixed-both (Kimi + OpenAI + Antigravity)
 - **Engineer**: Kimi k2p5
 - **Oracle**: OpenAI model
-- **Explorer/Librarian/Designer**: Gemini 3 Flash (Antigravity)
-- **Quick/Deep**: OpenAI defaults when OpenAI is available; otherwise Antigravity defaults
+- **Explorer**: Gemini 3 Flash (Antigravity)
+- **Librarian/Designer**: Chutes models when Chutes is enabled; otherwise Gemini 3 Flash (Antigravity)
+- **Quick/Deep**: OpenAI defaults
 
 ### antigravity-mixed-kimi (Kimi + Antigravity)
 - **Engineer**: Kimi k2p5
 - **Oracle**: Gemini 3.1 Pro (Antigravity)
-- **Explorer/Librarian/Designer**: Gemini 3 Flash (Antigravity)
-- **Quick/Deep**: Antigravity defaults
+- **Explorer**: Gemini 3 Flash (Antigravity)
+- **Librarian/Designer**: Chutes models when Chutes is enabled; otherwise Gemini 3 Flash (Antigravity)
+- **Quick/Deep**: Chutes defaults when Chutes is enabled; otherwise Antigravity defaults
 
 ### antigravity-mixed-openai (OpenAI + Antigravity)
-- **Engineer**: Gemini 3 Flash (Antigravity)
+- **Engineer**: Chutes primary model when Chutes is enabled; otherwise Gemini 3 Flash (Antigravity)
 - **Oracle**: OpenAI model
-- **Explorer/Librarian/Designer**: Gemini 3 Flash (Antigravity)
+- **Explorer**: Gemini 3 Flash (Antigravity)
+- **Librarian/Designer**: Chutes models when Chutes is enabled; otherwise Gemini 3 Flash (Antigravity)
 - **Quick/Deep**: OpenAI defaults
 
 ### antigravity (Pure Antigravity)
@@ -107,6 +110,8 @@ When you install with `--antigravity=yes`, the preset depends on other providers
 - **Oracle**: Gemini 3.1 Pro (Antigravity)
 - **Explorer/Librarian/Designer**: Gemini 3 Flash (Antigravity)
 - **Quick/Deep**: Antigravity defaults
+
+> If OpenCode free mode is enabled, support agents may be reassigned to selected free `opencode/*` models (`explorer`, `librarian`, `quick`, `deep`) while `designer` remains on external mapping.
 
 ## Manual Configuration
 

@@ -32,7 +32,7 @@ bunx oh-my-opencode-lite@latest install --no-tui --kimi=yes --openai=yes --antig
 The installer supports multiple providers:
 - **OpenCode Free Models**: Live-refreshed free `opencode/*` models
 - **Kimi For Coding**: High-performance coding models
-- **OpenAI**: GPT-4 and GPT-3.5 models
+- **OpenAI**: GPT models (`openai/*`)
 - **Antigravity (Google)**: Claude 4.5 and Gemini 3 models via Google's infrastructure
 - **Chutes**: Live-refreshed `chutes/*` models via OpenCode auth flow
 
@@ -90,7 +90,7 @@ If not installed, direct the user to https://opencode.ai/docs first.
 
 Ask these questions **one at a time**, waiting for responses:
 
-1. "Do you have access to **Kimi For Coding**?" *(Provides Kimi k1.5 models)*
+1. "Do you have access to **Kimi For Coding**?" *(Provides Kimi coding models)*
 2. "Do you have access to **OpenAI** API?" *(Enables `openai/` models)*
 3. "Do you have access to **Antigravity (Google)**?" *(Enables `google/` models via Antigravity)*
 4. "Do you want to use **Chutes**?" *(Enables `chutes/` models with daily-cap aware selection)*
@@ -101,7 +101,7 @@ Help the user understand the tradeoffs:
 - OpenCode-only mode can assign more than one OpenCode model across agents.
 - Hybrid mode can combine OpenCode free models with OpenAI, Kimi, and/or Antigravity.
 - In hybrid mode, `designer` remains on the external provider mapping.
-- Chutes selection prioritizes stronger models for orchestrator/oracle and higher-cap models for support agents.
+- Chutes selection prioritizes stronger models for engineer/oracle and higher-cap models for support agents.
 - Kimi For Coding provides powerful coding models.
 - OpenAI enables `openai/` models.
 - Antigravity (Google) provides Claude and Gemini models via Google infrastructure.
@@ -192,6 +192,8 @@ Then manually create the config files at:
 
 2. Verify your config file exists and is valid:
    ```bash
+cat ~/.config/opencode/omolite.jsonc
+# or fallback:
 cat ~/.config/opencode/omolite.json
    ```
 
@@ -213,6 +215,8 @@ If providers are not working:
 
 3. Verify your config file has the correct provider configuration:
    ```bash
+cat ~/.config/opencode/omolite.jsonc
+# or fallback:
 cat ~/.config/opencode/omolite.json
    ```
 
@@ -238,8 +242,8 @@ See the [Quick Reference](quick-reference.md#tmux-integration) for more details.
 
 2. **Remove configuration files (optional)**:
    ```bash
-    rm -f ~/.config/opencode/omolite.json
-    rm -f .opencode/omolite.json
+     rm -f ~/.config/opencode/omolite.jsonc ~/.config/opencode/omolite.json
+     rm -f .opencode/omolite.jsonc .opencode/omolite.json
    ```
 
 3. **Remove skills (optional)**:

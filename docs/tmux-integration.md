@@ -16,7 +16,7 @@ Complete guide for using tmux integration with oh-my-opencode-lite to watch agen
 
 ## Overview
 
-**Watch your agents work in real-time.** When the Orchestrator launches sub-agents or initiates background tasks, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
+**Watch your agents work in real-time.** When the Engineer launches sub-agents or initiates background tasks, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
 
 ### Key Benefits
 
@@ -128,7 +128,7 @@ Choose how panes are arranged:
    opencode --port 4096
    ```
 
-2. **Ask the Orchestrator to delegate work:**
+2. **Ask the Engineer to delegate work:**
    ```
    Please analyze this codebase and create a documentation structure.
    ```

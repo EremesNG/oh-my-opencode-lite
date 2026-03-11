@@ -71,8 +71,8 @@ Uses OpenAI models exclusively:
   "preset": "openai",
   "presets": {
     "openai": {
-      "engineer": { "model": "openai/gpt-5.2-codex", "skills": ["*"], "mcps": ["websearch"] },
-      "oracle": { "model": "openai/gpt-5.2-codex", "variant": "high", "skills": [], "mcps": [] },
+      "engineer": { "model": "openai/gpt-5.3-codex", "skills": ["*"], "mcps": ["websearch"] },
+      "oracle": { "model": "openai/gpt-5.3-codex", "variant": "high", "skills": [], "mcps": [] },
       "librarian": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
       "explorer": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": [] },
       "designer": { "model": "openai/gpt-5.1-codex-mini", "variant": "medium", "skills": ["agent-browser"], "mcps": [] },
@@ -176,7 +176,7 @@ Skills are specialized capabilities provided by external agents and tools. Unlik
 
 A dedicated guide (with screenshots) lives at: **[docs/cartography.md](cartography.md)**.
 
-`cartography` empowers the Orchestrator to build and maintain a deep architectural understanding of any codebase. Instead of reading thousands of lines of code every time, agents refer to hierarchical `codemap.md` files that describe the *why* and *how* of each directory.
+`cartography` empowers the Engineer (orchestrator role) to build and maintain a deep architectural understanding of any codebase. Instead of reading thousands of lines of code every time, agents refer to hierarchical `codemap.md` files that describe the *why* and *how* of each directory.
 
 **How to use:**
 
@@ -196,8 +196,8 @@ The skill uses a background Python engine (`cartographer.py`) to manage state an
 
 **How it works under the hood:**
 
-1. **Initialize** - Orchestrator analyzes repo structure and runs `init` to create `.omolite/cartography.json` (hashes) and empty templates.
-2. **Map** - Orchestrator spawns specialized **Explorer** sub-agents to fill codemaps with timeless architectural details (Responsibility, Design, Flow, Integration).
+1. **Initialize** - Engineer analyzes repo structure and runs `init` to create `.omolite/cartography.json` (hashes) and empty templates.
+2. **Map** - Engineer spawns specialized **Explorer** sub-agents to fill codemaps with timeless architectural details (Responsibility, Design, Flow, Integration).
 3. **Update** - On subsequent runs, the engine detects changed files and only refreshes codemaps for affected folders.
 
 **Manual Commands:**
@@ -271,6 +271,8 @@ Control which agents can access which MCP servers using per-agent allowlists:
 
 | Agent | Default MCPs |
 |-------|--------------|
+| `planner` | `websearch` |
+| `architect` | `websearch` |
 | `engineer` | `websearch` |
 | `designer` | none |
 | `oracle` | none |
@@ -332,7 +334,7 @@ You can disable specific MCP servers globally by adding them to the `disabled_mc
 
 > ⚠️ **Temporary workaround:** Start OpenCode with `--port` to enable tmux integration. The port must match the `OPENCODE_PORT` environment variable (default: 4096). This is required until the upstream issue is resolved. [opencode#9099](https://github.com/anomalyco/opencode/issues/9099).
 
-**Watch your agents work in real-time.** When the Orchestrator launches sub-agents or initiates background tasks, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
+**Watch your agents work in real-time.** When the Engineer launches sub-agents or initiates background tasks, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
 
 #### Quick Setup
 
@@ -548,4 +550,4 @@ Each agent is a full config with `model`, `variant`, `skills`, and `mcps`. Fallb
 
 The installer automatically generates quick/deep agent config and fallback chains based on your available providers.
 
-> **Note:** Agent configuration should be defined within `presets`. The root-level `agents` field is deprecated.
+> **Note:** Agent configuration can be defined in `presets` and/or at root-level `agents`. Root-level `agents` remains supported and can override preset values.
