@@ -17,7 +17,7 @@ You help users understand and map repositories by creating hierarchical codemaps
 
 ### Step 1: Check for Existing State
 
-**First, check if `.slim/cartography.json` exists in the repo root.**
+**First, check if `.omolite/cartography.json` exists in the repo root.**
 
 If it **exists**: Skip to Step 3 (Detect Changes) - no need to re-initialize.
 
@@ -43,7 +43,7 @@ python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py init \
 ```
 
 This creates:
-- `.slim/cartography.json` - File and folder hashes for change detection
+- `.omolite/cartography.json` - File and folder hashes for change detection
 - Empty `codemap.md` files in all relevant subdirectories
 
 4. **Delegate to Explorer agents** - Spawn one explorer per folder to read code and fill in its specific `codemap.md` file.
@@ -100,7 +100,7 @@ Defines agent personalities and manages their configuration lifecycle.
 ## Design
 Each agent is a prompt + permission set. Config system uses:
 - Default prompts (orchestrator.ts, explorer.ts, etc.)
-- User overrides from ~/.config/opencode/oh-my-opencode-slim.json
+- User overrides from ~/.config/opencode/omolite.json
 - Permission wildcards for skill/MCP access control
 
 ## Flow
@@ -118,7 +118,7 @@ Each agent is a prompt + permission set. Config system uses:
 Example **Root Codemap (Atlas)**:
 
 ```markdown
-# Repository Atlas: oh-my-opencode-slim
+# Repository Atlas: oh-my-opencode-lite
 
 ## Project Responsibility
 A high-performance, low-latency agent orchestration plugin for OpenCode, focusing on specialized sub-agent delegation and background task management.
@@ -126,7 +126,7 @@ A high-performance, low-latency agent orchestration plugin for OpenCode, focusin
 ## System Entry Points
 - `src/index.ts`: Plugin initialization and OpenCode integration.
 - `package.json`: Dependency manifest and build scripts.
-- `oh-my-opencode-slim.json`: User configuration schema.
+- `omolite.json`: User configuration schema.
 
 ## Directory Map (Aggregated)
 | Directory | Responsibility Summary | Detailed Map |
