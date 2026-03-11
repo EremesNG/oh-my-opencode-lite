@@ -47,7 +47,7 @@ Key behaviors:
         .enum(['quick', 'deep'])
         .optional()
         .describe(
-          'Effort level for junior agent. quick=fast no-think execution, deep=thoughtful implementation. Only applies to junior agent.',
+          'Selects which LLM model to use for the junior agent (configured in agents.junior.effort). quick=cheap/fast model for simple changes, deep=capable model for complex work. Only applies to junior agent. Ignored if effort models are not configured.',
         ),
     },
     async execute(args, toolContext) {

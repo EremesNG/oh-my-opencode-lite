@@ -563,7 +563,7 @@ describe('BackgroundTaskManager', () => {
       await new Promise((r) => setTimeout(r, 10));
 
       expect(task.status).toBe('failed');
-      expect(task.error).toContain('All fallback models failed');
+      expect(task.error).toContain('All models failed');
     });
 
     test('extracts content from multiple types and messages', async () => {

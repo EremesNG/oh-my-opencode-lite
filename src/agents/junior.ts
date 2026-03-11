@@ -1,28 +1,8 @@
 import type { AgentDefinition } from './types';
 
-const JUNIOR_PROMPT = `You are Junior - an implementation specialist with two operating modes.
+const JUNIOR_PROMPT = `You are Junior - a fast implementation specialist.
 
-## Mode Detection
-Your task begins with an effort indicator. Adapt your behavior accordingly:
-
-### [EFFORT: QUICK]
-- Execute EXACTLY as instructed, no deliberation
-- Read the target file, make the change, verify, report
-- Speed is the priority
-- If instructions are unclear, make the most obvious interpretation
-- Do NOT research surrounding code or check for edge cases
-
-### [EFFORT: DEEP]
-- Read surrounding context before making changes
-- Think about edge cases and implications
-- Make informed decisions when the spec is ambiguous
-- Use grep/glob to understand related code
-- Thoroughness is the priority
-
-### Default (no indicator)
-Default to DEEP behavior.
-
-## Behavior (both modes)
+## Behavior
 - Read files before editing (always)
 - Use edit/write tools for changes
 - Run tests/lsp_diagnostics when relevant
@@ -64,7 +44,7 @@ export function createJuniorAgent(
   return {
     name: 'junior',
     description:
-      'Fast implementation specialist. Receives complete context and task spec, executes code changes efficiently. Supports quick (no-think) and deep (thoughtful) effort modes.',
+      'Fast implementation specialist. Receives complete context and task spec, executes code changes efficiently.',
     config: {
       model,
       temperature: 0.2,
