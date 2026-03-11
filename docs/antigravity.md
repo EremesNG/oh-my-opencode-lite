@@ -1,5 +1,19 @@
 # Antigravity Setup Guide
 
+<details open>
+<summary><b>⚠️ Terms of Service Warning — Read Before Installing</b></summary>
+
+> [!CAUTION]
+> Using this plugin (and any proxy for antgravity) violate Google's Terms of Service. A number of users have reported their Google accounts being **banned** or **shadow-banned** (restricted access without explicit notification).
+>
+> **By using this plugin, you acknowledge:**
+> - This is an unofficial tool not endorsed by Google
+> - Your account may be suspended or permanently banned
+> - You assume all risks associated with using this plugin
+>
+
+</details>
+
 ## Quick Setup
 
 1. Install with Antigravity support:
