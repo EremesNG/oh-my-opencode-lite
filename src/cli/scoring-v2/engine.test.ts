@@ -71,7 +71,7 @@ describe('scoring-v2', () => {
       },
     };
 
-    const scored = scoreCandidateV2(candidate, 'junior', signalMap);
+    const scored = scoreCandidateV2(candidate, 'quick', signalMap);
     expect(scored.scoreBreakdown.features.quality).toBe(0.95);
     expect(scored.scoreBreakdown.features.coding).toBe(0.92);
   });
@@ -147,7 +147,7 @@ describe('scoring-v2', () => {
           toolcall: true,
         }),
       ],
-      'junior',
+      'quick',
     );
 
     expect(ranked[0]?.model.model).not.toContain('Qwen3-Coder-480B');
