@@ -147,9 +147,9 @@ export class BackgroundTaskManager {
    * @returns true if allowed, false if not
    */
   isAgentAllowed(parentSessionId: string, requestedAgent: string): boolean {
-    // Untracked sessions are the root orchestrator (created by OpenCode, not by us)
+    // Untracked sessions are the root engineer (created by OpenCode, not by us)
     const parentAgentName =
-      this.agentBySessionId.get(parentSessionId) ?? 'orchestrator';
+      this.agentBySessionId.get(parentSessionId) ?? 'engineer';
 
     const allowedSubagents = this.getSubagentRules(parentAgentName);
 
@@ -164,9 +164,9 @@ export class BackgroundTaskManager {
    * @returns Array of allowed agent names, empty if none
    */
   getAllowedSubagents(parentSessionId: string): readonly string[] {
-    // Untracked sessions are the root orchestrator (created by OpenCode, not by us)
+    // Untracked sessions are the root engineer (created by OpenCode, not by us)
     const parentAgentName =
-      this.agentBySessionId.get(parentSessionId) ?? 'orchestrator';
+      this.agentBySessionId.get(parentSessionId) ?? 'engineer';
 
     return this.getSubagentRules(parentAgentName);
   }
@@ -244,9 +244,7 @@ export class BackgroundTaskManager {
     // primary may be a string, an array of string|{id,variant?}, or undefined
     let primaryIds: string[];
     if (Array.isArray(primary)) {
-      primaryIds = primary.map((m) =>
-        typeof m === 'string' ? m : m.id,
-      );
+      primaryIds = primary.map((m) => (typeof m === 'string' ? m : m.id));
     } else if (typeof primary === 'string') {
       primaryIds = [primary];
     } else {
@@ -361,13 +359,14 @@ export class BackgroundTaskManager {
       const timeoutMs = fallbackEnabled
         ? (this.config?.fallback?.timeoutMs ?? FALLBACK_FAILOVER_TIMEOUT_MS)
         : 0; // 0 = no timeout when fallback disabled
+
+      const errors: string[] = [];
+      let succeeded = false;
+
       const chain = fallbackEnabled
         ? this.resolveFallbackChain(task.agent)
         : [];
       const attemptModels = chain.length > 0 ? chain : [undefined];
-
-      const errors: string[] = [];
-      let succeeded = false;
 
       for (const model of attemptModels) {
         try {
@@ -406,7 +405,7 @@ export class BackgroundTaskManager {
       }
 
       if (!succeeded) {
-        throw new Error(`All fallback models failed. ${errors.join(' | ')}`);
+        throw new Error(`All models failed. ${errors.join(' | ')}`);
       }
 
       log(`[background-manager] task started: ${task.id}`, {

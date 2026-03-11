@@ -42,7 +42,9 @@ Key behaviors:
         .string()
         .describe('Short description of the task (5-10 words)'),
       prompt: z.string().describe('The task prompt for the agent'),
-      agent: z.string().describe(`Agent to use: ${agentNames}`),
+      agent: z
+        .string()
+        .describe(`Agent to use (including quick, deep): ${agentNames}`),
     },
     async execute(args, toolContext) {
       if (

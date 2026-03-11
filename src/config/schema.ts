@@ -1,21 +1,27 @@
 import { z } from 'zod';
 
 const FALLBACK_AGENT_NAMES = [
-  'orchestrator',
+  'planner',
+  'architect',
+  'engineer',
   'oracle',
   'designer',
   'explorer',
   'librarian',
-  'fixer',
+  'quick',
+  'deep',
 ] as const;
 
 const MANUAL_AGENT_NAMES = [
-  'orchestrator',
+  'planner',
+  'architect',
+  'engineer',
   'oracle',
   'designer',
   'explorer',
   'librarian',
-  'fixer',
+  'quick',
+  'deep',
 ] as const;
 
 const ProviderModelIdSchema = z
@@ -49,12 +55,15 @@ export const ManualAgentPlanSchema = z
 
 export const ManualPlanSchema = z
   .object({
-    orchestrator: ManualAgentPlanSchema,
+    planner: ManualAgentPlanSchema.optional(),
+    architect: ManualAgentPlanSchema.optional(),
+    engineer: ManualAgentPlanSchema.optional(),
+    designer: ManualAgentPlanSchema.optional(),
+    explorer: ManualAgentPlanSchema.optional(),
+    librarian: ManualAgentPlanSchema.optional(),
+    quick: ManualAgentPlanSchema.optional(),
+    deep: ManualAgentPlanSchema.optional(),
     oracle: ManualAgentPlanSchema,
-    designer: ManualAgentPlanSchema,
-    explorer: ManualAgentPlanSchema,
-    librarian: ManualAgentPlanSchema,
-    fixer: ManualAgentPlanSchema,
   })
   .strict();
 
@@ -66,37 +75,46 @@ const AgentModelChainSchema = z.array(z.string()).min(1);
 
 const FallbackChainsSchema = z
   .object({
-    orchestrator: AgentModelChainSchema.optional(),
+    planner: AgentModelChainSchema.optional(),
+    architect: AgentModelChainSchema.optional(),
+    engineer: AgentModelChainSchema.optional(),
     oracle: AgentModelChainSchema.optional(),
     designer: AgentModelChainSchema.optional(),
     explorer: AgentModelChainSchema.optional(),
     librarian: AgentModelChainSchema.optional(),
-    fixer: AgentModelChainSchema.optional(),
+    quick: AgentModelChainSchema.optional(),
+    deep: AgentModelChainSchema.optional(),
   })
   .catchall(AgentModelChainSchema);
 
 export type FallbackAgentName = (typeof FALLBACK_AGENT_NAMES)[number];
 
-// Agent override configuration (distinct from SDK's AgentConfig)
+/** Model union: string or array with optional per-entry variant. */
+const ModelFieldSchema = z
+  .union([
+    z.string(),
+    z.array(
+      z.union([
+        z.string(),
+        z.object({
+          id: z.string(),
+          variant: z.string().optional(),
+        }),
+      ]),
+    ),
+  ])
+  .optional();
+
+/**
+ * Agent override configuration (distinct from SDK's AgentConfig).
+ * Supports overriding model, temperature, variant, skills, and mcps per agent.
+ */
 export const AgentOverrideConfigSchema = z.object({
-  model: z
-    .union([
-      z.string(),
-      z.array(
-        z.union([
-          z.string(),
-          z.object({
-            id: z.string(),
-            variant: z.string().optional(),
-          }),
-        ]),
-      ),
-    ])
-    .optional(),
+  model: ModelFieldSchema,
   temperature: z.number().min(0).max(2).optional(),
   variant: z.string().optional().catch(undefined),
-  skills: z.array(z.string()).optional(), // skills this agent can use ("*" = all, "!item" = exclude)
-  mcps: z.array(z.string()).optional(), // MCPs this agent can use ("*" = all, "!item" = exclude)
+  skills: z.array(z.string()).optional(),
+  mcps: z.array(z.string()).optional(),
 });
 
 // Tmux layout options

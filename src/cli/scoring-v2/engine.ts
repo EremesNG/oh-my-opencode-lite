@@ -24,6 +24,8 @@ function weightedFeatures(
     coding: features.coding * weights.coding,
     latencyPenalty: features.latencyPenalty * weights.latencyPenalty,
     pricePenalty: features.pricePenalty * weights.pricePenalty,
+    roleAffinity: features.roleAffinity * weights.roleAffinity,
+    tierBonus: features.tierBonus * weights.tierBonus,
   };
 }
 
@@ -39,7 +41,9 @@ function sumFeatures(features: FeatureVector): number {
     features.quality +
     features.coding +
     features.latencyPenalty +
-    features.pricePenalty
+    features.pricePenalty +
+    features.roleAffinity +
+    features.tierBonus
   );
 }
 

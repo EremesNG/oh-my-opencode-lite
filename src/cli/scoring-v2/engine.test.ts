@@ -47,10 +47,11 @@ describe('scoring-v2', () => {
   });
 
   test('uses stable tie-break when scores are equal', () => {
+    // Both are all-rounders with identical capabilities → tie-break by provider name
     const ranked = rankModelsV2(
       [
         model({ model: 'zai-coding-plan/glm-4.7', reasoning: false }),
-        model({ model: 'openai/gpt-5.3-codex', reasoning: false }),
+        model({ model: 'openai/gpt-5.1', reasoning: false }),
       ],
       'explorer',
     );
@@ -71,7 +72,7 @@ describe('scoring-v2', () => {
       },
     };
 
-    const scored = scoreCandidateV2(candidate, 'fixer', signalMap);
+    const scored = scoreCandidateV2(candidate, 'quick', signalMap);
     expect(scored.scoreBreakdown.features.quality).toBe(0.95);
     expect(scored.scoreBreakdown.features.coding).toBe(0.92);
   });
@@ -147,7 +148,7 @@ describe('scoring-v2', () => {
           toolcall: true,
         }),
       ],
-      'fixer',
+      'quick',
     );
 
     expect(ranked[0]?.model.model).not.toContain('Qwen3-Coder-480B');

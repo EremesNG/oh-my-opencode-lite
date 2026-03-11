@@ -3,60 +3,126 @@ import { RECOMMENDED_SKILLS } from './skills';
 import type { InstallConfig } from './types';
 
 const AGENT_NAMES = [
-  'orchestrator',
+  'planner',
+  'architect',
+  'engineer',
   'oracle',
   'designer',
   'explorer',
   'librarian',
-  'fixer',
+  'quick',
+  'deep',
 ] as const;
 
 type AgentName = (typeof AGENT_NAMES)[number];
 
+/**
+ * Effort-level model mappings per provider.
+ * - quick: cheapest/fastest model for simple, well-defined changes
+ * - deep:  most capable model for complex changes requiring thought
+ */
+export const EFFORT_MODEL_MAPPINGS: Record<
+  string,
+  {
+    quick: { model: string; variant?: string };
+    deep: { model: string; variant?: string };
+  }
+> = {
+  kimi: {
+    quick: { model: 'kimi-for-coding/k2p5', variant: 'low' },
+    deep: { model: 'kimi-for-coding/k2p5' },
+  },
+  openai: {
+    quick: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
+    deep: { model: 'openai/gpt-5.3-codex' },
+  },
+  anthropic: {
+    quick: { model: 'anthropic/claude-haiku-4-5', variant: 'low' },
+    deep: { model: 'anthropic/claude-sonnet-4-5' },
+  },
+  copilot: {
+    quick: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
+    deep: { model: 'github-copilot/grok-code-fast-1' },
+  },
+  'zai-plan': {
+    quick: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
+    deep: { model: 'zai-coding-plan/glm-4.7' },
+  },
+  antigravity: {
+    quick: { model: 'google/antigravity-gemini-3-flash', variant: 'low' },
+    deep: { model: 'google/antigravity-gemini-3.1-pro' },
+  },
+  chutes: {
+    quick: { model: 'chutes/minimax-m2.1', variant: 'low' },
+    deep: { model: 'chutes/kimi-k2.5' },
+  },
+  'zen-free': {
+    quick: { model: 'opencode/big-pickle', variant: 'low' },
+    deep: { model: 'opencode/big-pickle' },
+  },
+};
+
 // Model mappings by provider priority
 export const MODEL_MAPPINGS = {
   kimi: {
-    orchestrator: { model: 'kimi-for-coding/k2p5' },
+    planner: { model: 'kimi-for-coding/k2p5' },
+    architect: { model: 'kimi-for-coding/k2p5' },
+    engineer: { model: 'kimi-for-coding/k2p5' },
     oracle: { model: 'kimi-for-coding/k2p5', variant: 'high' },
     librarian: { model: 'kimi-for-coding/k2p5', variant: 'low' },
     explorer: { model: 'kimi-for-coding/k2p5', variant: 'low' },
     designer: { model: 'kimi-for-coding/k2p5', variant: 'medium' },
-    fixer: { model: 'kimi-for-coding/k2p5', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.kimi.quick,
+    deep: EFFORT_MODEL_MAPPINGS.kimi.deep,
   },
   openai: {
-    orchestrator: { model: 'openai/gpt-5.3-codex' },
+    planner: { model: 'openai/gpt-5.3-codex' },
+    architect: { model: 'openai/gpt-5.3-codex' },
+    engineer: { model: 'openai/gpt-5.3-codex' },
     oracle: { model: 'openai/gpt-5.3-codex', variant: 'high' },
     librarian: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
     explorer: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
     designer: { model: 'openai/gpt-5.1-codex-mini', variant: 'medium' },
-    fixer: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.openai.quick,
+    deep: EFFORT_MODEL_MAPPINGS.openai.deep,
   },
   anthropic: {
-    orchestrator: { model: 'anthropic/claude-opus-4-6' },
+    planner: { model: 'anthropic/claude-opus-4-6' },
+    architect: { model: 'anthropic/claude-opus-4-6' },
+    engineer: { model: 'anthropic/claude-opus-4-6' },
     oracle: { model: 'anthropic/claude-opus-4-6', variant: 'high' },
     librarian: { model: 'anthropic/claude-sonnet-4-5', variant: 'low' },
     explorer: { model: 'anthropic/claude-haiku-4-5', variant: 'low' },
     designer: { model: 'anthropic/claude-sonnet-4-5', variant: 'medium' },
-    fixer: { model: 'anthropic/claude-sonnet-4-5', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.anthropic.quick,
+    deep: EFFORT_MODEL_MAPPINGS.anthropic.deep,
   },
   copilot: {
-    orchestrator: { model: 'github-copilot/grok-code-fast-1' },
+    planner: { model: 'github-copilot/grok-code-fast-1' },
+    architect: { model: 'github-copilot/grok-code-fast-1' },
+    engineer: { model: 'github-copilot/grok-code-fast-1' },
     oracle: { model: 'github-copilot/grok-code-fast-1', variant: 'high' },
     librarian: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
     explorer: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
     designer: { model: 'github-copilot/grok-code-fast-1', variant: 'medium' },
-    fixer: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.copilot.quick,
+    deep: EFFORT_MODEL_MAPPINGS.copilot.deep,
   },
   'zai-plan': {
-    orchestrator: { model: 'zai-coding-plan/glm-4.7' },
+    planner: { model: 'zai-coding-plan/glm-4.7' },
+    architect: { model: 'zai-coding-plan/glm-4.7' },
+    engineer: { model: 'zai-coding-plan/glm-4.7' },
     oracle: { model: 'zai-coding-plan/glm-4.7', variant: 'high' },
     librarian: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
     explorer: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
     designer: { model: 'zai-coding-plan/glm-4.7', variant: 'medium' },
-    fixer: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS['zai-plan'].quick,
+    deep: EFFORT_MODEL_MAPPINGS['zai-plan'].deep,
   },
   antigravity: {
-    orchestrator: { model: 'google/antigravity-gemini-3-flash' },
+    planner: { model: 'google/antigravity-gemini-3-flash' },
+    architect: { model: 'google/antigravity-gemini-3-flash' },
+    engineer: { model: 'google/antigravity-gemini-3-flash' },
     oracle: { model: 'google/antigravity-gemini-3.1-pro' },
     librarian: {
       model: 'google/antigravity-gemini-3-flash',
@@ -70,23 +136,30 @@ export const MODEL_MAPPINGS = {
       model: 'google/antigravity-gemini-3-flash',
       variant: 'medium',
     },
-    fixer: { model: 'google/antigravity-gemini-3-flash', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.antigravity.quick,
+    deep: EFFORT_MODEL_MAPPINGS.antigravity.deep,
   },
   chutes: {
-    orchestrator: { model: 'chutes/kimi-k2.5' },
+    planner: { model: 'chutes/kimi-k2.5' },
+    architect: { model: 'chutes/kimi-k2.5' },
+    engineer: { model: 'chutes/kimi-k2.5' },
     oracle: { model: 'chutes/kimi-k2.5', variant: 'high' },
     librarian: { model: 'chutes/minimax-m2.1', variant: 'low' },
     explorer: { model: 'chutes/minimax-m2.1', variant: 'low' },
     designer: { model: 'chutes/kimi-k2.5', variant: 'medium' },
-    fixer: { model: 'chutes/minimax-m2.1', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.chutes.quick,
+    deep: EFFORT_MODEL_MAPPINGS.chutes.deep,
   },
   'zen-free': {
-    orchestrator: { model: 'opencode/big-pickle' },
+    planner: { model: 'opencode/big-pickle' },
+    architect: { model: 'opencode/big-pickle' },
+    engineer: { model: 'opencode/big-pickle' },
     oracle: { model: 'opencode/big-pickle', variant: 'high' },
     librarian: { model: 'opencode/big-pickle', variant: 'low' },
     explorer: { model: 'opencode/big-pickle', variant: 'low' },
     designer: { model: 'opencode/big-pickle', variant: 'medium' },
-    fixer: { model: 'opencode/big-pickle', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS['zen-free'].quick,
+    deep: EFFORT_MODEL_MAPPINGS['zen-free'].deep,
   },
 } as const;
 
@@ -102,10 +175,10 @@ export function generateAntigravityMixedPreset(
     agentName: string,
     modelInfo: { model: string; variant?: string },
   ) => {
-    const isOrchestrator = agentName === 'orchestrator';
+    const isPrimary = ['planner', 'architect', 'engineer'].includes(agentName);
 
-    // Skills: orchestrator gets "*", others get recommended skills for their role
-    const skills = isOrchestrator
+    // Skills: primary agents get "*", others get recommended skills for role
+    const skills = isPrimary
       ? ['*']
       : RECOMMENDED_SKILLS.filter(
           (s) =>
@@ -132,25 +205,43 @@ export function generateAntigravityMixedPreset(
   };
 
   const chutesPrimary =
-    config.selectedChutesPrimaryModel ??
-    MODEL_MAPPINGS.chutes.orchestrator.model;
+    config.selectedChutesPrimaryModel ?? MODEL_MAPPINGS.chutes.engineer.model;
   const chutesSupport =
     config.selectedChutesSecondaryModel ?? MODEL_MAPPINGS.chutes.explorer.model;
 
-  // Orchestrator: Kimi if hasKimi, else Chutes Kimi if enabled, else antigravity
+  // Engineer: Kimi if hasKimi, else Chutes Kimi if enabled, else antigravity
   if (config.hasKimi) {
-    result.orchestrator = createAgentConfig(
-      'orchestrator',
-      MODEL_MAPPINGS.kimi.orchestrator,
+    result.planner = createAgentConfig('planner', MODEL_MAPPINGS.kimi.planner);
+    result.architect = createAgentConfig(
+      'architect',
+      MODEL_MAPPINGS.kimi.architect,
+    );
+    result.engineer = createAgentConfig(
+      'engineer',
+      MODEL_MAPPINGS.kimi.engineer,
     );
   } else if (config.hasChutes) {
-    result.orchestrator = createAgentConfig('orchestrator', {
+    result.planner = createAgentConfig('planner', {
       model: chutesPrimary,
     });
-  } else if (!result.orchestrator) {
-    result.orchestrator = createAgentConfig(
-      'orchestrator',
-      MODEL_MAPPINGS.antigravity.orchestrator,
+    result.architect = createAgentConfig('architect', {
+      model: chutesPrimary,
+    });
+    result.engineer = createAgentConfig('engineer', {
+      model: chutesPrimary,
+    });
+  } else if (!result.engineer) {
+    result.planner = createAgentConfig(
+      'planner',
+      MODEL_MAPPINGS.antigravity.planner,
+    );
+    result.architect = createAgentConfig(
+      'architect',
+      MODEL_MAPPINGS.antigravity.architect,
+    );
+    result.engineer = createAgentConfig(
+      'engineer',
+      MODEL_MAPPINGS.antigravity.engineer,
     );
   }
 
@@ -191,22 +282,28 @@ export function generateAntigravityMixedPreset(
     });
   }
 
-  // Fixer prefers OpenAI codex when available.
+  // Quick/deep are normal first-class agent configs.
   if (config.hasOpenAI) {
-    result.fixer = createAgentConfig('fixer', {
-      ...MODEL_MAPPINGS.openai.oracle,
-      variant: 'low',
-    });
+    result.quick = createAgentConfig(
+      'quick',
+      EFFORT_MODEL_MAPPINGS.openai.quick,
+    );
+    result.deep = createAgentConfig('deep', EFFORT_MODEL_MAPPINGS.openai.deep);
   } else if (config.hasChutes) {
-    result.fixer = createAgentConfig('fixer', {
+    result.quick = createAgentConfig('quick', {
       model: chutesSupport,
       variant: 'low',
     });
+    result.deep = createAgentConfig('deep', { model: chutesPrimary });
   } else {
-    result.fixer = createAgentConfig('fixer', {
-      ...antigravityFlash,
-      variant: 'low',
-    });
+    result.quick = createAgentConfig(
+      'quick',
+      EFFORT_MODEL_MAPPINGS.antigravity.quick,
+    );
+    result.deep = createAgentConfig(
+      'deep',
+      EFFORT_MODEL_MAPPINGS.antigravity.deep,
+    );
   }
 
   return result;
@@ -233,28 +330,27 @@ export function generateLiteConfig(
     for (const agentName of AGENT_NAMES) {
       const manualConfig = installConfig.manualAgentConfigs[agentName];
       if (manualConfig) {
-        manualPreset[agentName] = {
-          model: manualConfig.primary,
-          skills:
-            agentName === 'orchestrator'
-              ? ['*']
-              : RECOMMENDED_SKILLS.filter(
-                  (s) =>
-                    s.allowedAgents.includes('*') ||
-                    s.allowedAgents.includes(agentName),
-                ).map((s) => s.skillName),
-          mcps:
-            DEFAULT_AGENT_MCPS[agentName as keyof typeof DEFAULT_AGENT_MCPS] ??
-            [],
-        };
-
         // Build fallback chain from manual config
         const fallbackChain = [
           manualConfig.primary,
           manualConfig.fallback1,
           manualConfig.fallback2,
           manualConfig.fallback3,
-        ].filter((m, i, arr) => m && arr.indexOf(m) === i); // dedupe
+        ].filter((m, i, arr) => m && arr.indexOf(m) === i) as string[]; // dedupe
+
+        manualPreset[agentName] = {
+          model: manualConfig.primary,
+          skills: ['planner', 'architect', 'engineer'].includes(agentName)
+            ? ['*']
+            : RECOMMENDED_SKILLS.filter(
+                (s) =>
+                  s.allowedAgents.includes('*') ||
+                  s.allowedAgents.includes(agentName),
+              ).map((s) => s.skillName),
+          mcps:
+            DEFAULT_AGENT_MCPS[agentName as keyof typeof DEFAULT_AGENT_MCPS] ??
+            [],
+        };
         chains[agentName] = fallbackChain;
       }
     }
@@ -324,10 +420,10 @@ export function generateLiteConfig(
     agentName: string,
     modelInfo: { model: string; variant?: string },
   ) => {
-    const isOrchestrator = agentName === 'orchestrator';
+    const isPrimary = ['planner', 'architect', 'engineer'].includes(agentName);
 
-    // Skills: orchestrator gets "*", others get recommended skills for their role
-    const skills = isOrchestrator
+    // Skills: primary agents get "*", others get recommended skills for role
+    const skills = isPrimary
       ? ['*']
       : RECOMMENDED_SKILLS.filter(
           (s) =>
@@ -350,24 +446,25 @@ export function generateLiteConfig(
   };
 
   if (installConfig.dynamicModelPlan) {
-    const dynamicPreset = Object.fromEntries(
-      Object.entries(installConfig.dynamicModelPlan.agents).map(
-        ([agentName, assignment]) => [
-          agentName,
-          createAgentConfig(
-            agentName,
-            assignment as { model: string; variant?: string },
-          ),
-        ],
-      ),
-    );
+    const dynamicPreset: Record<string, unknown> = {};
+    for (const [agentName, assignment] of Object.entries(
+      installConfig.dynamicModelPlan.agents,
+    )) {
+      const info = assignment as {
+        model: string;
+        variant?: string;
+      };
+      dynamicPreset[agentName] = createAgentConfig(agentName, info);
+    }
 
     config.preset = 'dynamic';
     (config.presets as Record<string, unknown>).dynamic = dynamicPreset;
+
+    const dynChains = installConfig.dynamicModelPlan.chains;
     config.fallback = {
       enabled: true,
       timeoutMs: 15000,
-      chains: installConfig.dynamicModelPlan.chains,
+      chains: dynChains,
     };
 
     if (installConfig.hasTmux) {
@@ -398,14 +495,20 @@ export function generateLiteConfig(
     };
 
     if (!hasExternalProviders) {
-      setAgent('orchestrator', primaryModel);
+      setAgent('planner', primaryModel);
+      setAgent('architect', primaryModel);
+      setAgent('engineer', primaryModel);
       setAgent('oracle', primaryModel);
       setAgent('designer', primaryModel);
     }
 
     setAgent('librarian', secondaryModel);
     setAgent('explorer', secondaryModel);
-    setAgent('fixer', secondaryModel);
+    presetAgents.quick = createAgentConfig('quick', {
+      model: secondaryModel,
+      variant: 'low',
+    });
+    presetAgents.deep = createAgentConfig('deep', { model: primaryModel });
   };
 
   const applyChutesAssignments = (presetAgents: Record<string, unknown>) => {
@@ -431,12 +534,18 @@ export function generateLiteConfig(
       presetAgents[agentName] = createAgentConfig(agentName, { model });
     };
 
-    setAgent('orchestrator', primaryModel);
+    setAgent('planner', primaryModel);
+    setAgent('architect', primaryModel);
+    setAgent('engineer', primaryModel);
     setAgent('oracle', primaryModel);
     setAgent('designer', primaryModel);
     setAgent('librarian', secondaryModel);
     setAgent('explorer', secondaryModel);
-    setAgent('fixer', secondaryModel);
+    presetAgents.quick = createAgentConfig('quick', {
+      model: secondaryModel,
+      variant: 'low',
+    });
+    presetAgents.deep = createAgentConfig('deep', { model: primaryModel });
   };
 
   const dedupeModels = (models: Array<string | undefined>) => {
@@ -457,7 +566,7 @@ export function generateLiteConfig(
     const isSupport =
       agentName === 'explorer' ||
       agentName === 'librarian' ||
-      agentName === 'fixer';
+      agentName === 'quick';
     if (isSupport) {
       return (
         installConfig.selectedOpenCodeSecondaryModel ??
@@ -472,7 +581,7 @@ export function generateLiteConfig(
     const isSupport =
       agentName === 'explorer' ||
       agentName === 'librarian' ||
-      agentName === 'fixer';
+      agentName === 'quick';
     if (isSupport) {
       return (
         installConfig.selectedChutesSecondaryModel ??
@@ -487,7 +596,7 @@ export function generateLiteConfig(
   };
 
   const attachFallbackConfig = (presetAgents: Record<string, unknown>) => {
-    const chains: Partial<Record<AgentName, string[]>> = {};
+    const chains: Record<string, string[]> = {};
 
     for (const agentName of AGENT_NAMES) {
       const currentModel = (
@@ -533,22 +642,24 @@ export function generateLiteConfig(
 
   const buildPreset = (mappingName: keyof typeof MODEL_MAPPINGS) => {
     const mapping = MODEL_MAPPINGS[mappingName];
-    return Object.fromEntries(
-      Object.entries(mapping).map(([agentName, modelInfo]) => {
-        let activeModelInfo = { ...modelInfo };
+    const preset: Record<string, unknown> = {};
 
-        // Hybrid case: Kimi + OpenAI (use OpenAI for Oracle, Kimi for orchestrator/designer)
-        if (
-          activePreset === 'kimi' &&
-          installConfig.hasOpenAI &&
-          agentName === 'oracle'
-        ) {
-          activeModelInfo = { ...MODEL_MAPPINGS.openai.oracle };
-        }
+    for (const [agentName, modelInfo] of Object.entries(mapping)) {
+      let activeModelInfo = { ...modelInfo };
 
-        return [agentName, createAgentConfig(agentName, activeModelInfo)];
-      }),
-    );
+      // Hybrid case: Kimi + OpenAI (use OpenAI for Oracle)
+      if (
+        activePreset === 'kimi' &&
+        installConfig.hasOpenAI &&
+        agentName === 'oracle'
+      ) {
+        activeModelInfo = { ...MODEL_MAPPINGS.openai.oracle };
+      }
+
+      preset[agentName] = createAgentConfig(agentName, activeModelInfo);
+    }
+
+    return preset;
   };
 
   // Build preset based on type

@@ -22,8 +22,8 @@ describe('paths', () => {
   });
 
   test('getConfigDir() uses XDG_CONFIG_HOME when set', () => {
-    process.env.XDG_CONFIG_HOME = '/tmp/xdg-config';
-    expect(getConfigDir()).toBe('/tmp/xdg-config/opencode');
+    process.env.XDG_CONFIG_HOME = join(tmpdir(), 'xdg-config');
+    expect(getConfigDir()).toBe(join(tmpdir(), 'xdg-config', 'opencode'));
   });
 
   test('getConfigDir() falls back to ~/.config when XDG_CONFIG_HOME is unset', () => {
@@ -33,27 +33,31 @@ describe('paths', () => {
   });
 
   test('getOpenCodeConfigPaths() returns both json and jsonc paths', () => {
-    process.env.XDG_CONFIG_HOME = '/tmp/xdg-config';
+    process.env.XDG_CONFIG_HOME = join(tmpdir(), 'xdg-config');
     expect(getOpenCodeConfigPaths()).toEqual([
-      '/tmp/xdg-config/opencode/opencode.json',
-      '/tmp/xdg-config/opencode/opencode.jsonc',
+      join(tmpdir(), 'xdg-config', 'opencode', 'opencode.json'),
+      join(tmpdir(), 'xdg-config', 'opencode', 'opencode.jsonc'),
     ]);
   });
 
   test('getConfigJson() returns correct path', () => {
-    process.env.XDG_CONFIG_HOME = '/tmp/xdg-config';
-    expect(getConfigJson()).toBe('/tmp/xdg-config/opencode/opencode.json');
+    process.env.XDG_CONFIG_HOME = join(tmpdir(), 'xdg-config');
+    expect(getConfigJson()).toBe(
+      join(tmpdir(), 'xdg-config', 'opencode', 'opencode.json'),
+    );
   });
 
   test('getConfigJsonc() returns correct path', () => {
-    process.env.XDG_CONFIG_HOME = '/tmp/xdg-config';
-    expect(getConfigJsonc()).toBe('/tmp/xdg-config/opencode/opencode.jsonc');
+    process.env.XDG_CONFIG_HOME = join(tmpdir(), 'xdg-config');
+    expect(getConfigJsonc()).toBe(
+      join(tmpdir(), 'xdg-config', 'opencode', 'opencode.jsonc'),
+    );
   });
 
   test('getLiteConfig() returns correct path', () => {
-    process.env.XDG_CONFIG_HOME = '/tmp/xdg-config';
+    process.env.XDG_CONFIG_HOME = join(tmpdir(), 'xdg-config');
     expect(getLiteConfig()).toBe(
-      '/tmp/xdg-config/opencode/oh-my-opencode-slim.json',
+      join(tmpdir(), 'xdg-config', 'opencode', 'omolite.json'),
     );
   });
 

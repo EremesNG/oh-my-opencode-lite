@@ -12,13 +12,29 @@ const BASE_WEIGHTS: FeatureWeights = {
   coding: 18,
   latencyPenalty: -3,
   pricePenalty: -2,
+  roleAffinity: 30,
+  tierBonus: 18,
 };
 
 const AGENT_WEIGHT_OVERRIDES: Record<
   ScoringAgentName,
   Partial<FeatureWeights>
 > = {
-  orchestrator: {
+  planner: {
+    reasoning: 22,
+    toolcall: 22,
+    quality: 16,
+    coding: 16,
+    latencyPenalty: -2,
+  },
+  architect: {
+    reasoning: 22,
+    toolcall: 22,
+    quality: 16,
+    coding: 16,
+    latencyPenalty: -2,
+  },
+  engineer: {
     reasoning: 22,
     toolcall: 22,
     quality: 16,
@@ -31,12 +47,14 @@ const AGENT_WEIGHT_OVERRIDES: Record<
     coding: 18,
     latencyPenalty: -2,
     output: 7,
+    roleAffinity: 35,
   },
   designer: {
     attachment: 12,
     output: 10,
     quality: 16,
     coding: 10,
+    roleAffinity: 38,
   },
   explorer: {
     latencyPenalty: -8,
@@ -44,18 +62,28 @@ const AGENT_WEIGHT_OVERRIDES: Record<
     reasoning: 2,
     context: 4,
     output: 4,
+    roleAffinity: 45,
+    tierBonus: 28,
   },
   librarian: {
     context: 14,
     output: 10,
     quality: 18,
     coding: 14,
+    tierBonus: 28,
   },
-  fixer: {
+  quick: {
     coding: 28,
     toolcall: 22,
     reasoning: 12,
     output: 10,
+    tierBonus: 28,
+  },
+  deep: {
+    coding: 20,
+    toolcall: 22,
+    reasoning: 18,
+    quality: 16,
   },
 };
 

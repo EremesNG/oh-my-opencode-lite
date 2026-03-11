@@ -1,6 +1,6 @@
 # Quick Reference Guide
 
-Complete reference for oh-my-opencode-slim configuration and capabilities.
+Complete reference for oh-my-opencode-lite configuration and capabilities.
 
 ## Table of Contents
 
@@ -43,7 +43,7 @@ Useful flags:
 
 **Method 1: Edit Config File**
 
-Edit `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`) and change the `preset` field:
+Edit `~/.config/opencode/omolite.json` (or `.jsonc`) and change the `preset` field:
 
 ```json
 {
@@ -56,7 +56,7 @@ Edit `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`) and change the 
 Set the environment variable before running OpenCode:
 
 ```bash
-export OH_MY_OPENCODE_SLIM_PRESET=openai
+export OMOLITE_PRESET=openai
 opencode
 ```
 
@@ -71,12 +71,13 @@ Uses OpenAI models exclusively:
   "preset": "openai",
   "presets": {
     "openai": {
-      "orchestrator": { "model": "openai/gpt-5.2-codex", "skills": ["*"], "mcps": ["websearch"] },
-      "oracle": { "model": "openai/gpt-5.2-codex", "variant": "high", "skills": [], "mcps": [] },
+      "engineer": { "model": "openai/gpt-5.3-codex", "skills": ["*"], "mcps": ["websearch"] },
+      "oracle": { "model": "openai/gpt-5.3-codex", "variant": "high", "skills": [], "mcps": [] },
       "librarian": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
       "explorer": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": [] },
       "designer": { "model": "openai/gpt-5.1-codex-mini", "variant": "medium", "skills": ["agent-browser"], "mcps": [] },
-      "fixer": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": [] }
+      "quick": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": [] },
+      "deep": { "model": "openai/gpt-5.3-codex", "skills": [], "mcps": [] }
     }
   }
 }
@@ -88,14 +89,15 @@ Access Claude 4.5 and Gemini 3 models through Google's Antigravity infrastructur
 
 **Installation:**
 ```bash
-bunx oh-my-opencode-slim install --antigravity=yes --opencode-free=yes --opencode-free-model=auto
+bunx oh-my-opencode-lite install --antigravity=yes --opencode-free=yes --opencode-free-model=auto
 ```
 
 **Agent Mapping:**
-- Orchestrator: Kimi (if available)
+- Engineer: Kimi (if available)
 - Oracle: GPT (if available)
-- Explorer/Librarian/Designer/Fixer: Gemini 3 Flash via Antigravity
-- If OpenCode free mode is enabled, Explorer/Librarian/Fixer may use selected free `opencode/*` support model while `designer` stays on external mapping
+- Explorer/Librarian/Designer: Gemini 3 Flash via Antigravity
+- Quick/Deep: OpenAI defaults when available; otherwise Antigravity defaults
+- If OpenCode free mode is enabled, Explorer/Librarian/Quick may use selected free `opencode/*` support model while `designer` stays on external mapping
 
 **Authentication:**
 ```bash
@@ -123,12 +125,13 @@ Mixed setup combining multiple providers:
   "preset": "alvin",
   "presets": {
     "alvin": {
-      "orchestrator": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["*"] },
+      "engineer": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["*"] },
       "oracle": { "model": "openai/gpt-5.2-codex", "variant": "high", "skills": [], "mcps": [] },
       "librarian": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
       "explorer": { "model": "cerebras/zai-glm-4.7", "variant": "low", "skills": [], "mcps": [] },
       "designer": { "model": "google/gemini-3-flash", "variant": "medium", "skills": ["agent-browser"], "mcps": [] },
-      "fixer": { "model": "cerebras/zai-glm-4.7", "variant": "low", "skills": [], "mcps": [] }
+      "quick": { "model": "cerebras/zai-glm-4.7", "variant": "low", "skills": [], "mcps": [] },
+      "deep": { "model": "cerebras/zai-glm-4.7", "skills": [], "mcps": [] }
     }
   }
 }
@@ -146,14 +149,14 @@ Skills are specialized capabilities provided by external agents and tools. Unlik
 
 | Skill | Description | Assigned To |
 |-------|-------------|-------------|
-| [`simplify`](#simplify) | YAGNI code simplification expert | `orchestrator` |
+| [`simplify`](#simplify) | YAGNI code simplification expert | `engineer` |
 | [`agent-browser`](#agent-browser) | High-performance browser automation | `designer` |
 
 ### Custom Skills (bundled in repo)
 
 | Skill | Description | Assigned To |
 |-------|-------------|-------------|
-| [`cartography`](#cartography) | Repository understanding and hierarchical codemap generation | `orchestrator` |
+| [`cartography`](#cartography) | Repository understanding and hierarchical codemap generation | `engineer` |
 
 ### Simplify
 
@@ -173,11 +176,11 @@ Skills are specialized capabilities provided by external agents and tools. Unlik
 
 A dedicated guide (with screenshots) lives at: **[docs/cartography.md](cartography.md)**.
 
-`cartography` empowers the Orchestrator to build and maintain a deep architectural understanding of any codebase. Instead of reading thousands of lines of code every time, agents refer to hierarchical `codemap.md` files that describe the *why* and *how* of each directory.
+`cartography` empowers the Engineer (orchestrator role) to build and maintain a deep architectural understanding of any codebase. Instead of reading thousands of lines of code every time, agents refer to hierarchical `codemap.md` files that describe the *why* and *how* of each directory.
 
 **How to use:**
 
-Just ask the **Orchestrator** to `run cartography`. It will automatically detect if it needs to initialize a new map or update an existing one.
+Just ask the **Engineer** to `run cartography`. It will automatically detect if it needs to initialize a new map or update an existing one.
 
 **Why it's useful:**
 
@@ -193,8 +196,8 @@ The skill uses a background Python engine (`cartographer.py`) to manage state an
 
 **How it works under the hood:**
 
-1. **Initialize** - Orchestrator analyzes repo structure and runs `init` to create `.slim/cartography.json` (hashes) and empty templates.
-2. **Map** - Orchestrator spawns specialized **Explorer** sub-agents to fill codemaps with timeless architectural details (Responsibility, Design, Flow, Integration).
+1. **Initialize** - Engineer analyzes repo structure and runs `init` to create `.omolite/cartography.json` (hashes) and empty templates.
+2. **Map** - Engineer spawns specialized **Explorer** sub-agents to fill codemaps with timeless architectural details (Responsibility, Design, Flow, Integration).
 3. **Update** - On subsequent runs, the engine detects changed files and only refreshes codemaps for affected folders.
 
 **Manual Commands:**
@@ -216,7 +219,7 @@ python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py update --r
 
 ### Skills Assignment
 
-You can customize which skills each agent is allowed to use in `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`).
+You can customize which skills each agent is allowed to use in `~/.config/opencode/omolite.json` (or `.jsonc`).
 
 **Syntax:**
 
@@ -239,7 +242,7 @@ You can customize which skills each agent is allowed to use in `~/.config/openco
 {
   "presets": {
     "my-preset": {
-      "orchestrator": {
+      "engineer": {
         "skills": ["*", "!agent-browser"]
       },
       "designer": {
@@ -268,16 +271,19 @@ Control which agents can access which MCP servers using per-agent allowlists:
 
 | Agent | Default MCPs |
 |-------|--------------|
-| `orchestrator` | `websearch` |
+| `planner` | `websearch` |
+| `architect` | `websearch` |
+| `engineer` | `websearch` |
 | `designer` | none |
 | `oracle` | none |
 | `librarian` | `websearch`, `context7`, `grep_app` |
 | `explorer` | none |
-| `fixer` | none |
+| `quick` | none |
+| `deep` | none |
 
 ### Configuration & Syntax
 
-You can configure MCP access in your plugin configuration file: `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`).
+You can configure MCP access in your plugin configuration file: `~/.config/opencode/omolite.json` (or `.jsonc`).
 
 **Per-Agent Permissions**
 
@@ -302,7 +308,7 @@ Control which agents can access which MCP servers using the `mcps` array in your
 {
   "presets": {
     "my-preset": {
-      "orchestrator": {
+      "engineer": {
         "mcps": ["websearch"]
       },
       "librarian": {
@@ -328,11 +334,11 @@ You can disable specific MCP servers globally by adding them to the `disabled_mc
 
 > ⚠️ **Temporary workaround:** Start OpenCode with `--port` to enable tmux integration. The port must match the `OPENCODE_PORT` environment variable (default: 4096). This is required until the upstream issue is resolved. [opencode#9099](https://github.com/anomalyco/opencode/issues/9099).
 
-**Watch your agents work in real-time.** When the Orchestrator launches sub-agents or initiates background tasks, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
+**Watch your agents work in real-time.** When the Engineer launches sub-agents or initiates background tasks, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
 
 #### Quick Setup
 
-1. **Enable tmux integration** in `oh-my-opencode-slim.json` (or `.jsonc`):
+1. **Enable tmux integration** in `omolite.json` (or `.jsonc`):
 
    ```json
    {
@@ -410,17 +416,17 @@ OpenCode automatically formats files after they're written or edited using langu
 | File | Purpose |
 |------|---------|
 | `~/.config/opencode/opencode.json` | OpenCode core settings |
-| `~/.config/opencode/oh-my-opencode-slim.json` or `.jsonc` | Plugin settings (agents, tmux, MCPs) |
-| `.opencode/oh-my-opencode-slim.json` or `.jsonc` | Project-local plugin overrides (optional) |
+| `~/.config/opencode/omolite.json` or `.jsonc` | Plugin settings (agents, tmux, MCPs) |
+| `.opencode/omolite.json` or `.jsonc` | Project-local plugin overrides (optional) |
 
 > **💡 JSONC Support:** Configuration files support JSONC format (JSON with Comments). Use `.jsonc` extension to enable comments and trailing commas. If both `.jsonc` and `.json` exist, `.jsonc` takes precedence.
 
 ### Prompt Overriding
 
-You can customize agent prompts by creating markdown files in `~/.config/opencode/oh-my-opencode-slim/`:
+You can customize agent prompts by creating markdown files in `~/.config/opencode/omolite/`:
 
 - With no preset, prompt files are loaded directly from this directory.
-- With `preset` set (for example `test`), the plugin first checks `~/.config/opencode/oh-my-opencode-slim/{preset}/`, then falls back to the root prompt directory.
+- With `preset` set (for example `test`), the plugin first checks `~/.config/opencode/omolite/{preset}/`, then falls back to the root prompt directory.
 
 | File | Purpose |
 |------|---------|
@@ -430,12 +436,12 @@ You can customize agent prompts by creating markdown files in `~/.config/opencod
 **Example:**
 
 ```
-~/.config/opencode/oh-my-opencode-slim/
+~/.config/opencode/omolite/
   ├── test/
-  │   ├── orchestrator.md      # Preset-specific override (preferred)
+  │   ├── engineer.md           # Preset-specific override (preferred)
   │   └── explorer_append.md
-  ├── orchestrator.md          # Custom orchestrator prompt
-  ├── orchestrator_append.md   # Append to default orchestrator prompt
+  ├── engineer.md              # Custom engineer prompt
+  ├── engineer_append.md       # Append to default engineer prompt
   ├── explorer.md
   ├── explorer_append.md
   └── ...
@@ -460,8 +466,8 @@ The plugin supports **JSONC** format for configuration files, allowing you to:
 - Use trailing commas in arrays and objects
 
 **File Priority:**
-1. `oh-my-opencode-slim.jsonc` (preferred if exists)
-2. `oh-my-opencode-slim.json` (fallback)
+1. `omolite.jsonc` (preferred if exists)
+2. `omolite.json` (fallback)
 
 **Example JSONC Configuration:**
 
@@ -486,7 +492,7 @@ The plugin supports **JSONC** format for configuration files, allowing you to:
 }
 ```
 
-### Plugin Config (`oh-my-opencode-slim.json` or `oh-my-opencode-slim.jsonc`)
+### Plugin Config (`omolite.json` or `omolite.jsonc`)
 
 The installer generates this file based on your providers. You can manually customize it to mix and match models. See the [Presets](#presets) section for detailed configuration options.
 
@@ -501,9 +507,47 @@ The installer generates this file based on your providers. You can manually cust
 | `presets.<name>.<agent>.variant` | string | - | Agent variant for reasoning effort (e.g., `"low"`, `"medium"`, `"high"`) |
 | `presets.<name>.<agent>.skills` | string[] | - | Array of skill names the agent can use (`"*"` for all, `"!item"` to exclude) |
 | `presets.<name>.<agent>.mcps` | string[] | - | Array of MCP names the agent can use (`"*"` for all, `"!item"` to exclude) |
+| `presets.<name>.quick` | object | - | Full agent config for simple, well-defined changes |
+| `presets.<name>.deep` | object | - | Full agent config for complex changes requiring thought |
+| `fallback.chains.quick` | string[] | - | Fallback chain for quick tasks |
+| `fallback.chains.deep` | string[] | - | Fallback chain for deep tasks |
 | `tmux.enabled` | boolean | `false` | Enable tmux pane spawning for sub-agents |
 | `tmux.layout` | string | `"main-vertical"` | Layout preset: `main-vertical`, `main-horizontal`, `tiled`, `even-horizontal`, `even-vertical` |
 | `tmux.main_pane_size` | number | `60` | Main pane size as percentage (20-80) |
 | `disabled_mcps` | string[] | `[]` | MCP server IDs to disable globally (e.g., `"websearch"`) |
 
-> **Note:** Agent configuration should be defined within `presets`. The root-level `agents` field is deprecated.
+#### Effort-Based Model Selection
+
+The implementation layer supports two dedicated agents: **quick** and **deep**. Use `quick` for simple, well-defined changes and `deep` for complex changes requiring more thought.
+
+- **quick**: Cheap/fast model for simple, well-defined changes (e.g., rename a variable, add a comment)
+- **deep**: Capable model for complex changes requiring thought (e.g., refactor a function, implement a feature)
+
+Each agent is a full config with `model`, `variant`, `skills`, and `mcps`. Fallback chains are defined separately under `fallback.chains.quick` and `fallback.chains.deep`.
+
+**Example configuration:**
+
+```json
+{
+  "preset": "my-preset",
+  "presets": {
+    "my-preset": {
+      "quick": { "model": "anthropic/claude-haiku-4-5", "variant": "low", "skills": [], "mcps": [] },
+      "deep": { "model": "openai/gpt-5.3-codex", "skills": [], "mcps": [] }
+    }
+  },
+  "fallback": {
+    "enabled": true,
+    "timeoutMs": 15000,
+    "chains": {
+      "engineer": ["openai/gpt-5.3-codex", "opencode/big-pickle"],
+      "quick": ["anthropic/claude-haiku-4-5", "opencode/big-pickle"],
+      "deep": ["openai/gpt-5.3-codex", "anthropic/claude-sonnet-4-5", "opencode/big-pickle"]
+    }
+  }
+}
+```
+
+The installer automatically generates quick/deep agent config and fallback chains based on your available providers.
+
+> **Note:** Agent configuration can be defined in `presets` and/or at root-level `agents`. Root-level `agents` remains supported and can override preset values.

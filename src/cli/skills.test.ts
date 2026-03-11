@@ -2,12 +2,14 @@ import { describe, expect, it } from 'bun:test';
 import { getSkillPermissionsForAgent } from './skills';
 
 describe('skills permissions', () => {
-  it('should allow all skills for orchestrator by default', () => {
-    const permissions = getSkillPermissionsForAgent('orchestrator');
-    expect(permissions['*']).toBe('allow');
+  it('should allow all skills for primary agents by default', () => {
+    for (const agent of ['planner', 'architect', 'engineer']) {
+      const permissions = getSkillPermissionsForAgent(agent);
+      expect(permissions['*']).toBe('allow');
+    }
   });
 
-  it('should deny all skills for other agents by default', () => {
+  it('should deny all skills for subagents by default', () => {
     const permissions = getSkillPermissionsForAgent('designer');
     expect(permissions['*']).toBe('deny');
   });
@@ -17,14 +19,14 @@ describe('skills permissions', () => {
     const designerPerms = getSkillPermissionsForAgent('designer');
     expect(designerPerms['agent-browser']).toBe('allow');
 
-    // Developer (orchestrator) should have simplify allowed (and everything else via *)
-    const orchPerms = getSkillPermissionsForAgent('orchestrator');
-    expect(orchPerms.simplify).toBe('allow');
+    // Engineer (primary) should have simplify allowed (and everything else via *)
+    const engPerms = getSkillPermissionsForAgent('engineer');
+    expect(engPerms.simplify).toBe('allow');
   });
 
   it('should honor explicit skill list overrides', () => {
     // Override with empty list
-    const emptyPerms = getSkillPermissionsForAgent('orchestrator', []);
+    const emptyPerms = getSkillPermissionsForAgent('engineer', []);
     expect(emptyPerms['*']).toBe('deny');
     expect(Object.keys(emptyPerms).length).toBe(1);
 

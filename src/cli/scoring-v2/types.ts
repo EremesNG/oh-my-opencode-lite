@@ -11,19 +11,24 @@ export type ScoreFeatureName =
   | 'quality'
   | 'coding'
   | 'latencyPenalty'
-  | 'pricePenalty';
+  | 'pricePenalty'
+  | 'roleAffinity'
+  | 'tierBonus';
 
 export type FeatureVector = Record<ScoreFeatureName, number>;
 
 export type FeatureWeights = Record<ScoreFeatureName, number>;
 
 export type ScoringAgentName =
-  | 'orchestrator'
+  | 'planner'
+  | 'architect'
+  | 'engineer'
   | 'oracle'
   | 'designer'
   | 'explorer'
   | 'librarian'
-  | 'fixer';
+  | 'quick'
+  | 'deep';
 
 export interface ScoringContext {
   agent: ScoringAgentName;

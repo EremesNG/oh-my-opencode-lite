@@ -37,6 +37,12 @@ coverage/
 tmp/
 temp/
 local
+.reference/
+.omolite/
+!.omolite/plans/
+
+# omolite machine-specific state (plans are tracked)
+.omolite/state/
 
 .sisyphus/
 .hive/

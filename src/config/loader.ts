@@ -2,9 +2,10 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { stripJsonComments } from '../cli/config-io';
+import { AGENT_ALIASES } from './constants';
 import { type PluginConfig, PluginConfigSchema } from './schema';
 
-const PROMPTS_DIR_NAME = 'oh-my-opencode-slim';
+const PROMPTS_DIR_NAME = 'omolite';
 
 /**
  * Get the user's configuration directory following XDG Base Directory specification.
@@ -33,7 +34,7 @@ function loadConfigFromPath(configPath: string): PluginConfig | null {
     const result = PluginConfigSchema.safeParse(rawConfig);
 
     if (!result.success) {
-      console.warn(`[oh-my-opencode-slim] Invalid config at ${configPath}:`);
+      console.warn(`[omolite] Invalid config at ${configPath}:`);
       console.warn(result.error.format());
       return null;
     }
@@ -47,7 +48,7 @@ function loadConfigFromPath(configPath: string): PluginConfig | null {
       (error as NodeJS.ErrnoException).code !== 'ENOENT'
     ) {
       console.warn(
-        `[oh-my-opencode-slim] Error reading config from ${configPath}:`,
+        `[omolite] Error reading config from ${configPath}:`,
         error.message,
       );
     }
@@ -59,7 +60,7 @@ function loadConfigFromPath(configPath: string): PluginConfig | null {
  * Find existing config file path, preferring .jsonc over .json.
  * Checks for .jsonc first, then falls back to .json.
  *
- * @param basePath - Base path without extension (e.g., /path/to/oh-my-opencode-slim)
+ * @param basePath - Base path without extension (e.g., /path/to/oh-my-opencode-lite)
  * @returns Path to existing config file, or null if neither exists
  */
 function findConfigPath(basePath: string): string | null {
@@ -119,8 +120,8 @@ function deepMerge<T extends Record<string, unknown>>(
  * Load plugin configuration from user and project config files, merging them appropriately.
  *
  * Configuration is loaded from two locations:
- * 1. User config: ~/.config/opencode/oh-my-opencode-slim.jsonc or .json (or $XDG_CONFIG_HOME)
- * 2. Project config: <directory>/.opencode/oh-my-opencode-slim.jsonc or .json
+ * 1. User config: ~/.config/opencode/oh-my-opencode-lite.jsonc or .json (or $XDG_CONFIG_HOME)
+ * 2. Project config: <directory>/.opencode/oh-my-opencode-lite.jsonc or .json
  *
  * JSONC format is preferred over JSON (allows comments and trailing commas).
  * Project config takes precedence over user config. Nested objects (agents, tmux) are
@@ -133,14 +134,10 @@ export function loadPluginConfig(directory: string): PluginConfig {
   const userConfigBasePath = path.join(
     getUserConfigDir(),
     'opencode',
-    'oh-my-opencode-slim',
+    'omolite',
   );
 
-  const projectConfigBasePath = path.join(
-    directory,
-    '.opencode',
-    'oh-my-opencode-slim',
-  );
+  const projectConfigBasePath = path.join(directory, '.opencode', 'omolite');
 
   // Find existing config files (preferring .jsonc over .json)
   const userConfigPath = findConfigPath(userConfigBasePath);
@@ -164,7 +161,7 @@ export function loadPluginConfig(directory: string): PluginConfig {
   }
 
   // Override preset from environment variable if set
-  const envPreset = process.env.OH_MY_OPENCODE_SLIM_PRESET;
+  const envPreset = process.env.OMOLITE_PRESET;
   if (envPreset) {
     config.preset = envPreset;
   }
@@ -183,7 +180,7 @@ export function loadPluginConfig(directory: string): PluginConfig {
         ? Object.keys(config.presets).join(', ')
         : 'none';
       console.warn(
-        `[oh-my-opencode-slim] Preset "${config.preset}" not found (from ${presetSource}). Available presets: ${availablePresets}`,
+        `[omolite] Preset "${config.preset}" not found (from ${presetSource}). Available presets: ${availablePresets}`,
       );
     }
   }
@@ -194,10 +191,11 @@ export function loadPluginConfig(directory: string): PluginConfig {
 /**
  * Load custom prompt for an agent from the prompts directory.
  * Checks for {agent}.md (replaces default) and {agent}_append.md (appends to default).
+ * Also supports legacy alias names (e.g., junior -> quick).
  * If preset is provided and safe for paths, it first checks {preset}/ subdirectory,
  * then falls back to the root prompts directory.
  *
- * @param agentName - Name of the agent (e.g., "orchestrator", "explorer")
+ * @param agentName - Name of the agent (e.g., "engineer", "explorer")
  * @param preset - Optional preset name for preset-scoped prompt lookup
  * @returns Object with prompt and/or appendPrompt if files exist
  */
@@ -218,25 +216,31 @@ export function loadAgentPrompt(
   const promptSearchDirs = presetDirName
     ? [path.join(promptsDir, presetDirName), promptsDir]
     : [promptsDir];
+  const aliasNames = Object.keys(AGENT_ALIASES).filter(
+    (alias) => AGENT_ALIASES[alias] === agentName,
+  );
+  const candidateNames = [agentName, ...aliasNames];
   const result: { prompt?: string; appendPrompt?: string } = {};
 
   const readFirstPrompt = (
-    fileName: string,
+    fileNames: string[],
     errorPrefix: string,
   ): string | undefined => {
     for (const dir of promptSearchDirs) {
-      const promptPath = path.join(dir, fileName);
-      if (!fs.existsSync(promptPath)) {
-        continue;
-      }
+      for (const fileName of fileNames) {
+        const promptPath = path.join(dir, fileName);
+        if (!fs.existsSync(promptPath)) {
+          continue;
+        }
 
-      try {
-        return fs.readFileSync(promptPath, 'utf-8');
-      } catch (error) {
-        console.warn(
-          `[oh-my-opencode-slim] ${errorPrefix} ${promptPath}:`,
-          error instanceof Error ? error.message : String(error),
-        );
+        try {
+          return fs.readFileSync(promptPath, 'utf-8');
+        } catch (error) {
+          console.warn(
+            `[omolite] ${errorPrefix} ${promptPath}:`,
+            error instanceof Error ? error.message : String(error),
+          );
+        }
       }
     }
 
@@ -245,13 +249,13 @@ export function loadAgentPrompt(
 
   // Check for replacement prompt
   result.prompt = readFirstPrompt(
-    `${agentName}.md`,
+    candidateNames.map((name) => `${name}.md`),
     'Error reading prompt file',
   );
 
   // Check for append prompt
   result.appendPrompt = readFirstPrompt(
-    `${agentName}_append.md`,
+    candidateNames.map((name) => `${name}_append.md`),
     'Error reading append prompt file',
   );
 

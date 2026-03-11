@@ -4,6 +4,9 @@ import type {
   ExternalModelSignal,
   ExternalSignalMap,
 } from '../types';
+import { getIntraProviderTierBonus } from './intra-provider-tier';
+import { classifyModelFamily } from './model-family';
+import { getRoleAffinity } from './role-affinity';
 import type { FeatureVector, ScoringAgentName } from './types';
 
 function modelLookupKeys(model: DiscoveredModel): string[] {
@@ -53,28 +56,37 @@ function kimiVersionBonus(
   const isMinimaxM21 = isChutes && /minimax[-_ ]?m2\.1/.test(lowered);
 
   const qwenPenalty: Record<ScoringAgentName, number> = {
-    orchestrator: -6,
+    planner: -6,
+    architect: -6,
+    engineer: -6,
     oracle: -6,
     designer: -8,
     explorer: -6,
     librarian: -12,
-    fixer: -12,
+    quick: -12,
+    deep: -6,
   };
   const kimiBonus: Record<ScoringAgentName, number> = {
-    orchestrator: 1,
+    planner: 1,
+    architect: 1,
+    engineer: 1,
     oracle: 1,
     designer: 3,
     explorer: 2,
     librarian: 2,
-    fixer: 3,
+    quick: 3,
+    deep: 1,
   };
   const minimaxBonus: Record<ScoringAgentName, number> = {
-    orchestrator: 1,
+    planner: 1,
+    architect: 1,
+    engineer: 1,
     oracle: 1,
     designer: 2,
     explorer: 4,
     librarian: 4,
-    fixer: 4,
+    quick: 4,
+    deep: 1,
   };
 
   if (isQwen3) return qwenPenalty[agent];
@@ -112,5 +124,7 @@ export function extractFeatureVector(
     coding,
     latencyPenalty: Math.min(latency, 20) * explorerLatencyMultiplier,
     pricePenalty,
+    roleAffinity: getRoleAffinity(agent, classifyModelFamily(model)),
+    tierBonus: getIntraProviderTierBonus(agent, model),
   };
 }

@@ -1,6 +1,6 @@
 # Tmux Integration Guide
 
-Complete guide for using tmux integration with oh-my-opencode-slim to watch agents work in real-time through automatic pane spawning.
+Complete guide for using tmux integration with oh-my-opencode-lite to watch agents work in real-time through automatic pane spawning.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ Complete guide for using tmux integration with oh-my-opencode-slim to watch agen
 
 ## Overview
 
-**Watch your agents work in real-time.** When the Orchestrator launches sub-agents or initiates background tasks, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
+**Watch your agents work in real-time.** When the Engineer launches sub-agents or initiates background tasks, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
 
 ### Key Benefits
 
@@ -34,7 +34,7 @@ Complete guide for using tmux integration with oh-my-opencode-slim to watch agen
 
 ### Step 1: Enable Tmux Integration
 
-Edit `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`):
+Edit `~/.config/opencode/omolite.json` (or `.jsonc`):
 
 ```json
 {
@@ -64,7 +64,7 @@ That's it! Your agents will now spawn panes automatically.
 
 ### Tmux Settings
 
-Configure tmux behavior in `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`):
+Configure tmux behavior in `~/.config/opencode/omolite.json` (or `.jsonc`):
 
 ```json
 {
@@ -128,7 +128,7 @@ Choose how panes are arranged:
    opencode --port 4096
    ```
 
-2. **Ask the Orchestrator to delegate work:**
+2. **Ask the Engineer to delegate work:**
    ```
    Please analyze this codebase and create a documentation structure.
    ```
@@ -210,7 +210,7 @@ Ctrl+B d      # detach from current session
 **Solutions:**
 1. **Verify tmux integration is enabled:**
    ```bash
-    cat ~/.config/opencode/oh-my-opencode-slim.json | grep tmux # (or .jsonc)
+    cat ~/.config/opencode/omolite.json | grep tmux # (or .jsonc)
    ```
 
 2. **Check port configuration:**

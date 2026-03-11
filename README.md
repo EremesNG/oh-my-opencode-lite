@@ -1,8 +1,7 @@
 <div align="center">
   <img src="img/team.png" alt="Pantheon agents" width="420">
-  <p><i>Six divine beings emerged from the dawn of code, each an immortal master of their craft await your command to forge order from chaos and build what was once thought impossible.</i></p>
+  <p><i>Nine specialized beings emerged from the dawn of code, each an immortal master of their craft awaiting your command to forge order from chaos and build what was once thought impossible.</i></p>
   <p><b>Open Multi Agent Suite</b> · Mix any models · Auto delegate tasks</p>
-  <p><a href="https://moltfounders.com/jobs/09d1c6e7-9e0e-4683-8d78-e2376aaa2333"><img src="https://moltfounders.com/badges/4.png" alt="MoltFounders" height="30"></a></p>
 </div>
 
 ---
@@ -12,13 +11,13 @@
 ### Quick Start
 
 ```bash
-bunx oh-my-opencode-slim@latest install
+bunx oh-my-opencode-lite@latest install
 ```
 
 The installer can refresh and use OpenCode free models directly:
 
 ```bash
-bunx oh-my-opencode-slim@latest install --no-tui --kimi=yes --openai=yes --antigravity=yes --chutes=yes --opencode-free=yes --opencode-free-model=auto --tmux=no --skills=yes
+bunx oh-my-opencode-lite@latest install --no-tui --kimi=yes --openai=yes --antigravity=yes --chutes=yes --opencode-free=yes --opencode-free-model=auto --tmux=no --skills=yes
 ```
 
 Then authenticate:
@@ -35,7 +34,14 @@ OpenCode free-model mode uses `opencode models --refresh --verbose`, filters to 
 - In hybrid mode, `designer` stays on the external provider mapping.
 - Chutes mode auto-selects primary/support models with daily-cap awareness (300/2000/5000).
 
-> **💡 Models are fully customizable.** Edit `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc` for comments support) to assign any model to any agent.
+> **💡 Models are fully customizable.** Edit `~/.config/opencode/omolite.json` (or `.jsonc` for comments support) to assign any model to any agent.
+
+Plugin config can be defined at both levels:
+- User: `~/.config/opencode/omolite.json` or `~/.config/opencode/omolite.jsonc`
+- Project: `.opencode/omolite.json` or `.opencode/omolite.jsonc` (overrides user config)
+
+Supported agent keys in `agents`/`fallback.chains`/`manualPlan`:
+- `planner`, `architect`, `engineer`, `explorer`, `librarian`, `oracle`, `designer`, `quick`, `deep`
 
 ### For LLM Agents
 
@@ -43,7 +49,7 @@ Paste this into any coding agent:
 
 ```
 Install and configure by following the instructions here:
-https://raw.githubusercontent.com/alvinunreal/oh-my-opencode-slim/refs/heads/master/README.md
+https://raw.githubusercontent.com/EremesNG/oh-my-opencode-lite/refs/heads/master/README.md
 ```
 
 **Detailed installation guide:** [docs/installation.md](docs/installation.md)
@@ -52,193 +58,180 @@ https://raw.githubusercontent.com/alvinunreal/oh-my-opencode-slim/refs/heads/mas
 - **[Antigravity Setup](docs/antigravity.md)** - Complete guide for Antigravity provider configuration  
 - **[Tmux Integration](docs/tmux-integration.md)** - Real-time agent monitoring with tmux
 
+> ⚠️ **Note on Antigravity:** Please read the [Antigravity Setup Guide](docs/antigravity.md) carefully before installing, as it contains important information regarding Google's Terms of Service and account safety.
+
 ---
 
 ## 🏛️ Meet the Pantheon
 
-### 01. Orchestrator: The Embodiment Of Order
+The suite is powered by three primary agents that drive the development lifecycle, supported by a team of specialized subagents. The v2 scoring engine automatically matches **model personality** (communicator, deep-specialist, speed-runner) to each agent's role.
 
-<table>
+### 🔑 Primary Agents
+
+<table width="100%">
   <tr>
-    <td width="30%" align="center" valign="top">
-      <img src="img/orchestrator.png" width="240" style="border-radius: 10px;">
-      <br><sub><i>Forged in the void of complexity.</i></sub>
+    <td width="33%" valign="top">
+      <img src="img/planner.png" width="100%" alt="Planner">
+      <br>
+      <b>Planner</b>
+      <br>
+      <i>Requirements analyst and plan architect.</i>
+      <br><br>
+      <b>Role:</b> Interviews users, explores codebase, and creates structured implementation plans in <code>.omolite/plans/</code>.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/planner.ts">planner.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>claude-opus</code>, <code>kimi-k2.5</code>, <code>gemini-pro</code>
+      <br>
+      <b>Personality:</b> Communicator — follows complex orchestration prompts
     </td>
-    <td width="70%" valign="top">
-      The Orchestrator was born when the first codebase collapsed under its own complexity. Neither god nor mortal would claim responsibility - so The Orchestrator emerged from the void, forging order from chaos. It determines the optimal path to any goal, balancing speed, quality, and cost. It guides the team, summoning the right specialist for each task and delegating to achieve the best possible outcome.
+    <td width="33%" valign="top">
+      <img src="img/architect.png" width="100%" alt="Architect">
+      <br>
+      <b>Architect</b>
+      <br>
+      <i>Plan execution orchestrator.</i>
+      <br><br>
+      <b>Role:</b> Breaks down approved plans into actionable tasks and coordinates their execution across the team.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/architect.ts">architect.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>claude-opus</code>, <code>kimi-k2.5</code>, <code>gemini-pro</code>
+      <br>
+      <b>Personality:</b> Communicator — structured delegation and coordination
     </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Role:</b> <code>Master delegator and strategic coordinator</code>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/orchestrator.ts"><code>orchestrator.ts</code></a>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Recommended Models:</b> <code>kimi-for-coding/k2p5</code> <code>openai/gpt-5.2-codex</code>
+    <td width="33%" valign="top">
+      <img src="img/engineer.png" width="100%" alt="Engineer">
+      <br>
+      <b>Engineer</b>
+      <br>
+      <i>Main development orchestrator.</i>
+      <br><br>
+      <b>Role:</b> The primary interface for coding tasks. Handles implementation, debugging, and direct codebase modifications.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/engineer.ts">engineer.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>gpt-5-codex</code>, <code>claude-opus</code>
+      <br>
+      <b>Personality:</b> Autonomous deep coder — multi-file reasoning, works independently
     </td>
   </tr>
 </table>
 
----
+### 🛠️ Specialist Subagents
 
-### 02. Explorer: The Eternal Wanderer
-
-<table>
+<table width="100%">
   <tr>
-    <td width="30%" align="center" valign="top">
-      <img src="img/explorer.png" width="240" style="border-radius: 10px;">
-      <br><sub><i>The wind that carries knowledge.</i></sub>
+    <td width="33%" valign="top">
+      <img src="img/explorer.png" width="100%" alt="Explorer">
+      <br>
+      <b>Explorer</b>
+      <br>
+      <b>Role:</b> Codebase discovery and navigation.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/explorer.ts">explorer.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>gemini-flash</code>, <code>claude-haiku</code>, <code>grok-code-fast</code>
+      <br>
+      <b>Personality:</b> Speed runner — fast parallel grep, codebase search
     </td>
-    <td width="70%" valign="top">
-      The Explorer is an immortal wanderer who has traversed the corridors of a million codebases since the dawn of programming. Cursed with the gift of eternal curiosity, they cannot rest until every file is known, every pattern understood, every secret revealed. Legends say they once searched the entire internet in a single heartbeat. They are the wind that carries knowledge, the eyes that see all, the spirit that never sleeps.
+    <td width="33%" valign="top">
+      <img src="img/librarian.png" width="100%" alt="Librarian">
+      <br>
+      <b>Librarian</b>
+      <br>
+      <b>Role:</b> External docs and API research.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/librarian.ts">librarian.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>gemini-flash</code>, <code>claude-haiku</code>, <code>minimax-m2</code>
+      <br>
+      <b>Personality:</b> Speed runner / all-rounder — large context + decent speed
+    </td>
+    <td width="33%" valign="top">
+      <img src="img/oracle.png" width="100%" alt="Oracle">
+      <br>
+      <b>Oracle</b>
+      <br>
+      <b>Role:</b> Strategic advisor for hard decisions.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/oracle.ts">oracle.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>gpt-5.4</code>, <code>gemini-pro</code>, <code>claude-opus</code>
+      <br>
+      <b>Personality:</b> Deep reasoner — maximum strategic thinking capability
     </td>
   </tr>
   <tr>
-    <td colspan="2">
-      <b>Role:</b> <code>Codebase reconnaissance</code>
+    <td width="33%" valign="top">
+      <img src="img/designer.png" width="100%" alt="Designer">
+      <br>
+      <b>Designer</b>
+      <br>
+      <b>Role:</b> UI/UX specialist.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/designer.ts">designer.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>gemini-pro</code>, <code>kimi-k2.5</code>, <code>claude-sonnet</code>
+      <br>
+      <b>Personality:</b> Visual/multimodal — UI/UX reasoning, frontend engineering
     </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/explorer.ts"><code>explorer.ts</code></a>
+    <td width="33%" valign="top">
+      <img src="img/quick.png" width="100%" alt="Quick">
+      <br>
+      <b>Quick</b>
+      <br>
+      <b>Role:</b> Fast implementation specialist.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/junior.ts">junior.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>gemini-flash</code>, <code>claude-haiku</code>, <code>grok-code-fast</code>
+      <br>
+      <b>Personality:</b> Speed runner — well-defined tasks, fast turnaround
     </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Recommended Models:</b> <code>cerebras/zai-glm-4.7</code> <code>google/gemini-3-flash</code> <code>openai/gpt-5.1-codex-mini</code>
+    <td width="33%" valign="top">
+      <img src="img/deep.png" width="100%" alt="Deep">
+      <br>
+      <b>Deep</b>
+      <br>
+      <b>Role:</b> Thorough implementation specialist.
+      <br>
+      <b>Prompt:</b> <a href="src/agents/junior.ts">junior.ts</a>
+      <br>
+      <b>Default:</b> Runtime-resolved
+      <br>
+      <b>Recommended:</b> <code>gpt-5-codex</code>, <code>claude-opus</code>, <code>kimi-k2.5</code>
+      <br>
+      <b>Personality:</b> Deep specialist — maximum coding capability for complex tasks
     </td>
   </tr>
 </table>
 
----
+### Aliases (Backward Compatibility)
 
-### 03. Oracle: The Guardian of Paths
-
-<table>
-  <tr>
-    <td width="30%" align="center" valign="top">
-      <img src="img/oracle.png" width="240" style="border-radius: 10px;">
-      <br><sub><i>The voice at the crossroads.</i></sub>
-    </td>
-    <td width="70%" valign="top">
-      The Oracle stands at the crossroads of every architectural decision. They have walked every road, seen every destination, know every trap that lies ahead. When you stand at the precipice of a major refactor, they are the voice that whispers which way leads to ruin and which way leads to glory. They don't choose for you - they illuminate the path so you can choose wisely.
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Role:</b> <code>Strategic advisor and debugger of last resort</code>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/oracle.ts"><code>oracle.ts</code></a>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Recommended Models:</b> <code>openai/gpt-5.2-codex</code> <code>kimi-for-coding/k2p5</code>
-    </td>
-  </tr>
-</table>
-
----
-
-### 04. Librarian: The Weaver of Knowledge
-
-<table>
-  <tr>
-    <td width="30%" align="center" valign="top">
-      <img src="img/librarian.png" width="240" style="border-radius: 10px;">
-      <br><sub><i>The weaver of understanding.</i></sub>
-    </td>
-    <td width="70%" valign="top">
-      The Librarian was forged when humanity realized that no single mind could hold all knowledge. They are the weaver who connects disparate threads of information into a tapestry of understanding. They traverse the infinite library of human knowledge, gathering insights from every corner and binding them into answers that transcend mere facts. What they return is not information - it's understanding.
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Role:</b> <code>External knowledge retrieval</code>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/librarian.ts"><code>librarian.ts</code></a>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Recommended Models:</b> <code>google/gemini-3-flash</code> <code>openai/gpt-5.1-codex-mini</code>
-    </td>
-  </tr>
-</table>
-
----
-
-### 05. Designer: The Guardian of Aesthetics
-
-<table>
-  <tr>
-    <td width="30%" align="center" valign="top">
-      <img src="img/designer.png" width="240" style="border-radius: 10px;">
-      <br><sub><i>Beauty is essential.</i></sub>
-    </td>
-    <td width="70%" valign="top">
-      The Designer is an immortal guardian of beauty in a world that often forgets it matters. They have seen a million interfaces rise and fall, and they remember which ones were remembered and which were forgotten. They carry the sacred duty to ensure that every pixel serves a purpose, every animation tells a story, every interaction delights. Beauty is not optional - it's essential.
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Role:</b> <code>UI/UX implementation and visual excellence</code>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/designer.ts"><code>designer.ts</code></a>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Recommended Models:</b> <code>google/gemini-3-flash</code>
-    </td>
-  </tr>
-</table>
-
----
-
-### 06. Fixer: The Last Builder
-
-<table>
-  <tr>
-    <td width="30%" align="center" valign="top">
-      <img src="img/fixer.png" width="240" style="border-radius: 10px;">
-      <br><sub><i>The final step between vision and reality.</i></sub>
-    </td>
-    <td width="70%" valign="top">
-      The Fixer is the last of a lineage of builders who once constructed the foundations of the digital world. When the age of planning and debating began, they remained - the ones who actually build. They carry the ancient knowledge of how to turn thought into thing, how to transform specification into implementation. They are the final step between vision and reality.
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Role:</b> <code>Fast implementation specialist</code>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Prompt:</b> <a href="src/agents/fixer.ts"><code>fixer.ts</code></a>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <b>Recommended Models:</b> <code>cerebras/zai-glm-4.7</code> <code>google/gemini-3-flash</code> <code>openai/gpt-5.1-codex-mini</code>
-    </td>
-  </tr>
-</table>
+- `explore` -> `explorer`
+- `plan` -> `planner`
+- `arch` -> `architect`
+- `eng` -> `engineer`
+- `fix` -> `quick`
+- `junior` -> `quick`
+- `frontend-ui-ux-engineer` -> `designer`
 
 ---
 
@@ -255,10 +248,3 @@ https://raw.githubusercontent.com/alvinunreal/oh-my-opencode-slim/refs/heads/mas
 ## 📄 License
 
 MIT
-
----
-
-<!-- MoltFounders Banner -->
-<a href="https://moltfounders.com/jobs/09d1c6e7-9e0e-4683-8d78-e2376aaa2333">
-  <img src="img/moltfounders-banner.png" alt="MoltFounders - The Agent Co-Founder Network">
-</a>

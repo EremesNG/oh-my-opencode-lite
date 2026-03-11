@@ -1,10 +1,24 @@
 # Antigravity Setup Guide
 
+<details open>
+<summary><b>⚠️ Terms of Service Warning — Read Before Installing</b></summary>
+
+> [!CAUTION]
+> Using this plugin (and any proxy for antgravity) violate Google's Terms of Service. A number of users have reported their Google accounts being **banned** or **shadow-banned** (restricted access without explicit notification).
+>
+> **By using this plugin, you acknowledge:**
+> - This is an unofficial tool not endorsed by Google
+> - Your account may be suspended or permanently banned
+> - You assume all risks associated with using this plugin
+>
+
+</details>
+
 ## Quick Setup
 
 1. Install with Antigravity support:
    ```bash
-   bunx oh-my-opencode-slim install --antigravity=yes
+   bunx oh-my-opencode-lite install --antigravity=yes
    ```
 
 2. Authenticate:
@@ -85,35 +99,44 @@ The installer automatically:
 When you install with `--antigravity=yes`, the preset depends on other providers:
 
 ### antigravity-mixed-both (Kimi + OpenAI + Antigravity)
-- **Orchestrator**: Kimi k2p5
+- **Engineer**: Kimi k2p5
 - **Oracle**: OpenAI model
-- **Explorer/Librarian/Designer/Fixer**: Gemini 3 Flash (Antigravity)
+- **Explorer**: Gemini 3 Flash (Antigravity)
+- **Librarian/Designer**: Chutes models when Chutes is enabled; otherwise Gemini 3 Flash (Antigravity)
+- **Quick/Deep**: OpenAI defaults
 
 ### antigravity-mixed-kimi (Kimi + Antigravity)
-- **Orchestrator**: Kimi k2p5
+- **Engineer**: Kimi k2p5
 - **Oracle**: Gemini 3.1 Pro (Antigravity)
-- **Explorer/Librarian/Designer/Fixer**: Gemini 3 Flash (Antigravity)
+- **Explorer**: Gemini 3 Flash (Antigravity)
+- **Librarian/Designer**: Chutes models when Chutes is enabled; otherwise Gemini 3 Flash (Antigravity)
+- **Quick/Deep**: Chutes defaults when Chutes is enabled; otherwise Antigravity defaults
 
 ### antigravity-mixed-openai (OpenAI + Antigravity)
-- **Orchestrator**: Gemini 3 Flash (Antigravity)
+- **Engineer**: Chutes primary model when Chutes is enabled; otherwise Gemini 3 Flash (Antigravity)
 - **Oracle**: OpenAI model
-- **Explorer/Librarian/Designer/Fixer**: Gemini 3 Flash (Antigravity)
+- **Explorer**: Gemini 3 Flash (Antigravity)
+- **Librarian/Designer**: Chutes models when Chutes is enabled; otherwise Gemini 3 Flash (Antigravity)
+- **Quick/Deep**: OpenAI defaults
 
 ### antigravity (Pure Antigravity)
-- **Orchestrator**: Gemini 3 Flash (Antigravity)
+- **Engineer**: Gemini 3 Flash (Antigravity)
 - **Oracle**: Gemini 3.1 Pro (Antigravity)
-- **Explorer/Librarian/Designer/Fixer**: Gemini 3 Flash (Antigravity)
+- **Explorer/Librarian/Designer**: Gemini 3 Flash (Antigravity)
+- **Quick/Deep**: Antigravity defaults
+
+> If OpenCode free mode is enabled, support agents may be reassigned to selected free `opencode/*` models (`explorer`, `librarian`, `quick`, `deep`) while `designer` remains on external mapping.
 
 ## Manual Configuration
 
-If you prefer to configure manually, edit `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`) and add a pure Antigravity preset:
+If you prefer to configure manually, edit `~/.config/opencode/omolite.json` (or `.jsonc`) and add a pure Antigravity preset:
 
 ```json
 {
   "preset": "antigravity",
   "presets": {
     "antigravity": {
-      "orchestrator": {
+      "engineer": {
         "model": "google/antigravity-gemini-3-flash",
         "skills": ["*"],
         "mcps": ["websearch"]
@@ -141,9 +164,14 @@ If you prefer to configure manually, edit `~/.config/opencode/oh-my-opencode-sli
         "skills": ["agent-browser"],
         "mcps": []
       },
-      "fixer": {
+      "quick": {
         "model": "google/antigravity-gemini-3-flash",
         "variant": "low",
+        "skills": [],
+        "mcps": []
+      },
+      "deep": {
+        "model": "google/antigravity-gemini-3.1-pro",
         "skills": [],
         "mcps": []
       }
@@ -170,16 +198,16 @@ opencode auth login
 cat ~/.config/opencode/opencode.json | grep antigravity
 
 # Reinstall plugin
-bunx oh-my-opencode-slim install --antigravity=yes --no-tui --kimi=no --openai=no --tmux=no --skills=no
+bunx oh-my-opencode-lite install --antigravity=yes --no-tui --kimi=no --openai=no --tmux=no --skills=no
 ```
 
 ### Wrong Model Selected
 ```bash
 # Check current preset
-echo $OH_MY_OPENCODE_SLIM_PRESET
+echo $OMOLITE_PRESET
 
 # Change preset
-export OH_MY_OPENCODE_SLIM_PRESET=antigravity
+export OMOLITE_PRESET=antigravity
 opencode
 ```
 
@@ -190,7 +218,7 @@ lsof -i :8317
 
 # Restart the service
 # (Follow your Antigravity/LLM-Mux restart procedure)
-# Or edit ~/.config/opencode/oh-my-opencode-slim.json (or .jsonc)
+# Or edit ~/.config/opencode/omolite.json (or .jsonc)
 # Change the "preset" field and restart OpenCode
 ```
 
