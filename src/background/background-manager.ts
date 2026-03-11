@@ -14,6 +14,7 @@
  */
 
 import type { PluginInput } from '@opencode-ai/plugin';
+import { resolveJuniorEffortPrompt } from '../agents/junior';
 import type { BackgroundTaskConfig, PluginConfig } from '../config';
 import {
   FALLBACK_FAILOVER_TIMEOUT_MS,
@@ -293,7 +294,7 @@ export class BackgroundTaskManager {
 
     const resolved: ResolvedEffortModel[] = [];
     for (const entry of entries) {
-      const id = typeof entry === 'string' ? entry : entry.id;
+      const id = typeof entry === 'string' ? entry : entry.model;
       const variant = typeof entry === 'object' ? entry.variant : undefined;
       const ref = parseModelReference(id);
       if (!ref) continue; // skip invalid entries
@@ -410,6 +411,11 @@ export class BackgroundTaskManager {
         task.effort && task.agent === 'junior'
           ? this.resolveEffortChain(task.effort)
           : null;
+
+      // Inject effort-specific behavioral instructions into system prompt
+      if (task.effort && task.agent === 'junior') {
+        basePromptBody.system = resolveJuniorEffortPrompt(task.effort);
+      }
 
       const errors: string[] = [];
       let succeeded = false;

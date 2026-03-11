@@ -82,10 +82,10 @@ const FallbackChainsSchema = z
 export type FallbackAgentName = (typeof FALLBACK_AGENT_NAMES)[number];
 
 /** A single model entry: plain string or object with optional variant. */
-const ModelEntrySchema = z.union([
+const EffortModelEntrySchema = z.union([
   z.string(),
   z.object({
-    id: z.string(),
+    model: z.string(),
     variant: z.string().optional(),
   }),
 ]);
@@ -97,11 +97,11 @@ const ModelEntrySchema = z.union([
  * Examples:
  *   "google/gemini-2.5-flash"
  *   ["google/gemini-2.5-flash", "openai/gpt-5.1-codex-mini"]
- *   [{ id: "openai/gpt-5.3-codex", variant: "high" }, "openai/gpt-5.2-codex"]
+ *   [{ model: "openai/gpt-5.3-codex", variant: "high" }, "openai/gpt-5.2-codex"]
  */
 const EffortLevelSchema = z.union([
-  ModelEntrySchema,
-  z.array(ModelEntrySchema).min(1),
+  EffortModelEntrySchema,
+  z.array(EffortModelEntrySchema).min(1),
 ]);
 
 /**
