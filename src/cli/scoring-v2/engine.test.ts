@@ -47,10 +47,11 @@ describe('scoring-v2', () => {
   });
 
   test('uses stable tie-break when scores are equal', () => {
+    // Both are all-rounders with identical capabilities → tie-break by provider name
     const ranked = rankModelsV2(
       [
         model({ model: 'zai-coding-plan/glm-4.7', reasoning: false }),
-        model({ model: 'openai/gpt-5.3-codex', reasoning: false }),
+        model({ model: 'openai/gpt-5.1', reasoning: false }),
       ],
       'explorer',
     );
