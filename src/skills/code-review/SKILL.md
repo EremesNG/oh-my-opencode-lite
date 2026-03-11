@@ -18,24 +18,30 @@ Review code changes for correctness, quality, and adherence to project conventio
 - Does the code do what was asked?
 - Are edge cases handled?
 - Are there obvious bugs (off-by-one, null checks, async issues)?
+- Are there stubs, TODOs, placeholders, or hardcoded values left behind?
 
-### 2. Conventions
+### 2. Claims vs Reality
+- Cross-reference what was claimed ("I added X") against what the code actually does
+- Subagents can summarize their work optimistically — the code is the source of truth
+- If the change summary says "handles errors gracefully" but the code has an empty catch block, that's a finding
+
+### 3. Conventions
 - Follows project naming conventions (check AGENTS.md or existing patterns)
 - Import organization matches project style
 - Error handling matches project patterns
 
-### 3. Simplicity
+### 4. Simplicity
 - No unnecessary complexity
 - No dead code or commented-out blocks
 - No premature abstractions (YAGNI)
 - DRY: no duplicated logic
 
-### 4. Types
+### 5. Types
 - No any types (unless justified)
 - Return types match actual returns
 - Zod schemas match TypeScript types
 
-### 5. Tests
+### 6. Tests
 - Changed code has corresponding tests
 - Tests verify behavior, not implementation
 - Edge cases have test coverage

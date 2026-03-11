@@ -17,6 +17,9 @@ Explore user intent and requirements through structured dialogue before any impl
 ### 1. Context Gathering
 - Read relevant project files to understand current state
 - Check for existing documentation, READMEs, or architecture docs
+- Delegate to @explorer for broad codebase discovery when the request touches unfamiliar areas
+- Delegate to @librarian when external docs/APIs are involved
+- Parallelize exploration when possible — don't wait sequentially
 - Note the tech stack, patterns, and conventions already in use
 
 ### 2. Interview (ONE question at a time)
@@ -33,14 +36,17 @@ Ask questions in this order, stopping when you have enough clarity:
 - If user says "just do it", respect that - infer reasonable defaults
 - State your assumptions explicitly so user can correct them
 
-### 3. Approach Proposal
+### 3. Scope Check
+If the request covers multiple independent subsystems, suggest breaking it into separate efforts — one per subsystem, each producing working/testable software. Flag this early so the user can decide before planning begins.
+
+### 4. Approach Proposal
 Once requirements are clear:
 1. Propose 2-3 approaches with trade-offs (unless one is obviously best)
 2. For each approach: one sentence description + pros/cons
 3. Recommend one approach with brief rationale
 4. Ask: "Should I proceed with [recommendation], or do you prefer another approach?"
 
-### 4. Handoff
+### 5. Handoff
 Once approach is approved:
 - If creating a plan document: transition to "writing-plans" skill
 - If implementing directly: summarize the agreed approach and begin
