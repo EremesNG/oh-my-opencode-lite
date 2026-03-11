@@ -3,12 +3,12 @@ import { RECOMMENDED_SKILLS } from './skills';
 import type { InstallConfig } from './types';
 
 const AGENT_NAMES = [
-  'orchestrator',
+  'engineer',
   'oracle',
   'designer',
   'explorer',
   'librarian',
-  'fixer',
+  'junior',
 ] as const;
 
 type AgentName = (typeof AGENT_NAMES)[number];
@@ -16,47 +16,47 @@ type AgentName = (typeof AGENT_NAMES)[number];
 // Model mappings by provider priority
 export const MODEL_MAPPINGS = {
   kimi: {
-    orchestrator: { model: 'kimi-for-coding/k2p5' },
+    engineer: { model: 'kimi-for-coding/k2p5' },
     oracle: { model: 'kimi-for-coding/k2p5', variant: 'high' },
     librarian: { model: 'kimi-for-coding/k2p5', variant: 'low' },
     explorer: { model: 'kimi-for-coding/k2p5', variant: 'low' },
     designer: { model: 'kimi-for-coding/k2p5', variant: 'medium' },
-    fixer: { model: 'kimi-for-coding/k2p5', variant: 'low' },
+    junior: { model: 'kimi-for-coding/k2p5', variant: 'low' },
   },
   openai: {
-    orchestrator: { model: 'openai/gpt-5.3-codex' },
+    engineer: { model: 'openai/gpt-5.3-codex' },
     oracle: { model: 'openai/gpt-5.3-codex', variant: 'high' },
     librarian: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
     explorer: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
     designer: { model: 'openai/gpt-5.1-codex-mini', variant: 'medium' },
-    fixer: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
+    junior: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
   },
   anthropic: {
-    orchestrator: { model: 'anthropic/claude-opus-4-6' },
+    engineer: { model: 'anthropic/claude-opus-4-6' },
     oracle: { model: 'anthropic/claude-opus-4-6', variant: 'high' },
     librarian: { model: 'anthropic/claude-sonnet-4-5', variant: 'low' },
     explorer: { model: 'anthropic/claude-haiku-4-5', variant: 'low' },
     designer: { model: 'anthropic/claude-sonnet-4-5', variant: 'medium' },
-    fixer: { model: 'anthropic/claude-sonnet-4-5', variant: 'low' },
+    junior: { model: 'anthropic/claude-sonnet-4-5', variant: 'low' },
   },
   copilot: {
-    orchestrator: { model: 'github-copilot/grok-code-fast-1' },
+    engineer: { model: 'github-copilot/grok-code-fast-1' },
     oracle: { model: 'github-copilot/grok-code-fast-1', variant: 'high' },
     librarian: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
     explorer: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
     designer: { model: 'github-copilot/grok-code-fast-1', variant: 'medium' },
-    fixer: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
+    junior: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
   },
   'zai-plan': {
-    orchestrator: { model: 'zai-coding-plan/glm-4.7' },
+    engineer: { model: 'zai-coding-plan/glm-4.7' },
     oracle: { model: 'zai-coding-plan/glm-4.7', variant: 'high' },
     librarian: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
     explorer: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
     designer: { model: 'zai-coding-plan/glm-4.7', variant: 'medium' },
-    fixer: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
+    junior: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
   },
   antigravity: {
-    orchestrator: { model: 'google/antigravity-gemini-3-flash' },
+    engineer: { model: 'google/antigravity-gemini-3-flash' },
     oracle: { model: 'google/antigravity-gemini-3.1-pro' },
     librarian: {
       model: 'google/antigravity-gemini-3-flash',
@@ -70,23 +70,23 @@ export const MODEL_MAPPINGS = {
       model: 'google/antigravity-gemini-3-flash',
       variant: 'medium',
     },
-    fixer: { model: 'google/antigravity-gemini-3-flash', variant: 'low' },
+    junior: { model: 'google/antigravity-gemini-3-flash', variant: 'low' },
   },
   chutes: {
-    orchestrator: { model: 'chutes/kimi-k2.5' },
+    engineer: { model: 'chutes/kimi-k2.5' },
     oracle: { model: 'chutes/kimi-k2.5', variant: 'high' },
     librarian: { model: 'chutes/minimax-m2.1', variant: 'low' },
     explorer: { model: 'chutes/minimax-m2.1', variant: 'low' },
     designer: { model: 'chutes/kimi-k2.5', variant: 'medium' },
-    fixer: { model: 'chutes/minimax-m2.1', variant: 'low' },
+    junior: { model: 'chutes/minimax-m2.1', variant: 'low' },
   },
   'zen-free': {
-    orchestrator: { model: 'opencode/big-pickle' },
+    engineer: { model: 'opencode/big-pickle' },
     oracle: { model: 'opencode/big-pickle', variant: 'high' },
     librarian: { model: 'opencode/big-pickle', variant: 'low' },
     explorer: { model: 'opencode/big-pickle', variant: 'low' },
     designer: { model: 'opencode/big-pickle', variant: 'medium' },
-    fixer: { model: 'opencode/big-pickle', variant: 'low' },
+    junior: { model: 'opencode/big-pickle', variant: 'low' },
   },
 } as const;
 
@@ -102,10 +102,10 @@ export function generateAntigravityMixedPreset(
     agentName: string,
     modelInfo: { model: string; variant?: string },
   ) => {
-    const isOrchestrator = agentName === 'orchestrator';
+    const isEngineer = agentName === 'engineer';
 
-    // Skills: orchestrator gets "*", others get recommended skills for their role
-    const skills = isOrchestrator
+    // Skills: engineer gets "*", others get recommended skills for their role
+    const skills = isEngineer
       ? ['*']
       : RECOMMENDED_SKILLS.filter(
           (s) =>
@@ -132,25 +132,24 @@ export function generateAntigravityMixedPreset(
   };
 
   const chutesPrimary =
-    config.selectedChutesPrimaryModel ??
-    MODEL_MAPPINGS.chutes.orchestrator.model;
+    config.selectedChutesPrimaryModel ?? MODEL_MAPPINGS.chutes.engineer.model;
   const chutesSupport =
     config.selectedChutesSecondaryModel ?? MODEL_MAPPINGS.chutes.explorer.model;
 
-  // Orchestrator: Kimi if hasKimi, else Chutes Kimi if enabled, else antigravity
+  // Engineer: Kimi if hasKimi, else Chutes Kimi if enabled, else antigravity
   if (config.hasKimi) {
-    result.orchestrator = createAgentConfig(
-      'orchestrator',
-      MODEL_MAPPINGS.kimi.orchestrator,
+    result.engineer = createAgentConfig(
+      'engineer',
+      MODEL_MAPPINGS.kimi.engineer,
     );
   } else if (config.hasChutes) {
-    result.orchestrator = createAgentConfig('orchestrator', {
+    result.engineer = createAgentConfig('engineer', {
       model: chutesPrimary,
     });
-  } else if (!result.orchestrator) {
-    result.orchestrator = createAgentConfig(
-      'orchestrator',
-      MODEL_MAPPINGS.antigravity.orchestrator,
+  } else if (!result.engineer) {
+    result.engineer = createAgentConfig(
+      'engineer',
+      MODEL_MAPPINGS.antigravity.engineer,
     );
   }
 
@@ -191,19 +190,19 @@ export function generateAntigravityMixedPreset(
     });
   }
 
-  // Fixer prefers OpenAI codex when available.
+  // Junior prefers OpenAI codex when available.
   if (config.hasOpenAI) {
-    result.fixer = createAgentConfig('fixer', {
+    result.junior = createAgentConfig('junior', {
       ...MODEL_MAPPINGS.openai.oracle,
       variant: 'low',
     });
   } else if (config.hasChutes) {
-    result.fixer = createAgentConfig('fixer', {
+    result.junior = createAgentConfig('junior', {
       model: chutesSupport,
       variant: 'low',
     });
   } else {
-    result.fixer = createAgentConfig('fixer', {
+    result.junior = createAgentConfig('junior', {
       ...antigravityFlash,
       variant: 'low',
     });
@@ -236,7 +235,7 @@ export function generateLiteConfig(
         manualPreset[agentName] = {
           model: manualConfig.primary,
           skills:
-            agentName === 'orchestrator'
+            agentName === 'engineer'
               ? ['*']
               : RECOMMENDED_SKILLS.filter(
                   (s) =>
@@ -324,10 +323,10 @@ export function generateLiteConfig(
     agentName: string,
     modelInfo: { model: string; variant?: string },
   ) => {
-    const isOrchestrator = agentName === 'orchestrator';
+    const isEngineer = agentName === 'engineer';
 
-    // Skills: orchestrator gets "*", others get recommended skills for their role
-    const skills = isOrchestrator
+    // Skills: engineer gets "*", others get recommended skills for their role
+    const skills = isEngineer
       ? ['*']
       : RECOMMENDED_SKILLS.filter(
           (s) =>
@@ -398,14 +397,14 @@ export function generateLiteConfig(
     };
 
     if (!hasExternalProviders) {
-      setAgent('orchestrator', primaryModel);
+      setAgent('engineer', primaryModel);
       setAgent('oracle', primaryModel);
       setAgent('designer', primaryModel);
     }
 
     setAgent('librarian', secondaryModel);
     setAgent('explorer', secondaryModel);
-    setAgent('fixer', secondaryModel);
+    setAgent('junior', secondaryModel);
   };
 
   const applyChutesAssignments = (presetAgents: Record<string, unknown>) => {
@@ -431,12 +430,12 @@ export function generateLiteConfig(
       presetAgents[agentName] = createAgentConfig(agentName, { model });
     };
 
-    setAgent('orchestrator', primaryModel);
+    setAgent('engineer', primaryModel);
     setAgent('oracle', primaryModel);
     setAgent('designer', primaryModel);
     setAgent('librarian', secondaryModel);
     setAgent('explorer', secondaryModel);
-    setAgent('fixer', secondaryModel);
+    setAgent('junior', secondaryModel);
   };
 
   const dedupeModels = (models: Array<string | undefined>) => {
@@ -457,7 +456,7 @@ export function generateLiteConfig(
     const isSupport =
       agentName === 'explorer' ||
       agentName === 'librarian' ||
-      agentName === 'fixer';
+      agentName === 'junior';
     if (isSupport) {
       return (
         installConfig.selectedOpenCodeSecondaryModel ??
@@ -472,7 +471,7 @@ export function generateLiteConfig(
     const isSupport =
       agentName === 'explorer' ||
       agentName === 'librarian' ||
-      agentName === 'fixer';
+      agentName === 'junior';
     if (isSupport) {
       return (
         installConfig.selectedChutesSecondaryModel ??
@@ -537,7 +536,7 @@ export function generateLiteConfig(
       Object.entries(mapping).map(([agentName, modelInfo]) => {
         let activeModelInfo = { ...modelInfo };
 
-        // Hybrid case: Kimi + OpenAI (use OpenAI for Oracle, Kimi for orchestrator/designer)
+        // Hybrid case: Kimi + OpenAI (use OpenAI for Oracle, Kimi for engineer/designer)
         if (
           activePreset === 'kimi' &&
           installConfig.hasOpenAI &&

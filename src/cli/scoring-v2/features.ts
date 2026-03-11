@@ -53,28 +53,28 @@ function kimiVersionBonus(
   const isMinimaxM21 = isChutes && /minimax[-_ ]?m2\.1/.test(lowered);
 
   const qwenPenalty: Record<ScoringAgentName, number> = {
-    orchestrator: -6,
+    engineer: -6,
     oracle: -6,
     designer: -8,
     explorer: -6,
     librarian: -12,
-    fixer: -12,
+    junior: -12,
   };
   const kimiBonus: Record<ScoringAgentName, number> = {
-    orchestrator: 1,
+    engineer: 1,
     oracle: 1,
     designer: 3,
     explorer: 2,
     librarian: 2,
-    fixer: 3,
+    junior: 3,
   };
   const minimaxBonus: Record<ScoringAgentName, number> = {
-    orchestrator: 1,
+    engineer: 1,
     oracle: 1,
     designer: 2,
     explorer: 4,
     librarian: 4,
-    fixer: 4,
+    junior: 4,
   };
 
   if (isQwen3) return qwenPenalty[agent];

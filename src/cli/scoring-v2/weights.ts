@@ -18,7 +18,7 @@ const AGENT_WEIGHT_OVERRIDES: Record<
   ScoringAgentName,
   Partial<FeatureWeights>
 > = {
-  orchestrator: {
+  engineer: {
     reasoning: 22,
     toolcall: 22,
     quality: 16,
@@ -51,7 +51,7 @@ const AGENT_WEIGHT_OVERRIDES: Record<
     quality: 18,
     coding: 14,
   },
-  fixer: {
+  junior: {
     coding: 28,
     toolcall: 22,
     reasoning: 12,

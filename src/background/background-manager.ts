@@ -149,7 +149,7 @@ export class BackgroundTaskManager {
    * @returns true if allowed, false if not
    */
   isAgentAllowed(parentSessionId: string, requestedAgent: string): boolean {
-    // Untracked sessions are the root orchestrator (created by OpenCode, not by us)
+    // Untracked sessions are the root engineer (created by OpenCode, not by us)
     const parentAgentName =
       this.agentBySessionId.get(parentSessionId) ?? 'engineer';
 

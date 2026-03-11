@@ -81,20 +81,20 @@ describe('dynamic-model-selection', () => {
 
     expect(Object.keys(agents).sort()).toEqual([
       'designer',
+      'engineer',
       'explorer',
-      'fixer',
+      'junior',
       'librarian',
       'oracle',
-      'orchestrator',
     ]);
     expect(agents.oracle?.model.startsWith('opencode/')).toBe(false);
-    expect(agents.orchestrator?.model.startsWith('opencode/')).toBe(false);
+    expect(agents.engineer?.model.startsWith('opencode/')).toBe(false);
     expect(chains.oracle.some((m: string) => m.startsWith('openai/'))).toBe(
       true,
     );
-    expect(chains.orchestrator).toContain('chutes/kimi-k2.5');
+    expect(chains.engineer).toContain('chutes/kimi-k2.5');
     expect(chains.explorer).toContain('opencode/gpt-5-nano');
-    expect(chains.fixer[chains.fixer.length - 1]).toBe('opencode/gpt-5-nano');
+    expect(chains.junior[chains.junior.length - 1]).toBe('opencode/gpt-5-nano');
     expect(plan?.provenance?.oracle?.winnerLayer).toBe(
       'dynamic-recommendation',
     );
@@ -176,7 +176,7 @@ describe('dynamic-model-selection', () => {
   test('matches external signals for multi-segment chutes ids in v1', () => {
     const ranked = rankModelsV1WithBreakdown(
       [m({ model: 'chutes/Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8-TEE' })],
-      'fixer',
+      'junior',
       {
         'qwen/qwen3-coder-480b-a35b-instruct': {
           source: 'artificial-analysis',
@@ -208,10 +208,10 @@ describe('dynamic-model-selection', () => {
       }),
     ];
 
-    const fixer = rankModelsV1WithBreakdown(catalog, 'fixer');
+    const junior = rankModelsV1WithBreakdown(catalog, 'junior');
     const explorer = rankModelsV1WithBreakdown(catalog, 'explorer');
 
-    expect(fixer[0]?.model).not.toContain('Qwen3-Coder-480B');
+    expect(junior[0]?.model).not.toContain('Qwen3-Coder-480B');
     expect(explorer[0]?.model).toContain('minimax-m2.1');
   });
 
@@ -226,12 +226,12 @@ describe('dynamic-model-selection', () => {
     ];
 
     const oracle = rankModelsV1WithBreakdown(catalog, 'oracle');
-    const orchestrator = rankModelsV1WithBreakdown(catalog, 'orchestrator');
+    const engineer = rankModelsV1WithBreakdown(catalog, 'engineer');
     const designer = rankModelsV1WithBreakdown(catalog, 'designer');
     const librarian = rankModelsV1WithBreakdown(catalog, 'librarian');
 
     expect(oracle[0]?.model).toBe('openai/gpt-5.3-codex');
-    expect(orchestrator[0]?.model).toBe('openai/gpt-5.3-codex');
+    expect(engineer[0]?.model).toBe('openai/gpt-5.3-codex');
     expect(designer[0]?.model).toBe('openai/gpt-5.3-codex');
     expect(librarian[0]?.model).toBe('openai/gpt-5.3-codex');
   });

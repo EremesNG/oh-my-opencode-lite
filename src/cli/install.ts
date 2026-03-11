@@ -56,7 +56,7 @@ const SYMBOLS = {
 function printHeader(isUpdate: boolean): void {
   console.log();
   console.log(
-    `${BOLD}oh-my-opencode-slim ${isUpdate ? 'Update' : 'Install'}${RESET}`,
+    `${BOLD}oh-my-opencode-lite ${isUpdate ? 'Update' : 'Install'}${RESET}`,
   );
   console.log('='.repeat(30));
   console.log();
@@ -682,12 +682,12 @@ async function runManualSetupMode(
   // Configure each agent manually
   const manualAgentConfigs: Record<string, ManualAgentConfig> = {};
   const agentNames = [
-    'orchestrator',
+    'engineer',
     'oracle',
     'designer',
     'explorer',
     'librarian',
-    'fixer',
+    'junior',
   ];
 
   for (const agentName of agentNames) {
@@ -774,7 +774,7 @@ async function runInteractiveMode(
   try {
     // Ask for setup mode first
     console.log();
-    console.log(`${BOLD}oh-my-opencode-slim Setup${RESET}`);
+    console.log(`${BOLD}oh-my-opencode-lite Setup${RESET}`);
     console.log('='.repeat(25));
     console.log();
 
@@ -857,7 +857,7 @@ async function runInteractiveMode(
             rl,
             discovery.models,
             recommendedPrimary,
-            'Choose primary model for orchestrator/oracle',
+            'Choose primary model for engineer/oracle',
           );
         }
 
@@ -880,7 +880,7 @@ async function runInteractiveMode(
             rl,
             openCodeSupportList,
             openCodeSupportDefault,
-            'Choose support model for explorer/librarian/fixer',
+            'Choose support model for explorer/librarian/junior',
           );
         }
 
@@ -968,7 +968,7 @@ async function runInteractiveMode(
             rl,
             discovery.models,
             recommendedPrimary,
-            'Choose Chutes primary model for orchestrator/oracle/designer',
+            'Choose Chutes primary model for engineer/oracle/designer',
           );
         }
 
@@ -989,7 +989,7 @@ async function runInteractiveMode(
             rl,
             chutesSupportList,
             chutesSupportDefault,
-            'Choose Chutes support model for explorer/librarian/fixer',
+            'Choose Chutes support model for explorer/librarian/junior',
           );
         }
 
@@ -1248,7 +1248,7 @@ async function runInstall(config: InstallConfig): Promise<number> {
   }
 
   if (!modelsOnly) {
-    printStep(step++, totalSteps, 'Adding oh-my-opencode-slim plugin...');
+    printStep(step++, totalSteps, 'Adding oh-my-opencode-lite plugin...');
     if (resolvedConfig.dryRun) {
       printInfo('Dry run mode - skipping plugin installation');
     } else {
@@ -1336,7 +1336,7 @@ async function runInstall(config: InstallConfig): Promise<number> {
     }
   }
 
-  printStep(step++, totalSteps, 'Writing oh-my-opencode-slim configuration...');
+  printStep(step++, totalSteps, 'Writing oh-my-opencode-lite configuration...');
   if (resolvedConfig.dryRun) {
     const liteConfig = generateLiteConfig(resolvedConfig);
     printInfo('Dry run mode - configuration that would be written:');
@@ -1505,7 +1505,7 @@ export async function install(args: InstallArgs): Promise<number> {
       }
       console.log();
       printInfo(
-        'Usage: bunx oh-my-opencode-slim install --no-tui --kimi=<yes|no> --openai=<yes|no> --anthropic=<yes|no> --copilot=<yes|no> --zai-plan=<yes|no> --antigravity=<yes|no> --chutes=<yes|no> --balanced-spend=<yes|no> --tmux=<yes|no>',
+        'Usage: bunx oh-my-opencode-lite install --no-tui --kimi=<yes|no> --openai=<yes|no> --anthropic=<yes|no> --copilot=<yes|no> --zai-plan=<yes|no> --antigravity=<yes|no> --chutes=<yes|no> --balanced-spend=<yes|no> --tmux=<yes|no>',
       );
       console.log();
       return 1;

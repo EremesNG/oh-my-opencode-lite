@@ -18,12 +18,12 @@ export type FeatureVector = Record<ScoreFeatureName, number>;
 export type FeatureWeights = Record<ScoreFeatureName, number>;
 
 export type ScoringAgentName =
-  | 'orchestrator'
+  | 'engineer'
   | 'oracle'
   | 'designer'
   | 'explorer'
   | 'librarian'
-  | 'fixer';
+  | 'junior';
 
 export interface ScoringContext {
   agent: ScoringAgentName;
