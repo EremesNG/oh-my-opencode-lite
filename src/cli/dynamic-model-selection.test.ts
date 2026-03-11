@@ -80,12 +80,13 @@ describe('dynamic-model-selection', () => {
     const chains = plan?.chains ?? {};
 
     expect(Object.keys(agents).sort()).toEqual([
+      'deep',
       'designer',
       'engineer',
       'explorer',
-      'junior',
       'librarian',
       'oracle',
+      'quick',
     ]);
     expect(agents.oracle?.model.startsWith('opencode/')).toBe(false);
     expect(agents.engineer?.model.startsWith('opencode/')).toBe(false);
@@ -94,7 +95,7 @@ describe('dynamic-model-selection', () => {
     );
     expect(chains.engineer).toContain('chutes/kimi-k2.5');
     expect(chains.explorer).toContain('opencode/gpt-5-nano');
-    expect(chains.junior[chains.junior.length - 1]).toBe('opencode/gpt-5-nano');
+    expect(chains.quick[chains.quick.length - 1]).toBe('opencode/gpt-5-nano');
     expect(plan?.provenance?.oracle?.winnerLayer).toBe(
       'dynamic-recommendation',
     );
@@ -168,15 +169,25 @@ describe('dynamic-model-selection', () => {
       {} as Record<string, number>,
     );
 
-    expect(usage.openai).toBe(2);
-    expect(usage['zai-coding-plan']).toBe(2);
-    expect(usage.chutes).toBe(2);
+    // 7 agents across 3 providers: distribution is 3/2/2
+    const totalAgents =
+      (usage.openai ?? 0) +
+      (usage['zai-coding-plan'] ?? 0) +
+      (usage.chutes ?? 0);
+    expect(totalAgents).toBe(7);
+    // No provider should have more than 3 or fewer than 2
+    expect(usage.openai).toBeGreaterThanOrEqual(2);
+    expect(usage['zai-coding-plan']).toBeGreaterThanOrEqual(2);
+    expect(usage.chutes).toBeGreaterThanOrEqual(2);
+    expect(usage.openai).toBeLessThanOrEqual(3);
+    expect(usage['zai-coding-plan']).toBeLessThanOrEqual(3);
+    expect(usage.chutes).toBeLessThanOrEqual(3);
   });
 
   test('matches external signals for multi-segment chutes ids in v1', () => {
     const ranked = rankModelsV1WithBreakdown(
       [m({ model: 'chutes/Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8-TEE' })],
-      'junior',
+      'quick',
       {
         'qwen/qwen3-coder-480b-a35b-instruct': {
           source: 'artificial-analysis',
@@ -208,10 +219,10 @@ describe('dynamic-model-selection', () => {
       }),
     ];
 
-    const junior = rankModelsV1WithBreakdown(catalog, 'junior');
+    const quick = rankModelsV1WithBreakdown(catalog, 'quick');
     const explorer = rankModelsV1WithBreakdown(catalog, 'explorer');
 
-    expect(junior[0]?.model).not.toContain('Qwen3-Coder-480B');
+    expect(quick[0]?.model).not.toContain('Qwen3-Coder-480B');
     expect(explorer[0]?.model).toContain('minimax-m2.1');
   });
 

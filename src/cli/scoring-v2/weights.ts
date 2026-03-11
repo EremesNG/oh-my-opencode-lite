@@ -51,11 +51,17 @@ const AGENT_WEIGHT_OVERRIDES: Record<
     quality: 18,
     coding: 14,
   },
-  junior: {
+  quick: {
     coding: 28,
     toolcall: 22,
     reasoning: 12,
     output: 10,
+  },
+  deep: {
+    coding: 20,
+    toolcall: 22,
+    reasoning: 18,
+    quality: 16,
   },
 };
 

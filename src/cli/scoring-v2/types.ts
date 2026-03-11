@@ -23,7 +23,8 @@ export type ScoringAgentName =
   | 'designer'
   | 'explorer'
   | 'librarian'
-  | 'junior';
+  | 'quick'
+  | 'deep';
 
 export interface ScoringContext {
   agent: ScoringAgentName;

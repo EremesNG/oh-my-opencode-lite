@@ -222,7 +222,8 @@ describe('isSubagent type guard', () => {
     expect(isSubagent('librarian')).toBe(true);
     expect(isSubagent('oracle')).toBe(true);
     expect(isSubagent('designer')).toBe(true);
-    expect(isSubagent('junior')).toBe(true);
+    expect(isSubagent('quick')).toBe(true);
+    expect(isSubagent('deep')).toBe(true);
   });
 
   test('returns false for primary agents', () => {
@@ -247,7 +248,8 @@ describe('isPrimary type guard', () => {
 
   test('returns false for subagents', () => {
     expect(isPrimary('explorer')).toBe(false);
-    expect(isPrimary('junior')).toBe(false);
+    expect(isPrimary('quick')).toBe(false);
+    expect(isPrimary('deep')).toBe(false);
   });
 });
 
@@ -257,7 +259,9 @@ describe('agent classification', () => {
     expect(SUBAGENT_NAMES).not.toContain('planner');
     expect(SUBAGENT_NAMES).not.toContain('architect');
     expect(SUBAGENT_NAMES).toContain('explorer');
-    expect(SUBAGENT_NAMES).toContain('junior');
+    expect(SUBAGENT_NAMES).toContain('quick');
+    expect(SUBAGENT_NAMES).toContain('deep');
+    expect(SUBAGENT_NAMES).not.toContain('junior');
   });
 
   test('getAgentConfigs applies correct classification visibility and mode', () => {
@@ -286,12 +290,13 @@ describe('createAgents', () => {
     expect(names).toContain('designer');
     expect(names).toContain('oracle');
     expect(names).toContain('librarian');
-    expect(names).toContain('junior');
+    expect(names).toContain('quick');
+    expect(names).toContain('deep');
   });
 
-  test('creates exactly 8 agents (3 primaries + 5 subagents)', () => {
+  test('creates exactly 9 agents (3 primaries + 6 subagents)', () => {
     const agents = createAgents();
-    expect(agents.length).toBe(8);
+    expect(agents.length).toBe(9);
   });
 });
 

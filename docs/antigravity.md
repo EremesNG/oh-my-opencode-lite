@@ -85,24 +85,28 @@ The installer automatically:
 When you install with `--antigravity=yes`, the preset depends on other providers:
 
 ### antigravity-mixed-both (Kimi + OpenAI + Antigravity)
-- **Orchestrator**: Kimi k2p5
+- **Engineer**: Kimi k2p5
 - **Oracle**: OpenAI model
-- **Explorer/Librarian/Designer/Fixer**: Gemini 3 Flash (Antigravity)
+- **Explorer/Librarian/Designer**: Gemini 3 Flash (Antigravity)
+- **Quick/Deep**: OpenAI defaults when OpenAI is available; otherwise Antigravity defaults
 
 ### antigravity-mixed-kimi (Kimi + Antigravity)
-- **Orchestrator**: Kimi k2p5
+- **Engineer**: Kimi k2p5
 - **Oracle**: Gemini 3.1 Pro (Antigravity)
-- **Explorer/Librarian/Designer/Fixer**: Gemini 3 Flash (Antigravity)
+- **Explorer/Librarian/Designer**: Gemini 3 Flash (Antigravity)
+- **Quick/Deep**: Antigravity defaults
 
 ### antigravity-mixed-openai (OpenAI + Antigravity)
-- **Orchestrator**: Gemini 3 Flash (Antigravity)
+- **Engineer**: Gemini 3 Flash (Antigravity)
 - **Oracle**: OpenAI model
-- **Explorer/Librarian/Designer/Fixer**: Gemini 3 Flash (Antigravity)
+- **Explorer/Librarian/Designer**: Gemini 3 Flash (Antigravity)
+- **Quick/Deep**: OpenAI defaults
 
 ### antigravity (Pure Antigravity)
-- **Orchestrator**: Gemini 3 Flash (Antigravity)
+- **Engineer**: Gemini 3 Flash (Antigravity)
 - **Oracle**: Gemini 3.1 Pro (Antigravity)
-- **Explorer/Librarian/Designer/Fixer**: Gemini 3 Flash (Antigravity)
+- **Explorer/Librarian/Designer**: Gemini 3 Flash (Antigravity)
+- **Quick/Deep**: Antigravity defaults
 
 ## Manual Configuration
 
@@ -113,7 +117,7 @@ If you prefer to configure manually, edit `~/.config/opencode/omolite.json` (or 
   "preset": "antigravity",
   "presets": {
     "antigravity": {
-      "orchestrator": {
+      "engineer": {
         "model": "google/antigravity-gemini-3-flash",
         "skills": ["*"],
         "mcps": ["websearch"]
@@ -141,9 +145,14 @@ If you prefer to configure manually, edit `~/.config/opencode/omolite.json` (or 
         "skills": ["agent-browser"],
         "mcps": []
       },
-      "fixer": {
+      "quick": {
         "model": "google/antigravity-gemini-3-flash",
         "variant": "low",
+        "skills": [],
+        "mcps": []
+      },
+      "deep": {
+        "model": "google/antigravity-gemini-3.1-pro",
         "skills": [],
         "mcps": []
       }

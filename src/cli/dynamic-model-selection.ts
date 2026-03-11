@@ -15,7 +15,8 @@ const AGENTS = [
   'designer',
   'explorer',
   'librarian',
-  'junior',
+  'quick',
+  'deep',
 ] as const;
 
 type AgentName = (typeof AGENTS)[number];
@@ -31,7 +32,8 @@ const FREE_BIASED_PROVIDERS = new Set(['opencode']);
 const PRIMARY_ASSIGNMENT_ORDER: AgentName[] = [
   'oracle',
   'engineer',
-  'junior',
+  'deep',
+  'quick',
   'designer',
   'librarian',
   'explorer',
@@ -43,7 +45,8 @@ const ROLE_VARIANT: Record<AgentName, string | undefined> = {
   designer: 'medium',
   explorer: 'low',
   librarian: 'low',
-  junior: 'low',
+  quick: 'low',
+  deep: undefined,
 };
 
 function getEnabledProviders(config: InstallConfig): string[] {
@@ -273,7 +276,8 @@ function chutesPreferenceAdjustment(
   const qwenPenalty: Record<AgentName, number> = {
     oracle: -12,
     engineer: -10,
-    junior: -22,
+    quick: -22,
+    deep: -10,
     designer: -14,
     librarian: -18,
     explorer: -10,
@@ -281,7 +285,8 @@ function chutesPreferenceAdjustment(
   const kimiBonus: Record<AgentName, number> = {
     oracle: 0,
     engineer: 0,
-    junior: 8,
+    quick: 8,
+    deep: 0,
     designer: 6,
     librarian: 5,
     explorer: 4,
@@ -289,7 +294,8 @@ function chutesPreferenceAdjustment(
   const minimaxBonus: Record<AgentName, number> = {
     oracle: 0,
     engineer: 0,
-    junior: 10,
+    quick: 10,
+    deep: 0,
     designer: 3,
     librarian: 9,
     explorer: 12,
@@ -333,7 +339,8 @@ function roleScore(
     (agent === 'engineer' ||
       agent === 'explorer' ||
       agent === 'librarian' ||
-      agent === 'junior') &&
+      agent === 'quick' ||
+      agent === 'deep') &&
     !model.toolcall
   ) {
     return -10_000;
@@ -452,6 +459,48 @@ function roleScore(
       output * 10 +
       flashAdjustment +
       zaiAdjustment +
+      geminiAdjustment +
+      chutesAdjustment +
+      providerBias
+    );
+  }
+
+  if (agent === 'quick') {
+    const flashAdjustment = flash ? -18 : 0;
+    const zaiAdjustment = zai47NonFlash ? 16 : zai47Flash ? -18 : 0;
+    const nonReasoningFlashPenalty = flash && !model.reasoning ? -16 : 0;
+    return (
+      score +
+      code * 28 +
+      toolcall * 24 +
+      fast * 18 +
+      reasoning * 14 +
+      output * 8 +
+      flashAdjustment +
+      zaiAdjustment +
+      nonReasoningFlashPenalty +
+      geminiAdjustment +
+      chutesAdjustment +
+      providerBias
+    );
+  }
+
+  if (agent === 'deep') {
+    const flashAdjustment = flash ? -20 : 0;
+    const zaiAdjustment = zai47NonFlash ? 16 : zai47Flash ? -18 : 0;
+    const nonReasoningFlashPenalty = flash && !model.reasoning ? -18 : 0;
+    return (
+      score +
+      code * 28 +
+      toolcall * 24 +
+      deep * 8 +
+      fast * 14 +
+      reasoning * 16 +
+      context * 0.5 +
+      output * 8 +
+      flashAdjustment +
+      zaiAdjustment +
+      nonReasoningFlashPenalty +
       geminiAdjustment +
       chutesAdjustment +
       providerBias
@@ -807,7 +856,8 @@ function chooseProviderRepresentative(
 
 function getQualityWindow(agent: AgentName): number {
   if (agent === 'oracle' || agent === 'engineer') return 12;
-  if (agent === 'junior') return 15;
+  if (agent === 'deep') return 12;
+  if (agent === 'quick') return 15;
   if (agent === 'designer') return 16;
   if (agent === 'librarian') return 18;
   return 22;
@@ -850,11 +900,13 @@ function getProviderBundle(
     gap <=
       (agent === 'oracle' || agent === 'engineer'
         ? 8
-        : agent === 'designer' || agent === 'librarian'
-          ? 12
-          : agent === 'junior'
-            ? 15
-            : 18);
+        : agent === 'deep'
+          ? 8
+          : agent === 'designer' || agent === 'librarian'
+            ? 12
+            : agent === 'quick'
+              ? 15
+              : 18);
 
   return includeSecond
     ? [representative.model, second.model]
@@ -1085,7 +1137,7 @@ export function buildDynamicModelPlan(
 
   const getSelectedChutesForAgent = (agent: AgentName): string | undefined => {
     if (!config.hasChutes) return undefined;
-    return agent === 'explorer' || agent === 'librarian' || agent === 'junior'
+    return agent === 'explorer' || agent === 'librarian' || agent === 'quick'
       ? (config.selectedChutesSecondaryModel ??
           config.selectedChutesPrimaryModel)
       : config.selectedChutesPrimaryModel;
@@ -1095,7 +1147,7 @@ export function buildDynamicModelPlan(
     agent: AgentName,
   ): string | undefined => {
     if (!config.useOpenCodeFreeModels) return undefined;
-    return agent === 'explorer' || agent === 'librarian' || agent === 'junior'
+    return agent === 'explorer' || agent === 'librarian' || agent === 'quick'
       ? (config.selectedOpenCodeSecondaryModel ??
           config.selectedOpenCodePrimaryModel)
       : config.selectedOpenCodePrimaryModel;

@@ -15,7 +15,7 @@ import { createArchitectAgent } from './architect';
 import { createDesignerAgent } from './designer';
 import { createEngineerAgent } from './engineer';
 import { createExplorerAgent } from './explorer';
-import { createJuniorAgent } from './junior';
+import { createDeepAgent, createQuickAgent } from './junior';
 import { createLibrarianAgent } from './librarian';
 import { createOracleAgent } from './oracle';
 import { createPlannerAgent } from './planner';
@@ -113,7 +113,8 @@ const SUBAGENT_FACTORIES: Record<SubagentName, SubagentFactory> = {
   librarian: createLibrarianAgent,
   oracle: createOracleAgent,
   designer: createDesignerAgent,
-  junior: createJuniorAgent,
+  quick: createQuickAgent,
+  deep: createDeepAgent,
 };
 
 const PRIMARY_FACTORIES: Record<PrimaryName, PrimaryFactory> = {

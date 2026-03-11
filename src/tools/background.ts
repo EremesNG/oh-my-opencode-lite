@@ -42,13 +42,9 @@ Key behaviors:
         .string()
         .describe('Short description of the task (5-10 words)'),
       prompt: z.string().describe('The task prompt for the agent'),
-      agent: z.string().describe(`Agent to use: ${agentNames}`),
-      effort: z
-        .enum(['quick', 'deep'])
-        .optional()
-        .describe(
-          'Selects which LLM model to use for the junior agent (configured in agents.junior.effort). quick=cheap/fast model for simple changes, deep=capable model for complex work. Only applies to junior agent. Ignored if effort models are not configured.',
-        ),
+      agent: z
+        .string()
+        .describe(`Agent to use (including quick, deep): ${agentNames}`),
     },
     async execute(args, toolContext) {
       if (
@@ -76,7 +72,6 @@ Key behaviors:
         prompt,
         description,
         parentSessionId,
-        effort: args.effort as 'quick' | 'deep' | undefined,
       });
 
       return `Background task launched.

@@ -8,7 +8,8 @@ const FALLBACK_AGENT_NAMES = [
   'designer',
   'explorer',
   'librarian',
-  'junior',
+  'quick',
+  'deep',
 ] as const;
 
 const MANUAL_AGENT_NAMES = [
@@ -19,7 +20,8 @@ const MANUAL_AGENT_NAMES = [
   'designer',
   'explorer',
   'librarian',
-  'junior',
+  'quick',
+  'deep',
 ] as const;
 
 const ProviderModelIdSchema = z
@@ -75,70 +77,39 @@ const FallbackChainsSchema = z
     designer: AgentModelChainSchema.optional(),
     explorer: AgentModelChainSchema.optional(),
     librarian: AgentModelChainSchema.optional(),
-    junior: AgentModelChainSchema.optional(),
+    quick: AgentModelChainSchema.optional(),
+    deep: AgentModelChainSchema.optional(),
   })
   .catchall(AgentModelChainSchema);
 
 export type FallbackAgentName = (typeof FALLBACK_AGENT_NAMES)[number];
 
-/** A single model entry: plain string or object with optional variant. */
-const EffortModelEntrySchema = z.union([
-  z.string(),
-  z.object({
-    model: z.string(),
-    variant: z.string().optional(),
-  }),
-]);
+/** Model union: string or array with optional per-entry variant. */
+const ModelFieldSchema = z
+  .union([
+    z.string(),
+    z.array(
+      z.union([
+        z.string(),
+        z.object({
+          id: z.string(),
+          variant: z.string().optional(),
+        }),
+      ]),
+    ),
+  ])
+  .optional();
 
 /**
- * Model chain for one effort level.
- * Accepts a single model or an ordered array (first = primary, rest = fallbacks).
- *
- * Examples:
- *   "google/gemini-2.5-flash"
- *   ["google/gemini-2.5-flash", "openai/gpt-5.1-codex-mini"]
- *   [{ model: "openai/gpt-5.3-codex", variant: "high" }, "openai/gpt-5.2-codex"]
+ * Agent override configuration (distinct from SDK's AgentConfig).
+ * Supports overriding model, temperature, variant, skills, and mcps per agent.
  */
-const EffortLevelSchema = z.union([
-  EffortModelEntrySchema,
-  z.array(EffortModelEntrySchema).min(1),
-]);
-
-/**
- * Per-effort-level model configuration for the junior agent.
- * Each level defines which LLM to use (and its own fallback chain).
- *
- * - quick: cheap/fast model for simple, well-defined changes
- * - deep:  capable model for complex changes requiring thought
- */
-export const EffortConfigSchema = z.object({
-  quick: EffortLevelSchema.optional(),
-  deep: EffortLevelSchema.optional(),
-});
-
-export type EffortConfig = z.infer<typeof EffortConfigSchema>;
-
-// Agent override configuration (distinct from SDK's AgentConfig)
 export const AgentOverrideConfigSchema = z.object({
-  model: z
-    .union([
-      z.string(),
-      z.array(
-        z.union([
-          z.string(),
-          z.object({
-            id: z.string(),
-            variant: z.string().optional(),
-          }),
-        ]),
-      ),
-    ])
-    .optional(),
+  model: ModelFieldSchema,
   temperature: z.number().min(0).max(2).optional(),
   variant: z.string().optional().catch(undefined),
-  skills: z.array(z.string()).optional(), // skills this agent can use ("*" = all, "!item" = exclude)
-  mcps: z.array(z.string()).optional(), // MCPs this agent can use ("*" = all, "!item" = exclude)
-  effort: EffortConfigSchema.optional(), // per-effort-level model selection (junior agent only)
+  skills: z.array(z.string()).optional(),
+  mcps: z.array(z.string()).optional(),
 });
 
 // Tmux layout options

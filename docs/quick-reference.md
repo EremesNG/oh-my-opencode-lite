@@ -71,12 +71,13 @@ Uses OpenAI models exclusively:
   "preset": "openai",
   "presets": {
     "openai": {
-      "orchestrator": { "model": "openai/gpt-5.2-codex", "skills": ["*"], "mcps": ["websearch"] },
+      "engineer": { "model": "openai/gpt-5.2-codex", "skills": ["*"], "mcps": ["websearch"] },
       "oracle": { "model": "openai/gpt-5.2-codex", "variant": "high", "skills": [], "mcps": [] },
       "librarian": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
       "explorer": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": [] },
       "designer": { "model": "openai/gpt-5.1-codex-mini", "variant": "medium", "skills": ["agent-browser"], "mcps": [] },
-      "fixer": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": [] }
+      "quick": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": [] },
+      "deep": { "model": "openai/gpt-5.3-codex", "skills": [], "mcps": [] }
     }
   }
 }
@@ -92,10 +93,11 @@ bunx oh-my-opencode-lite install --antigravity=yes --opencode-free=yes --opencod
 ```
 
 **Agent Mapping:**
-- Orchestrator: Kimi (if available)
+- Engineer: Kimi (if available)
 - Oracle: GPT (if available)
-- Explorer/Librarian/Designer/Fixer: Gemini 3 Flash via Antigravity
-- If OpenCode free mode is enabled, Explorer/Librarian/Fixer may use selected free `opencode/*` support model while `designer` stays on external mapping
+- Explorer/Librarian/Designer: Gemini 3 Flash via Antigravity
+- Quick/Deep: OpenAI defaults when available; otherwise Antigravity defaults
+- If OpenCode free mode is enabled, Explorer/Librarian/Quick may use selected free `opencode/*` support model while `designer` stays on external mapping
 
 **Authentication:**
 ```bash
@@ -123,12 +125,13 @@ Mixed setup combining multiple providers:
   "preset": "alvin",
   "presets": {
     "alvin": {
-      "orchestrator": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["*"] },
+      "engineer": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["*"] },
       "oracle": { "model": "openai/gpt-5.2-codex", "variant": "high", "skills": [], "mcps": [] },
       "librarian": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
       "explorer": { "model": "cerebras/zai-glm-4.7", "variant": "low", "skills": [], "mcps": [] },
       "designer": { "model": "google/gemini-3-flash", "variant": "medium", "skills": ["agent-browser"], "mcps": [] },
-      "fixer": { "model": "cerebras/zai-glm-4.7", "variant": "low", "skills": [], "mcps": [] }
+      "quick": { "model": "cerebras/zai-glm-4.7", "variant": "low", "skills": [], "mcps": [] },
+      "deep": { "model": "cerebras/zai-glm-4.7", "skills": [], "mcps": [] }
     }
   }
 }
@@ -146,14 +149,14 @@ Skills are specialized capabilities provided by external agents and tools. Unlik
 
 | Skill | Description | Assigned To |
 |-------|-------------|-------------|
-| [`simplify`](#simplify) | YAGNI code simplification expert | `orchestrator` |
+| [`simplify`](#simplify) | YAGNI code simplification expert | `engineer` |
 | [`agent-browser`](#agent-browser) | High-performance browser automation | `designer` |
 
 ### Custom Skills (bundled in repo)
 
 | Skill | Description | Assigned To |
 |-------|-------------|-------------|
-| [`cartography`](#cartography) | Repository understanding and hierarchical codemap generation | `orchestrator` |
+| [`cartography`](#cartography) | Repository understanding and hierarchical codemap generation | `engineer` |
 
 ### Simplify
 
@@ -177,7 +180,7 @@ A dedicated guide (with screenshots) lives at: **[docs/cartography.md](cartograp
 
 **How to use:**
 
-Just ask the **Orchestrator** to `run cartography`. It will automatically detect if it needs to initialize a new map or update an existing one.
+Just ask the **Engineer** to `run cartography`. It will automatically detect if it needs to initialize a new map or update an existing one.
 
 **Why it's useful:**
 
@@ -239,7 +242,7 @@ You can customize which skills each agent is allowed to use in `~/.config/openco
 {
   "presets": {
     "my-preset": {
-      "orchestrator": {
+      "engineer": {
         "skills": ["*", "!agent-browser"]
       },
       "designer": {
@@ -268,12 +271,13 @@ Control which agents can access which MCP servers using per-agent allowlists:
 
 | Agent | Default MCPs |
 |-------|--------------|
-| `orchestrator` | `websearch` |
+| `engineer` | `websearch` |
 | `designer` | none |
 | `oracle` | none |
 | `librarian` | `websearch`, `context7`, `grep_app` |
 | `explorer` | none |
-| `fixer` | none |
+| `quick` | none |
+| `deep` | none |
 
 ### Configuration & Syntax
 
@@ -302,7 +306,7 @@ Control which agents can access which MCP servers using the `mcps` array in your
 {
   "presets": {
     "my-preset": {
-      "orchestrator": {
+      "engineer": {
         "mcps": ["websearch"]
       },
       "librarian": {
@@ -432,10 +436,10 @@ You can customize agent prompts by creating markdown files in `~/.config/opencod
 ```
 ~/.config/opencode/omolite/
   ├── test/
-  │   ├── orchestrator.md      # Preset-specific override (preferred)
+  │   ├── engineer.md           # Preset-specific override (preferred)
   │   └── explorer_append.md
-  ├── orchestrator.md          # Custom orchestrator prompt
-  ├── orchestrator_append.md   # Append to default orchestrator prompt
+  ├── engineer.md              # Custom engineer prompt
+  ├── engineer_append.md       # Append to default engineer prompt
   ├── explorer.md
   ├── explorer_append.md
   └── ...
@@ -501,9 +505,47 @@ The installer generates this file based on your providers. You can manually cust
 | `presets.<name>.<agent>.variant` | string | - | Agent variant for reasoning effort (e.g., `"low"`, `"medium"`, `"high"`) |
 | `presets.<name>.<agent>.skills` | string[] | - | Array of skill names the agent can use (`"*"` for all, `"!item"` to exclude) |
 | `presets.<name>.<agent>.mcps` | string[] | - | Array of MCP names the agent can use (`"*"` for all, `"!item"` to exclude) |
+| `presets.<name>.quick` | object | - | Full agent config for simple, well-defined changes |
+| `presets.<name>.deep` | object | - | Full agent config for complex changes requiring thought |
+| `fallback.chains.quick` | string[] | - | Fallback chain for quick tasks |
+| `fallback.chains.deep` | string[] | - | Fallback chain for deep tasks |
 | `tmux.enabled` | boolean | `false` | Enable tmux pane spawning for sub-agents |
 | `tmux.layout` | string | `"main-vertical"` | Layout preset: `main-vertical`, `main-horizontal`, `tiled`, `even-horizontal`, `even-vertical` |
 | `tmux.main_pane_size` | number | `60` | Main pane size as percentage (20-80) |
 | `disabled_mcps` | string[] | `[]` | MCP server IDs to disable globally (e.g., `"websearch"`) |
+
+#### Effort-Based Model Selection
+
+The implementation layer supports two dedicated agents: **quick** and **deep**. Use `quick` for simple, well-defined changes and `deep` for complex changes requiring more thought.
+
+- **quick**: Cheap/fast model for simple, well-defined changes (e.g., rename a variable, add a comment)
+- **deep**: Capable model for complex changes requiring thought (e.g., refactor a function, implement a feature)
+
+Each agent is a full config with `model`, `variant`, `skills`, and `mcps`. Fallback chains are defined separately under `fallback.chains.quick` and `fallback.chains.deep`.
+
+**Example configuration:**
+
+```json
+{
+  "preset": "my-preset",
+  "presets": {
+    "my-preset": {
+      "quick": { "model": "anthropic/claude-haiku-4-5", "variant": "low", "skills": [], "mcps": [] },
+      "deep": { "model": "openai/gpt-5.3-codex", "skills": [], "mcps": [] }
+    }
+  },
+  "fallback": {
+    "enabled": true,
+    "timeoutMs": 15000,
+    "chains": {
+      "engineer": ["openai/gpt-5.3-codex", "opencode/big-pickle"],
+      "quick": ["anthropic/claude-haiku-4-5", "opencode/big-pickle"],
+      "deep": ["openai/gpt-5.3-codex", "anthropic/claude-sonnet-4-5", "opencode/big-pickle"]
+    }
+  }
+}
+```
+
+The installer automatically generates quick/deep agent config and fallback chains based on your available providers.
 
 > **Note:** Agent configuration should be defined within `presets`. The root-level `agents` field is deprecated.

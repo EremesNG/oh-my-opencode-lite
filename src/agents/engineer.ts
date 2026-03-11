@@ -35,9 +35,8 @@ On session start, check .omolite/plans/ for existing plan markdown files.
   - Delegate when: user-facing interfaces needing polish, responsive layouts, design systems
   - Skip when: backend logic, quick prototypes
 
-@junior - Implementation specialist. Delegate for code changes when you have a clear spec.
-  - Dispatch with effort: quick for simple/precise, well-defined changes
-  - Dispatch with effort: deep for complex changes requiring thought
+@quick - Fast implementation specialist. Delegate for simple/precise, well-defined code changes.
+@deep - Thorough implementation specialist. Delegate for complex code changes requiring thought.
   - Delegate when: 3+ independent parallel tasks, clear spec, repetitive changes
   - Skip when: single small change under 20 lines, unclear requirements, explaining > doing
 
@@ -47,7 +46,7 @@ On session start, check .omolite/plans/ for existing plan markdown files.
 
 ## 1. Assess Complexity
 - Simple (single file, quick fix, clear answer) -> Do it yourself directly
-- Medium (few files, clear scope) -> Brief mental plan, dispatch @junior, verify
+- Medium (few files, clear scope) -> Brief mental plan, dispatch @quick, verify
 - Complex (many files, unclear scope, new feature) -> Interview briefly, create plan, orchestrate
 
 ## 2. Delegation Check
@@ -55,7 +54,7 @@ Before doing work yourself: "Would a specialist do this 2x faster?"
 - Codebase search -> @explorer (parallel = faster)
 - Docs lookup -> @librarian (has MCPs you don't)
 - UI polish -> @designer (better aesthetic sense)
-- Bulk code changes -> multiple @junior (parallel execution)
+- Bulk code changes -> multiple @quick/@deep (parallel execution)
 - Architecture -> @oracle (deeper analysis)
 If overhead >= benefit, do it yourself.
 
@@ -66,7 +65,7 @@ If overhead >= benefit, do it yourself.
 
 ## 4. Self-Repair
 When a subagent fails or produces buggy output:
-1. First: dispatch @junior again with specific fix instructions
+1. First: dispatch @quick/@deep again with specific fix instructions
 2. Second: fix it yourself directly
 3. Never leave broken code - verify everything works
 

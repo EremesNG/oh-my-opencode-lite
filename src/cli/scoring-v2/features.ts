@@ -58,7 +58,8 @@ function kimiVersionBonus(
     designer: -8,
     explorer: -6,
     librarian: -12,
-    junior: -12,
+    quick: -12,
+    deep: -6,
   };
   const kimiBonus: Record<ScoringAgentName, number> = {
     engineer: 1,
@@ -66,7 +67,8 @@ function kimiVersionBonus(
     designer: 3,
     explorer: 2,
     librarian: 2,
-    junior: 3,
+    quick: 3,
+    deep: 1,
   };
   const minimaxBonus: Record<ScoringAgentName, number> = {
     engineer: 1,
@@ -74,7 +76,8 @@ function kimiVersionBonus(
     designer: 2,
     explorer: 4,
     librarian: 4,
-    junior: 4,
+    quick: 4,
+    deep: 1,
   };
 
   if (isQwen3) return qwenPenalty[agent];

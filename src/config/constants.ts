@@ -5,7 +5,8 @@ export const AGENT_ALIASES: Record<string, string> = {
   plan: 'planner',
   arch: 'architect',
   eng: 'engineer',
-  fix: 'junior',
+  fix: 'quick',
+  junior: 'quick',
   'frontend-ui-ux-engineer': 'designer',
 };
 
@@ -14,7 +15,8 @@ export const SUBAGENT_NAMES = [
   'librarian',
   'oracle',
   'designer',
-  'junior',
+  'quick',
+  'deep',
 ] as const;
 
 export const PRIMARY_NAMES = ['planner', 'architect', 'engineer'] as const;
@@ -34,7 +36,8 @@ export const SUBAGENT_DELEGATION_RULES: Record<AgentName, readonly string[]> = {
   designer: [],
   explorer: [],
   librarian: [],
-  junior: [],
+  quick: [],
+  deep: [],
 };
 
 // Default models per agent (undefined = resolved at runtime via fallback)
@@ -46,7 +49,8 @@ export const DEFAULT_MODELS: Record<AgentName, string | undefined> = {
   librarian: 'openai/gpt-5.1-codex-mini',
   explorer: 'openai/gpt-5.1-codex-mini',
   designer: 'kimi-for-coding/k2p5',
-  junior: 'openai/gpt-5.1-codex-mini',
+  quick: 'openai/gpt-5.1-codex-mini',
+  deep: 'openai/gpt-5.3-codex',
 };
 
 // Polling

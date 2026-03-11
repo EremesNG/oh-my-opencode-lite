@@ -3,7 +3,7 @@
 Review code changes for correctness, quality, and adherence to project conventions.
 
 ## When to Use
-- After subagent completes a task (Architect/Engineer reviewing junior's work)
+- After subagent completes a task (Architect/Engineer reviewing quick/deep work)
 - Before merging or committing significant changes
 - When explicitly asked to review code
 

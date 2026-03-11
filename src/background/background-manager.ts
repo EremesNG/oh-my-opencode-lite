@@ -14,22 +14,14 @@
  */
 
 import type { PluginInput } from '@opencode-ai/plugin';
-import { resolveJuniorEffortPrompt } from '../agents/junior';
 import type { BackgroundTaskConfig, PluginConfig } from '../config';
 import {
   FALLBACK_FAILOVER_TIMEOUT_MS,
   SUBAGENT_DELEGATION_RULES,
 } from '../config';
-import type { EffortConfig, TmuxConfig } from '../config/schema';
+import type { TmuxConfig } from '../config/schema';
 import { applyAgentVariant, resolveAgentVariant } from '../utils';
 import { log } from '../utils/logger';
-
-/** Resolved model entry with parsed provider/model and optional variant. */
-interface ResolvedEffortModel {
-  providerID: string;
-  modelID: string;
-  variant?: string;
-}
 
 type PromptBody = {
   messageID?: string;
@@ -82,7 +74,6 @@ export interface BackgroundTask {
   startedAt: Date; // Task creation timestamp
   completedAt?: Date; // Task completion/failure timestamp
   prompt: string; // Initial prompt
-  effort?: 'quick' | 'deep'; // Effort level (only applies to junior agent)
 }
 
 /**
@@ -93,7 +84,6 @@ export interface LaunchOptions {
   prompt: string; // Initial prompt to send to the agent
   description: string; // Human-readable task description
   parentSessionId: string; // Parent session ID for task hierarchy
-  effort?: 'quick' | 'deep'; // Effort level (only applies to junior agent)
 }
 
 function generateTaskId(): string {
@@ -203,7 +193,6 @@ export class BackgroundTaskManager {
       },
       parentSessionId: opts.parentSessionId,
       prompt: opts.prompt,
-      effort: opts.effort,
     };
 
     this.tasks.set(task.id, task);
@@ -268,40 +257,6 @@ export class BackgroundTaskManager {
     }
 
     return chain;
-  }
-
-  /**
-   * Resolve effort-specific model chain for the junior agent.
-   * Each effort level (quick/deep) can define its own ordered list of
-   * models to try, independent of the normal agent fallback chain.
-   *
-   * @returns Ordered list of models to attempt, or null if effort is
-   *          not configured (caller should fall back to normal resolution).
-   */
-  private resolveEffortChain(
-    effort: 'quick' | 'deep',
-  ): ResolvedEffortModel[] | null {
-    const effortConfig = (
-      this.config?.agents?.junior as { effort?: EffortConfig } | undefined
-    )?.effort;
-    if (!effortConfig) return null;
-
-    const levelConfig = effortConfig[effort];
-    if (!levelConfig) return null;
-
-    // Normalize to array
-    const entries = Array.isArray(levelConfig) ? levelConfig : [levelConfig];
-
-    const resolved: ResolvedEffortModel[] = [];
-    for (const entry of entries) {
-      const id = typeof entry === 'string' ? entry : entry.model;
-      const variant = typeof entry === 'object' ? entry.variant : undefined;
-      const ref = parseModelReference(id);
-      if (!ref) continue; // skip invalid entries
-      resolved.push({ ...ref, variant });
-    }
-
-    return resolved.length > 0 ? resolved : null;
   }
 
   private async promptWithTimeout(
@@ -405,93 +360,46 @@ export class BackgroundTaskManager {
         ? (this.config?.fallback?.timeoutMs ?? FALLBACK_FAILOVER_TIMEOUT_MS)
         : 0; // 0 = no timeout when fallback disabled
 
-      // Effort-based model resolution: when effort is set for a junior task,
-      // use the effort-specific model chain instead of the normal fallback chain.
-      const effortChain =
-        task.effort && task.agent === 'junior'
-          ? this.resolveEffortChain(task.effort)
-          : null;
-
-      // Inject effort-specific behavioral instructions into system prompt
-      if (task.effort && task.agent === 'junior') {
-        basePromptBody.system = resolveJuniorEffortPrompt(task.effort);
-      }
-
       const errors: string[] = [];
       let succeeded = false;
 
-      if (effortChain) {
-        // Effort chain: each entry carries its own model + optional variant
-        for (const entry of effortChain) {
-          try {
-            const body: PromptBody = {
-              ...basePromptBody,
-              model: {
-                providerID: entry.providerID,
-                modelID: entry.modelID,
-              },
-            };
-            if (entry.variant) {
-              body.variant = entry.variant;
+      const chain = fallbackEnabled
+        ? this.resolveFallbackChain(task.agent)
+        : [];
+      const attemptModels = chain.length > 0 ? chain : [undefined];
+
+      for (const model of attemptModels) {
+        try {
+          const body: PromptBody = {
+            ...basePromptBody,
+            model: undefined,
+          };
+
+          if (model) {
+            const ref = parseModelReference(model);
+            if (!ref) {
+              throw new Error(`Invalid fallback model format: ${model}`);
             }
-
-            await this.promptWithTimeout(
-              {
-                path: { id: session.data.id },
-                body,
-                query: promptQuery,
-              },
-              timeoutMs,
-            );
-
-            succeeded = true;
-            break;
-          } catch (error) {
-            const id = `${entry.providerID}/${entry.modelID}`;
-            const msg = error instanceof Error ? error.message : String(error);
-            errors.push(`${id}: ${msg}`);
+            body.model = ref;
           }
-        }
-      } else {
-        // Normal fallback chain (no effort or effort not configured)
-        const chain = fallbackEnabled
-          ? this.resolveFallbackChain(task.agent)
-          : [];
-        const attemptModels = chain.length > 0 ? chain : [undefined];
 
-        for (const model of attemptModels) {
-          try {
-            const body: PromptBody = {
-              ...basePromptBody,
-              model: undefined,
-            };
+          await this.promptWithTimeout(
+            {
+              path: { id: session.data.id },
+              body,
+              query: promptQuery,
+            },
+            timeoutMs,
+          );
 
-            if (model) {
-              const ref = parseModelReference(model);
-              if (!ref) {
-                throw new Error(`Invalid fallback model format: ${model}`);
-              }
-              body.model = ref;
-            }
-
-            await this.promptWithTimeout(
-              {
-                path: { id: session.data.id },
-                body,
-                query: promptQuery,
-              },
-              timeoutMs,
-            );
-
-            succeeded = true;
-            break;
-          } catch (error) {
-            const msg = error instanceof Error ? error.message : String(error);
-            if (model) {
-              errors.push(`${model}: ${msg}`);
-            } else {
-              errors.push(`default-model: ${msg}`);
-            }
+          succeeded = true;
+          break;
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          if (model) {
+            errors.push(`${model}: ${msg}`);
+          } else {
+            errors.push(`default-model: ${msg}`);
           }
         }
       }

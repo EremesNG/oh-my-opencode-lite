@@ -8,10 +8,57 @@ const AGENT_NAMES = [
   'designer',
   'explorer',
   'librarian',
-  'junior',
+  'quick',
+  'deep',
 ] as const;
 
 type AgentName = (typeof AGENT_NAMES)[number];
+
+/**
+ * Effort-level model mappings per provider.
+ * - quick: cheapest/fastest model for simple, well-defined changes
+ * - deep:  most capable model for complex changes requiring thought
+ */
+export const EFFORT_MODEL_MAPPINGS: Record<
+  string,
+  {
+    quick: { model: string; variant?: string };
+    deep: { model: string; variant?: string };
+  }
+> = {
+  kimi: {
+    quick: { model: 'kimi-for-coding/k2p5', variant: 'low' },
+    deep: { model: 'kimi-for-coding/k2p5' },
+  },
+  openai: {
+    quick: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
+    deep: { model: 'openai/gpt-5.3-codex' },
+  },
+  anthropic: {
+    quick: { model: 'anthropic/claude-haiku-4-5', variant: 'low' },
+    deep: { model: 'anthropic/claude-sonnet-4-5' },
+  },
+  copilot: {
+    quick: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
+    deep: { model: 'github-copilot/grok-code-fast-1' },
+  },
+  'zai-plan': {
+    quick: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
+    deep: { model: 'zai-coding-plan/glm-4.7' },
+  },
+  antigravity: {
+    quick: { model: 'google/antigravity-gemini-3-flash', variant: 'low' },
+    deep: { model: 'google/antigravity-gemini-3.1-pro' },
+  },
+  chutes: {
+    quick: { model: 'chutes/minimax-m2.1', variant: 'low' },
+    deep: { model: 'chutes/kimi-k2.5' },
+  },
+  'zen-free': {
+    quick: { model: 'opencode/big-pickle', variant: 'low' },
+    deep: { model: 'opencode/big-pickle' },
+  },
+};
 
 // Model mappings by provider priority
 export const MODEL_MAPPINGS = {
@@ -21,7 +68,8 @@ export const MODEL_MAPPINGS = {
     librarian: { model: 'kimi-for-coding/k2p5', variant: 'low' },
     explorer: { model: 'kimi-for-coding/k2p5', variant: 'low' },
     designer: { model: 'kimi-for-coding/k2p5', variant: 'medium' },
-    junior: { model: 'kimi-for-coding/k2p5', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.kimi.quick,
+    deep: EFFORT_MODEL_MAPPINGS.kimi.deep,
   },
   openai: {
     engineer: { model: 'openai/gpt-5.3-codex' },
@@ -29,7 +77,8 @@ export const MODEL_MAPPINGS = {
     librarian: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
     explorer: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
     designer: { model: 'openai/gpt-5.1-codex-mini', variant: 'medium' },
-    junior: { model: 'openai/gpt-5.1-codex-mini', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.openai.quick,
+    deep: EFFORT_MODEL_MAPPINGS.openai.deep,
   },
   anthropic: {
     engineer: { model: 'anthropic/claude-opus-4-6' },
@@ -37,7 +86,8 @@ export const MODEL_MAPPINGS = {
     librarian: { model: 'anthropic/claude-sonnet-4-5', variant: 'low' },
     explorer: { model: 'anthropic/claude-haiku-4-5', variant: 'low' },
     designer: { model: 'anthropic/claude-sonnet-4-5', variant: 'medium' },
-    junior: { model: 'anthropic/claude-sonnet-4-5', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.anthropic.quick,
+    deep: EFFORT_MODEL_MAPPINGS.anthropic.deep,
   },
   copilot: {
     engineer: { model: 'github-copilot/grok-code-fast-1' },
@@ -45,7 +95,8 @@ export const MODEL_MAPPINGS = {
     librarian: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
     explorer: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
     designer: { model: 'github-copilot/grok-code-fast-1', variant: 'medium' },
-    junior: { model: 'github-copilot/grok-code-fast-1', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.copilot.quick,
+    deep: EFFORT_MODEL_MAPPINGS.copilot.deep,
   },
   'zai-plan': {
     engineer: { model: 'zai-coding-plan/glm-4.7' },
@@ -53,7 +104,8 @@ export const MODEL_MAPPINGS = {
     librarian: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
     explorer: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
     designer: { model: 'zai-coding-plan/glm-4.7', variant: 'medium' },
-    junior: { model: 'zai-coding-plan/glm-4.7', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS['zai-plan'].quick,
+    deep: EFFORT_MODEL_MAPPINGS['zai-plan'].deep,
   },
   antigravity: {
     engineer: { model: 'google/antigravity-gemini-3-flash' },
@@ -70,7 +122,8 @@ export const MODEL_MAPPINGS = {
       model: 'google/antigravity-gemini-3-flash',
       variant: 'medium',
     },
-    junior: { model: 'google/antigravity-gemini-3-flash', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.antigravity.quick,
+    deep: EFFORT_MODEL_MAPPINGS.antigravity.deep,
   },
   chutes: {
     engineer: { model: 'chutes/kimi-k2.5' },
@@ -78,7 +131,8 @@ export const MODEL_MAPPINGS = {
     librarian: { model: 'chutes/minimax-m2.1', variant: 'low' },
     explorer: { model: 'chutes/minimax-m2.1', variant: 'low' },
     designer: { model: 'chutes/kimi-k2.5', variant: 'medium' },
-    junior: { model: 'chutes/minimax-m2.1', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS.chutes.quick,
+    deep: EFFORT_MODEL_MAPPINGS.chutes.deep,
   },
   'zen-free': {
     engineer: { model: 'opencode/big-pickle' },
@@ -86,7 +140,8 @@ export const MODEL_MAPPINGS = {
     librarian: { model: 'opencode/big-pickle', variant: 'low' },
     explorer: { model: 'opencode/big-pickle', variant: 'low' },
     designer: { model: 'opencode/big-pickle', variant: 'medium' },
-    junior: { model: 'opencode/big-pickle', variant: 'low' },
+    quick: EFFORT_MODEL_MAPPINGS['zen-free'].quick,
+    deep: EFFORT_MODEL_MAPPINGS['zen-free'].deep,
   },
 } as const;
 
@@ -190,22 +245,28 @@ export function generateAntigravityMixedPreset(
     });
   }
 
-  // Junior prefers OpenAI codex when available.
+  // Quick/deep are normal first-class agent configs.
   if (config.hasOpenAI) {
-    result.junior = createAgentConfig('junior', {
-      ...MODEL_MAPPINGS.openai.oracle,
-      variant: 'low',
-    });
+    result.quick = createAgentConfig(
+      'quick',
+      EFFORT_MODEL_MAPPINGS.openai.quick,
+    );
+    result.deep = createAgentConfig('deep', EFFORT_MODEL_MAPPINGS.openai.deep);
   } else if (config.hasChutes) {
-    result.junior = createAgentConfig('junior', {
+    result.quick = createAgentConfig('quick', {
       model: chutesSupport,
       variant: 'low',
     });
+    result.deep = createAgentConfig('deep', { model: chutesPrimary });
   } else {
-    result.junior = createAgentConfig('junior', {
-      ...antigravityFlash,
-      variant: 'low',
-    });
+    result.quick = createAgentConfig(
+      'quick',
+      EFFORT_MODEL_MAPPINGS.antigravity.quick,
+    );
+    result.deep = createAgentConfig(
+      'deep',
+      EFFORT_MODEL_MAPPINGS.antigravity.deep,
+    );
   }
 
   return result;
@@ -232,6 +293,14 @@ export function generateLiteConfig(
     for (const agentName of AGENT_NAMES) {
       const manualConfig = installConfig.manualAgentConfigs[agentName];
       if (manualConfig) {
+        // Build fallback chain from manual config
+        const fallbackChain = [
+          manualConfig.primary,
+          manualConfig.fallback1,
+          manualConfig.fallback2,
+          manualConfig.fallback3,
+        ].filter((m, i, arr) => m && arr.indexOf(m) === i) as string[]; // dedupe
+
         manualPreset[agentName] = {
           model: manualConfig.primary,
           skills:
@@ -246,14 +315,6 @@ export function generateLiteConfig(
             DEFAULT_AGENT_MCPS[agentName as keyof typeof DEFAULT_AGENT_MCPS] ??
             [],
         };
-
-        // Build fallback chain from manual config
-        const fallbackChain = [
-          manualConfig.primary,
-          manualConfig.fallback1,
-          manualConfig.fallback2,
-          manualConfig.fallback3,
-        ].filter((m, i, arr) => m && arr.indexOf(m) === i); // dedupe
         chains[agentName] = fallbackChain;
       }
     }
@@ -349,24 +410,25 @@ export function generateLiteConfig(
   };
 
   if (installConfig.dynamicModelPlan) {
-    const dynamicPreset = Object.fromEntries(
-      Object.entries(installConfig.dynamicModelPlan.agents).map(
-        ([agentName, assignment]) => [
-          agentName,
-          createAgentConfig(
-            agentName,
-            assignment as { model: string; variant?: string },
-          ),
-        ],
-      ),
-    );
+    const dynamicPreset: Record<string, unknown> = {};
+    for (const [agentName, assignment] of Object.entries(
+      installConfig.dynamicModelPlan.agents,
+    )) {
+      const info = assignment as {
+        model: string;
+        variant?: string;
+      };
+      dynamicPreset[agentName] = createAgentConfig(agentName, info);
+    }
 
     config.preset = 'dynamic';
     (config.presets as Record<string, unknown>).dynamic = dynamicPreset;
+
+    const dynChains = installConfig.dynamicModelPlan.chains;
     config.fallback = {
       enabled: true,
       timeoutMs: 15000,
-      chains: installConfig.dynamicModelPlan.chains,
+      chains: dynChains,
     };
 
     if (installConfig.hasTmux) {
@@ -404,7 +466,11 @@ export function generateLiteConfig(
 
     setAgent('librarian', secondaryModel);
     setAgent('explorer', secondaryModel);
-    setAgent('junior', secondaryModel);
+    presetAgents.quick = createAgentConfig('quick', {
+      model: secondaryModel,
+      variant: 'low',
+    });
+    presetAgents.deep = createAgentConfig('deep', { model: primaryModel });
   };
 
   const applyChutesAssignments = (presetAgents: Record<string, unknown>) => {
@@ -435,7 +501,11 @@ export function generateLiteConfig(
     setAgent('designer', primaryModel);
     setAgent('librarian', secondaryModel);
     setAgent('explorer', secondaryModel);
-    setAgent('junior', secondaryModel);
+    presetAgents.quick = createAgentConfig('quick', {
+      model: secondaryModel,
+      variant: 'low',
+    });
+    presetAgents.deep = createAgentConfig('deep', { model: primaryModel });
   };
 
   const dedupeModels = (models: Array<string | undefined>) => {
@@ -456,7 +526,7 @@ export function generateLiteConfig(
     const isSupport =
       agentName === 'explorer' ||
       agentName === 'librarian' ||
-      agentName === 'junior';
+      agentName === 'quick';
     if (isSupport) {
       return (
         installConfig.selectedOpenCodeSecondaryModel ??
@@ -471,7 +541,7 @@ export function generateLiteConfig(
     const isSupport =
       agentName === 'explorer' ||
       agentName === 'librarian' ||
-      agentName === 'junior';
+      agentName === 'quick';
     if (isSupport) {
       return (
         installConfig.selectedChutesSecondaryModel ??
@@ -486,7 +556,7 @@ export function generateLiteConfig(
   };
 
   const attachFallbackConfig = (presetAgents: Record<string, unknown>) => {
-    const chains: Partial<Record<AgentName, string[]>> = {};
+    const chains: Record<string, string[]> = {};
 
     for (const agentName of AGENT_NAMES) {
       const currentModel = (
@@ -532,22 +602,24 @@ export function generateLiteConfig(
 
   const buildPreset = (mappingName: keyof typeof MODEL_MAPPINGS) => {
     const mapping = MODEL_MAPPINGS[mappingName];
-    return Object.fromEntries(
-      Object.entries(mapping).map(([agentName, modelInfo]) => {
-        let activeModelInfo = { ...modelInfo };
+    const preset: Record<string, unknown> = {};
 
-        // Hybrid case: Kimi + OpenAI (use OpenAI for Oracle, Kimi for engineer/designer)
-        if (
-          activePreset === 'kimi' &&
-          installConfig.hasOpenAI &&
-          agentName === 'oracle'
-        ) {
-          activeModelInfo = { ...MODEL_MAPPINGS.openai.oracle };
-        }
+    for (const [agentName, modelInfo] of Object.entries(mapping)) {
+      let activeModelInfo = { ...modelInfo };
 
-        return [agentName, createAgentConfig(agentName, activeModelInfo)];
-      }),
-    );
+      // Hybrid case: Kimi + OpenAI (use OpenAI for Oracle)
+      if (
+        activePreset === 'kimi' &&
+        installConfig.hasOpenAI &&
+        agentName === 'oracle'
+      ) {
+        activeModelInfo = { ...MODEL_MAPPINGS.openai.oracle };
+      }
+
+      preset[agentName] = createAgentConfig(agentName, activeModelInfo);
+    }
+
+    return preset;
   };
 
   // Build preset based on type

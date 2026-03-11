@@ -24,8 +24,8 @@ describe('providers', () => {
     expect(agents).toBeDefined();
     expect(agents.engineer.model).toBe('kimi-for-coding/k2p5');
     expect(agents.engineer.variant).toBeUndefined();
-    expect(agents.junior.model).toBe('kimi-for-coding/k2p5');
-    expect(agents.junior.variant).toBe('low');
+    expect(agents.quick.model).toBe('kimi-for-coding/k2p5');
+    expect(agents.quick.variant).toBe('low');
     // Should NOT include other presets
     expect((config.presets as any).openai).toBeUndefined();
     expect((config.presets as any)['zen-free']).toBeUndefined();
@@ -98,7 +98,7 @@ describe('providers', () => {
     expect(agents.designer.model).toBe('chutes/kimi-k2.5');
     expect(agents.explorer.model).toBe('chutes/minimax-m2.1');
     expect(agents.librarian.model).toBe('chutes/minimax-m2.1');
-    expect(agents.junior.model).toBe('chutes/minimax-m2.1');
+    expect(agents.quick.model).toBe('chutes/minimax-m2.1');
   });
 
   test('generateLiteConfig generates anthropic preset when only anthropic selected', () => {
@@ -168,12 +168,13 @@ describe('providers', () => {
     expect((config.fallback as any).timeoutMs).toBe(15000);
     const chains = (config.fallback as any).chains;
     expect(Object.keys(chains).sort()).toEqual([
+      'deep',
       'designer',
       'engineer',
       'explorer',
-      'junior',
       'librarian',
       'oracle',
+      'quick',
     ]);
     expect(chains.engineer).toContain('openai/gpt-5.3-codex');
     expect(chains.engineer).toContain('kimi-for-coding/k2p5');
@@ -256,8 +257,9 @@ describe('providers', () => {
     // Designer should have 'agent-browser'
     expect(agents.designer.skills).toContain('agent-browser');
 
-    // Junior should have no skills by default (empty recommended list)
-    expect(agents.junior.skills).toEqual([]);
+    // Quick/deep implementer agents should have no skills by default (empty recommended list)
+    expect(agents.quick.skills).toEqual([]);
+    expect(agents.deep.skills).toEqual([]);
   });
 
   test('generateLiteConfig includes mcps field', () => {
@@ -297,7 +299,7 @@ describe('providers', () => {
     expect(agents.oracle.model).toBe(MODEL_MAPPINGS.openai.oracle.model);
     expect(agents.explorer.model).toBe('opencode/gpt-5-nano');
     expect(agents.librarian.model).toBe('opencode/gpt-5-nano');
-    expect(agents.junior.model).toBe('opencode/gpt-5-nano');
+    expect(agents.quick.model).toBe('opencode/gpt-5-nano');
   });
 
   test('generateLiteConfig applies OpenCode free model overrides in OpenCode-only mode', () => {
@@ -320,7 +322,7 @@ describe('providers', () => {
     expect(agents.designer.model).toBe('opencode/glm-4.7-free');
     expect(agents.explorer.model).toBe('opencode/gpt-5-nano');
     expect(agents.librarian.model).toBe('opencode/gpt-5-nano');
-    expect(agents.junior.model).toBe('opencode/gpt-5-nano');
+    expect(agents.quick.model).toBe('opencode/gpt-5-nano');
   });
 
   test('generateLiteConfig zen-free includes correct mcps', () => {
@@ -366,15 +368,16 @@ describe('providers', () => {
       expect(agents.oracle.model).toBe('openai/gpt-5.3-codex');
       expect(agents.oracle.variant).toBe('high');
 
-      // Explorer/Librarian/Designer use Antigravity Flash; Junior prefers OpenAI
+      // Explorer/Librarian/Designer use Antigravity Flash; quick/deep prefer OpenAI
       expect(agents.explorer.model).toBe('google/antigravity-gemini-3-flash');
       expect(agents.explorer.variant).toBe('low');
       expect(agents.librarian.model).toBe('google/antigravity-gemini-3-flash');
       expect(agents.librarian.variant).toBe('low');
       expect(agents.designer.model).toBe('google/antigravity-gemini-3-flash');
       expect(agents.designer.variant).toBe('medium');
-      expect(agents.junior.model).toBe('openai/gpt-5.3-codex');
-      expect(agents.junior.variant).toBe('low');
+      expect(agents.quick.model).toBe('openai/gpt-5.1-codex-mini');
+      expect(agents.quick.variant).toBe('low');
+      expect(agents.deep.model).toBe('openai/gpt-5.3-codex');
     });
 
     test('generateLiteConfig generates antigravity-mixed-kimi preset when Kimi + Antigravity', () => {
@@ -402,7 +405,7 @@ describe('providers', () => {
       expect(agents.explorer.model).toBe('google/antigravity-gemini-3-flash');
       expect(agents.librarian.model).toBe('google/antigravity-gemini-3-flash');
       expect(agents.designer.model).toBe('google/antigravity-gemini-3-flash');
-      expect(agents.junior.model).toBe('google/antigravity-gemini-3-flash');
+      expect(agents.quick.model).toBe('google/antigravity-gemini-3-flash');
     });
 
     test('generateLiteConfig generates antigravity-mixed-openai preset when OpenAI + Antigravity', () => {
@@ -427,11 +430,12 @@ describe('providers', () => {
       expect(agents.oracle.model).toBe('openai/gpt-5.3-codex');
       expect(agents.oracle.variant).toBe('high');
 
-      // Explorer/Librarian/Designer use Antigravity Flash; Junior prefers OpenAI
+      // Explorer/Librarian/Designer use Antigravity Flash; quick/deep prefer OpenAI
       expect(agents.explorer.model).toBe('google/antigravity-gemini-3-flash');
       expect(agents.librarian.model).toBe('google/antigravity-gemini-3-flash');
       expect(agents.designer.model).toBe('google/antigravity-gemini-3-flash');
-      expect(agents.junior.model).toBe('openai/gpt-5.3-codex');
+      expect(agents.quick.model).toBe('openai/gpt-5.1-codex-mini');
+      expect(agents.deep.model).toBe('openai/gpt-5.3-codex');
     });
 
     test('generateLiteConfig generates pure antigravity preset when only Antigravity', () => {
@@ -455,7 +459,7 @@ describe('providers', () => {
       expect(agents.explorer.model).toBe('google/antigravity-gemini-3-flash');
       expect(agents.librarian.model).toBe('google/antigravity-gemini-3-flash');
       expect(agents.designer.model).toBe('google/antigravity-gemini-3-flash');
-      expect(agents.junior.model).toBe('google/antigravity-gemini-3-flash');
+      expect(agents.quick.model).toBe('google/antigravity-gemini-3-flash');
     });
 
     test('generateAntigravityMixedPreset respects Kimi for engineer', () => {
@@ -487,7 +491,7 @@ describe('providers', () => {
       expect((preset.oracle as any).variant).toBe('high');
     });
 
-    test('generateAntigravityMixedPreset uses OpenAI junior and Antigravity support defaults', () => {
+    test('generateAntigravityMixedPreset uses OpenAI quick/deep and Antigravity support defaults', () => {
       const preset = generateAntigravityMixedPreset({
         hasKimi: true,
         hasOpenAI: true,
@@ -507,7 +511,8 @@ describe('providers', () => {
       expect((preset.designer as any).model).toBe(
         'google/antigravity-gemini-3-flash',
       );
-      expect((preset.junior as any).model).toBe('openai/gpt-5.3-codex');
+      expect((preset.quick as any).model).toBe('openai/gpt-5.1-codex-mini');
+      expect((preset.deep as any).model).toBe('openai/gpt-5.3-codex');
     });
   });
 });

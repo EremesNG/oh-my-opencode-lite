@@ -154,7 +154,7 @@ describe('BackgroundTaskManager', () => {
       });
 
       const task3 = manager.launch({
-        agent: 'junior',
+        agent: 'quick',
         prompt: 'test3',
         description: 'test3',
         parentSessionId: 'parent-123',
@@ -954,18 +954,19 @@ describe('BackgroundTaskManager', () => {
 
       // Engineer can delegate to all subagents
       expect(manager.isAgentAllowed(engineerSessionId, 'explorer')).toBe(true);
-      expect(manager.isAgentAllowed(engineerSessionId, 'junior')).toBe(true);
+      expect(manager.isAgentAllowed(engineerSessionId, 'quick')).toBe(true);
       expect(manager.isAgentAllowed(engineerSessionId, 'designer')).toBe(true);
       expect(manager.isAgentAllowed(engineerSessionId, 'librarian')).toBe(true);
       expect(manager.isAgentAllowed(engineerSessionId, 'oracle')).toBe(true);
+      expect(manager.isAgentAllowed(engineerSessionId, 'deep')).toBe(true);
     });
 
     test('isAgentAllowed returns false for invalid delegations', async () => {
       const ctx = createMockContext();
       const manager = new BackgroundTaskManager(ctx);
 
-      const juniorTask = manager.launch({
-        agent: 'junior',
+      const quickTask = manager.launch({
+        agent: 'quick',
         prompt: 'test',
         description: 'test',
         parentSessionId: 'root-session',
@@ -974,13 +975,14 @@ describe('BackgroundTaskManager', () => {
       await Promise.resolve();
       await Promise.resolve();
 
-      const juniorSessionId = juniorTask.sessionId;
-      if (!juniorSessionId) throw new Error('Expected sessionId to be defined');
+      const quickSessionId = quickTask.sessionId;
+      if (!quickSessionId) throw new Error('Expected sessionId to be defined');
 
-      // Junior cannot delegate to any subagents
-      expect(manager.isAgentAllowed(juniorSessionId, 'explorer')).toBe(false);
-      expect(manager.isAgentAllowed(juniorSessionId, 'oracle')).toBe(false);
-      expect(manager.isAgentAllowed(juniorSessionId, 'designer')).toBe(false);
+      // Quick cannot delegate to any subagents
+      expect(manager.isAgentAllowed(quickSessionId, 'explorer')).toBe(false);
+      expect(manager.isAgentAllowed(quickSessionId, 'oracle')).toBe(false);
+      expect(manager.isAgentAllowed(quickSessionId, 'designer')).toBe(false);
+      expect(manager.isAgentAllowed(quickSessionId, 'deep')).toBe(false);
     });
 
     test('isAgentAllowed returns false for leaf agents', async () => {
@@ -1002,7 +1004,7 @@ describe('BackgroundTaskManager', () => {
       if (!explorerSessionId)
         throw new Error('Expected sessionId to be defined');
 
-      expect(manager.isAgentAllowed(explorerSessionId, 'junior')).toBe(false);
+      expect(manager.isAgentAllowed(explorerSessionId, 'quick')).toBe(false);
 
       // Librarian is also a leaf agent
       const librarianTask = manager.launch({
@@ -1030,10 +1032,11 @@ describe('BackgroundTaskManager', () => {
 
       // Unknown sessions default to engineer, which can delegate to all subagents
       expect(manager.isAgentAllowed('unknown-session', 'explorer')).toBe(true);
-      expect(manager.isAgentAllowed('unknown-session', 'junior')).toBe(true);
+      expect(manager.isAgentAllowed('unknown-session', 'quick')).toBe(true);
       expect(manager.isAgentAllowed('unknown-session', 'designer')).toBe(true);
       expect(manager.isAgentAllowed('unknown-session', 'librarian')).toBe(true);
       expect(manager.isAgentAllowed('unknown-session', 'oracle')).toBe(true);
+      expect(manager.isAgentAllowed('unknown-session', 'deep')).toBe(true);
     });
 
     test('unknown agent type defaults to explorer-only delegation', async () => {
@@ -1059,7 +1062,7 @@ describe('BackgroundTaskManager', () => {
         'explorer',
       ]);
       expect(manager.isAgentAllowed(customSessionId, 'explorer')).toBe(true);
-      expect(manager.isAgentAllowed(customSessionId, 'junior')).toBe(false);
+      expect(manager.isAgentAllowed(customSessionId, 'quick')).toBe(false);
       expect(manager.isAgentAllowed(customSessionId, 'oracle')).toBe(false);
     });
 
@@ -1149,7 +1152,7 @@ describe('BackgroundTaskManager', () => {
 
       // Designer is a leaf node and cannot spawn subagents
       expect(manager.isAgentAllowed(designerSessionId, 'explorer')).toBe(false);
-      expect(manager.isAgentAllowed(designerSessionId, 'junior')).toBe(false);
+      expect(manager.isAgentAllowed(designerSessionId, 'quick')).toBe(false);
       expect(manager.isAgentAllowed(designerSessionId, 'oracle')).toBe(false);
 
       // Level 3: Launch explorer from designer
@@ -1178,11 +1181,11 @@ describe('BackgroundTaskManager', () => {
       expect(manager.getAllowedSubagents(explorerSessionId)).toEqual([]);
     });
 
-    test('chain enforcement: junior cannot spawn unauthorized agents mid-chain', async () => {
+    test('chain enforcement: quick cannot spawn unauthorized agents mid-chain', async () => {
       const ctx = createMockContext();
       const manager = new BackgroundTaskManager(ctx);
 
-      // Engineer spawns junior
+      // Engineer spawns quick
       const engineerTask = manager.launch({
         agent: 'engineer',
         prompt: 'test',
@@ -1197,8 +1200,8 @@ describe('BackgroundTaskManager', () => {
       if (!engineerSessionId)
         throw new Error('Expected sessionId to be defined');
 
-      const juniorTask = manager.launch({
-        agent: 'junior',
+      const quickTask = manager.launch({
+        agent: 'quick',
         prompt: 'test',
         description: 'test',
         parentSessionId: engineerSessionId,
@@ -1207,18 +1210,19 @@ describe('BackgroundTaskManager', () => {
       await Promise.resolve();
       await Promise.resolve();
 
-      const juniorSessionId = juniorTask.sessionId;
-      if (!juniorSessionId) throw new Error('Expected sessionId to be defined');
+      const quickSessionId = quickTask.sessionId;
+      if (!quickSessionId) throw new Error('Expected sessionId to be defined');
 
-      // Junior should be blocked from spawning these agents
-      expect(manager.isAgentAllowed(juniorSessionId, 'oracle')).toBe(false);
-      expect(manager.isAgentAllowed(juniorSessionId, 'designer')).toBe(false);
-      expect(manager.isAgentAllowed(juniorSessionId, 'librarian')).toBe(false);
-      expect(manager.isAgentAllowed(juniorSessionId, 'junior')).toBe(false);
+      // Quick should be blocked from spawning these agents
+      expect(manager.isAgentAllowed(quickSessionId, 'oracle')).toBe(false);
+      expect(manager.isAgentAllowed(quickSessionId, 'designer')).toBe(false);
+      expect(manager.isAgentAllowed(quickSessionId, 'librarian')).toBe(false);
+      expect(manager.isAgentAllowed(quickSessionId, 'quick')).toBe(false);
+      expect(manager.isAgentAllowed(quickSessionId, 'deep')).toBe(false);
 
-      // Explorer is also blocked (junior is a leaf node)
-      expect(manager.isAgentAllowed(juniorSessionId, 'explorer')).toBe(false);
-      expect(manager.getAllowedSubagents(juniorSessionId)).toEqual([]);
+      // Explorer is also blocked (quick is a leaf node)
+      expect(manager.isAgentAllowed(quickSessionId, 'explorer')).toBe(false);
+      expect(manager.getAllowedSubagents(quickSessionId)).toEqual([]);
     });
 
     test('chain: completed parent does not affect child permissions', async () => {
@@ -1286,7 +1290,7 @@ describe('BackgroundTaskManager', () => {
       expect(designerTask.status).toBe('completed');
 
       // Explorer's own session tracking is independent — still works
-      expect(manager.isAgentAllowed(explorerSessionId, 'junior')).toBe(false);
+      expect(manager.isAgentAllowed(explorerSessionId, 'quick')).toBe(false);
       expect(manager.getAllowedSubagents(explorerSessionId)).toEqual([]);
     });
 
@@ -1294,7 +1298,7 @@ describe('BackgroundTaskManager', () => {
       const ctx = createMockContext();
       const manager = new BackgroundTaskManager(ctx);
 
-      // Engineer -> all 5 subagent names
+      // Engineer -> all 6 subagent names
       const engineerTask = manager.launch({
         agent: 'engineer',
         prompt: 'test',
@@ -1314,12 +1318,13 @@ describe('BackgroundTaskManager', () => {
         'librarian',
         'oracle',
         'designer',
-        'junior',
+        'quick',
+        'deep',
       ]);
 
-      // Junior -> empty (leaf node)
-      const juniorTask = manager.launch({
-        agent: 'junior',
+      // Quick -> empty (leaf node)
+      const quickTask = manager.launch({
+        agent: 'quick',
         prompt: 'test',
         description: 'test',
         parentSessionId: 'root-session',
@@ -1328,10 +1333,10 @@ describe('BackgroundTaskManager', () => {
       await Promise.resolve();
       await Promise.resolve();
 
-      const juniorSessionId = juniorTask.sessionId;
-      if (!juniorSessionId) throw new Error('Expected sessionId to be defined');
+      const quickSessionId = quickTask.sessionId;
+      if (!quickSessionId) throw new Error('Expected sessionId to be defined');
 
-      expect(manager.getAllowedSubagents(juniorSessionId)).toEqual([]);
+      expect(manager.getAllowedSubagents(quickSessionId)).toEqual([]);
 
       // Designer -> only explorer
       const designerTask = manager.launch({
@@ -1373,7 +1378,8 @@ describe('BackgroundTaskManager', () => {
         'librarian',
         'oracle',
         'designer',
-        'junior',
+        'quick',
+        'deep',
       ]);
     });
   });
