@@ -64,7 +64,7 @@ https://raw.githubusercontent.com/EremesNG/oh-my-opencode-lite/refs/heads/master
 
 ## 🏛️ Meet the Pantheon
 
-The suite is powered by three primary agents that drive the development lifecycle, supported by a team of specialized subagents.
+The suite is powered by three primary agents that drive the development lifecycle, supported by a team of specialized subagents. The v2 scoring engine automatically matches **model personality** (communicator, deep-specialist, speed-runner) to each agent's role.
 
 ### 🔑 Primary Agents
 
@@ -83,7 +83,9 @@ The suite is powered by three primary agents that drive the development lifecycl
       <br>
       <b>Default:</b> Runtime-resolved
       <br>
-      <b>Recommended:</b> <code>gpt-4o</code>, <code>claude-3.5-sonnet</code>
+      <b>Recommended:</b> <code>claude-opus</code>, <code>kimi-k2.5</code>, <code>gemini-pro</code>
+      <br>
+      <b>Personality:</b> Communicator — follows complex orchestration prompts
     </td>
     <td width="33%" valign="top">
       <img src="img/architect.png" width="100%" alt="Architect">
@@ -98,7 +100,9 @@ The suite is powered by three primary agents that drive the development lifecycl
       <br>
       <b>Default:</b> Runtime-resolved
       <br>
-      <b>Recommended:</b> <code>gpt-4o</code>, <code>claude-3.5-sonnet</code>
+      <b>Recommended:</b> <code>claude-opus</code>, <code>kimi-k2.5</code>, <code>gemini-pro</code>
+      <br>
+      <b>Personality:</b> Communicator — structured delegation and coordination
     </td>
     <td width="33%" valign="top">
       <img src="img/engineer.png" width="100%" alt="Engineer">
@@ -113,7 +117,9 @@ The suite is powered by three primary agents that drive the development lifecycl
       <br>
       <b>Default:</b> Runtime-resolved
       <br>
-      <b>Recommended:</b> <code>gpt-4o</code>, <code>claude-3.5-sonnet</code>
+      <b>Recommended:</b> <code>gpt-5-codex</code>, <code>claude-opus</code>
+      <br>
+      <b>Personality:</b> Autonomous deep coder — multi-file reasoning, works independently
     </td>
   </tr>
 </table>
@@ -131,9 +137,11 @@ The suite is powered by three primary agents that drive the development lifecycl
       <br>
       <b>Prompt:</b> <a href="src/agents/explorer.ts">explorer.ts</a>
       <br>
-      <b>Default:</b> <code>gpt-4o-mini</code>
+      <b>Default:</b> Runtime-resolved
       <br>
-      <b>Recommended:</b> <code>gpt-4o-mini</code>, <code>claude-3-haiku</code>
+      <b>Recommended:</b> <code>gemini-flash</code>, <code>claude-haiku</code>, <code>grok-code-fast</code>
+      <br>
+      <b>Personality:</b> Speed runner — fast parallel grep, codebase search
     </td>
     <td width="33%" valign="top">
       <img src="img/librarian.png" width="100%" alt="Librarian">
@@ -144,9 +152,11 @@ The suite is powered by three primary agents that drive the development lifecycl
       <br>
       <b>Prompt:</b> <a href="src/agents/librarian.ts">librarian.ts</a>
       <br>
-      <b>Default:</b> <code>gpt-4o-mini</code>
+      <b>Default:</b> Runtime-resolved
       <br>
-      <b>Recommended:</b> <code>gpt-4o-mini</code>, <code>claude-3-haiku</code>
+      <b>Recommended:</b> <code>gemini-flash</code>, <code>claude-haiku</code>, <code>minimax-m2</code>
+      <br>
+      <b>Personality:</b> Speed runner / all-rounder — large context + decent speed
     </td>
     <td width="33%" valign="top">
       <img src="img/oracle.png" width="100%" alt="Oracle">
@@ -157,9 +167,11 @@ The suite is powered by three primary agents that drive the development lifecycl
       <br>
       <b>Prompt:</b> <a href="src/agents/oracle.ts">oracle.ts</a>
       <br>
-      <b>Default:</b> <code>gpt-4o</code>
+      <b>Default:</b> Runtime-resolved
       <br>
-      <b>Recommended:</b> <code>gpt-4o</code>, <code>claude-3.5-sonnet</code>
+      <b>Recommended:</b> <code>gpt-5.4</code>, <code>gemini-pro</code>, <code>claude-opus</code>
+      <br>
+      <b>Personality:</b> Deep reasoner — maximum strategic thinking capability
     </td>
   </tr>
   <tr>
@@ -172,9 +184,11 @@ The suite is powered by three primary agents that drive the development lifecycl
       <br>
       <b>Prompt:</b> <a href="src/agents/designer.ts">designer.ts</a>
       <br>
-      <b>Default:</b> <code>k2p5</code>
+      <b>Default:</b> Runtime-resolved
       <br>
-      <b>Recommended:</b> <code>k2p5</code>, <code>claude-3.5-sonnet</code>
+      <b>Recommended:</b> <code>gemini-pro</code>, <code>kimi-k2.5</code>, <code>claude-sonnet</code>
+      <br>
+      <b>Personality:</b> Visual/multimodal — UI/UX reasoning, frontend engineering
     </td>
     <td width="33%" valign="top">
       <img src="img/quick.png" width="100%" alt="Quick">
@@ -185,9 +199,11 @@ The suite is powered by three primary agents that drive the development lifecycl
       <br>
       <b>Prompt:</b> <a href="src/agents/junior.ts">junior.ts</a>
       <br>
-      <b>Default:</b> <code>gpt-4o-mini</code>
+      <b>Default:</b> Runtime-resolved
       <br>
-      <b>Recommended:</b> <code>gpt-4o-mini</code>, <code>claude-3-haiku</code>
+      <b>Recommended:</b> <code>gemini-flash</code>, <code>claude-haiku</code>, <code>grok-code-fast</code>
+      <br>
+      <b>Personality:</b> Speed runner — well-defined tasks, fast turnaround
     </td>
     <td width="33%" valign="top">
       <img src="img/deep.png" width="100%" alt="Deep">
@@ -198,9 +214,11 @@ The suite is powered by three primary agents that drive the development lifecycl
       <br>
       <b>Prompt:</b> <a href="src/agents/junior.ts">junior.ts</a>
       <br>
-      <b>Default:</b> <code>gpt-4o</code>
+      <b>Default:</b> Runtime-resolved
       <br>
-      <b>Recommended:</b> <code>gpt-4o</code>, <code>claude-3.5-sonnet</code>
+      <b>Recommended:</b> <code>gpt-5-codex</code>, <code>claude-opus</code>, <code>kimi-k2.5</code>
+      <br>
+      <b>Personality:</b> Deep specialist — maximum coding capability for complex tasks
     </td>
   </tr>
 </table>
