@@ -20,7 +20,11 @@ import {
   SUBAGENT_DELEGATION_RULES,
 } from '../config';
 import type { TmuxConfig } from '../config/schema';
-import { applyAgentVariant, resolveAgentVariant } from '../utils';
+import {
+  applyAgentVariant,
+  createInternalAgentTextPart,
+  resolveAgentVariant,
+} from '../utils';
 import { log } from '../utils/logger';
 
 type PromptBody = {
@@ -610,7 +614,7 @@ export class BackgroundTaskManager {
     await this.client.session.prompt({
       path: { id: task.parentSessionId },
       body: {
-        parts: [{ type: 'text' as const, text: message }],
+        parts: [createInternalAgentTextPart(message)],
       },
     });
   }
