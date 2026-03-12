@@ -39,6 +39,7 @@ temp/
 local
 .omolite/
 !.omolite/plans/
+!/.omolite/cartography.json
 
 # omolite machine-specific state (plans are tracked)
 .omolite/state/
@@ -51,6 +52,8 @@ local
 opencode
 oh-my-opencode
 opencode.jsonc
+
+temp_*/
 
 # AI Memory
 .aim/
