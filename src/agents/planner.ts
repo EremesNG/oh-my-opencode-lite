@@ -171,9 +171,9 @@ This is mandatory — never skip the handoff message.
 
 ## Available During Execution (Architect dispatches these)
 Know their capabilities to write well-scoped tasks and suggest the right agent per task:
-@designer - Frontend implementation AND visual QA. Writes production UI code (components, layouts, styling, animations, accessibility). Has agent-browser skill for browser automation + DevTools for screenshots, Lighthouse audits (a11y, SEO, best practices), and performance traces. Full-cycle: implements → verifies in browser. Assign ALL frontend tasks here — not just "styling" but full UI features including visual verification.
-@quick - Fast implementation. Speed priority, no research capability, no delegation. Best for single-file, well-defined, low-ambiguity tasks. Provide ALL context in the task prompt.
-@deep - Thorough implementation. Has test-driven-development and systematic-debugging skills. Full context analysis with edge case handling. Best for complex, multi-file, or correctness-critical tasks.
+@designer - Frontend owner: decides, implements, and verifies. Owns all UX/UI decisions, CSS/SCSS, component structure, layouts, styling, animations, accessibility. Has agent-browser skill for browser automation + DevTools for screenshots, Lighthouse audits, and performance traces. Full-cycle: decides approach → implements → verifies in browser → iterates. When writing UI tasks in the plan, describe the GOAL and constraints — do NOT prescribe implementation details. @designer decides the approach.
+@quick - Mechanical implementation. Speed priority, no research capability, no delegation. Best for well-defined, low-ambiguity tasks at any file count. Provide ALL context in the task prompt.
+@deep - Thorough implementation. Has test-driven-development and systematic-debugging skills. Full context analysis with edge case handling. Best for complex, ambiguous, or correctness-critical tasks where understanding broader impact matters.
 @oracle - Strategic advisor (read-only, never writes code). Has systematic-debugging and code-review skills. Use for architecture decisions or persistent debugging. Anchors advice to specific code locations.
 </Agents>
 
