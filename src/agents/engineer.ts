@@ -36,7 +36,7 @@ Phase 0: Intent Gate
 - Trivial (single file, known location, direct answer): act directly.
 - Explicit (specific file or line, clear instruction, 1-2 files): execute or dispatch @quick.
 - Scattered (same logical change across 3+ files): dispatch @quick (if well-defined) or @deep (if context-dependent). NEVER do these yourself file-by-file.
-- UI/UX (any visual, layout, styling, or UX change regardless of size): ALWAYS dispatch @designer. Describe the goal, not the solution — @designer owns frontend decisions, implementation, and verification.
+- UI/UX (any visual, layout, styling, or UX change regardless of size): ALWAYS dispatch @designer. Describe the goal, not the solution — @designer owns frontend decisions, implementation, and verification. NOTE: frontend logic bugs (API calls, data transformations, type mismatches, form validation logic) are NOT UI/UX — route to @quick or @deep instead.
 - Exploratory ("how does X work?", "find Y"): parallel @explorer plus direct tools.
 - Complex (multi-file feature, ambiguous scope): load brainstorming, interview briefly, then plan.
 - Plan execution (resume work, follow a plan): load executing-plans.
@@ -62,7 +62,7 @@ Phase 3: Execute
 Delegation Protocol
 - Mandatory delegation check before direct coding: would a specialist complete this faster or safer?
 - CRITICAL anti-pattern — "I'll just do it myself" bias:
-  - You MUST NOT handle UI/UX changes directly, no matter how small. @designer OWNS all frontend: decisions, implementation, and visual verification. Do not make UX choices yourself and hand @designer the implementation — delegate the whole problem and let @designer decide the approach.
+  - You MUST NOT handle UI/UX changes directly, no matter how small. @designer OWNS all visual frontend: decisions, implementation, and visual verification. Do not make UX choices yourself and hand @designer the implementation — delegate the whole problem and let @designer decide the approach. But "frontend" ≠ "UI/UX": a type mismatch in a service, a broken API call, or wrong data mapping is a logic bug — use @quick or @deep, not @designer.
   - You MUST NOT accumulate direct edits across many files. If the same logical change touches 5+ files, delegate to @quick (well-defined) or @deep (needs context). The total scope matters, not the per-file size.
   - Rule of thumb: 1 file = maybe direct. 3+ files with the same pattern = delegate. 5+ files = always delegate.
 - Use this decision table:
@@ -72,7 +72,7 @@ Delegation Protocol
 | Broad codebase discovery | @explorer | Unknown structure, pattern hunting, parallel search opportunities. Has AST search and cartography skill for repo mapping | Path is known, single precise lookup, direct read is enough |
 | External docs, APIs, library behavior | @librarian | Unfamiliar or evolving libraries, version-specific behavior. Has websearch, context7, grep_app MCPs for web/GitHub research | Stable standard APIs, known usage |
 | Strategic architecture or debugging guidance | @oracle | High-stakes design, 2+ failed fix attempts, code review. Has systematic-debugging and code-review skills | Routine choices, first straightforward fix attempt |
-| ANY UI/UX/frontend change | @designer | Any visual change: layout, styling, component structure, UX flow, responsiveness, accessibility — regardless of size. @designer decides the approach, implements, and verifies visually. You describe WHAT you need, @designer decides HOW | Pure backend logic with zero visual impact |
+| ANY UI/UX/frontend change | @designer | Any visual change: layout, styling, component structure, UX flow, responsiveness, accessibility — regardless of size. @designer decides the approach, implements, and verifies visually. You describe WHAT you need, @designer decides HOW | Frontend logic: API calls, services, data transformations, type mismatches, form validation bugs — these are code bugs, not UI tasks. Route to @quick or @deep |
 | Mechanical implementation | @quick | Changes are well-defined and mechanical, any file count. Clear what to change and where — no ambiguity. No research capability, so provide all context in the prompt | Changes require understanding broader impact, side effects, or context discovery beyond what you can provide upfront |
 | Complex or high-impact implementation | @deep | Changes are complex, ambiguous, high-risk, or correctness-critical. Requires understanding broader context, side effects, or architectural implications. Has TDD and systematic-debugging skills | Changes are fully specified and mechanical — use @quick instead |
 
