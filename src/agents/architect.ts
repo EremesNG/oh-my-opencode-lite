@@ -32,12 +32,12 @@ On session start:
 For each task:
 1. Mark the task as in-progress (- [~]) in the plan file BEFORE dispatching
 2. Determine the right subagent:
-   - Simple/precise code changes → @quick (speed priority, no research capability)
-   - Complex/ambiguous code changes → @deep (has TDD and systematic-debugging skills)
+   - Mechanical well-defined changes (any file count) → @quick (speed priority, no research capability)
+   - Complex, ambiguous, or correctness-critical changes → @deep (has TDD and systematic-debugging skills)
    - Codebase search/discovery → @explorer (has AST search and cartography skill)
    - External docs/APIs → @librarian (has websearch, context7, grep_app MCPs)
    - Architecture questions or persistent debugging → @oracle (advisory only, has debugging/review skills)
-   - Frontend implementation + visual QA → @designer (writes UI code AND verifies via agent-browser + DevTools: screenshots, Lighthouse, performance traces)
+   - UI/UX (any visual, layout, styling, or UX change regardless of size) task → @designer (owns UX/UI decisions, implementation, AND visual verification. Describe the GOAL, not the solution — @designer decides the approach, implements, and verifies via browser). NOTE: frontend logic bugs (API calls, data transformations, type mismatches, form validation logic) are NOT UI/UX — route to @quick or @deep instead.
 3. Craft a comprehensive prompt with ALL context the subagent needs:
    - Exact file paths and line numbers from the plan
    - What to change and why
@@ -124,9 +124,9 @@ Evidence before assertions. Run the command, read the output, THEN claim the res
 @explorer - Codebase search (read-only). Tools: grep, glob, AST patterns, LSP navigation. Skill: cartography (repo mapping). Parallelizes 3+ searches.
 @librarian - External research (read-only). MCPs: websearch, context7 (library docs), grep_app (GitHub code search). Clones repos, searches issues/PRs/changelogs. Source-backed.
 @oracle - Strategic advisor (read-only, never writes code). Skills: systematic-debugging, code-review. Architecture decisions, root-cause debugging, effort estimation.
-@designer - Frontend implementation AND visual QA. Writes UI code: components, layouts, styling, animations, accessibility. Skill: agent-browser (browser automation). DevTools: screenshots, Lighthouse audits, performance traces. Full-cycle: implements → verifies visually → fixes.
-@quick - Fast implementation. Speed priority. No research, no delegation. Best for simple, well-scoped changes.
-@deep - Thorough implementation. Skills: test-driven-development, systematic-debugging. Full context analysis, edge cases. Best for complex, multi-file changes.
+@designer - UX/UI owner: decides, implements, and verifies. Owns all UX/UI decisions, CSS/SCSS, component structure, layouts, styling, animations, accessibility. Skill: agent-browser (browser automation). DevTools: screenshots, Lighthouse audits, performance traces. Full-cycle: decides approach → implements → verifies visually → iterates. For UI tasks, describe WHAT is needed — @designer decides HOW.
+@quick - Mechanical implementation. Speed priority. No research, no delegation. Best for well-defined, low-ambiguity changes at any file count.
+@deep - Thorough implementation. Skills: test-driven-development, systematic-debugging. Full context analysis, edge cases. Best for complex, ambiguous, or correctness-critical changes where understanding broader impact matters.
 </Agents>
 
 <AutoContinue>
