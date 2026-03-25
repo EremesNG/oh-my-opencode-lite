@@ -5,10 +5,25 @@
 | Mode | Read order | Write targets | Use when |
 | --- | --- | --- | --- |
 | `thoth-mem` | thoth-mem only | thoth-mem only | The user wants no repo artifact changes |
+| `openspec` | filesystem only | OpenSpec files only | The user wants visible repo artifacts without memory overhead |
 | `hybrid` | thoth-mem, then filesystem fallback | thoth-mem and OpenSpec files | The change should survive compaction and exist in the repo |
 
-SDD skills MUST use thoth-mem for durable persistence. Do not reference or rely
+SDD skills MUST obey the selected artifact store mode. Do not reference or rely
 on engram.
+
+## Mode Rules
+
+### `thoth-mem`
+
+1. Read SDD artifacts from thoth-mem only.
+2. Write SDD artifacts to thoth-mem only.
+3. Do not create or modify canonical `openspec/` artifacts.
+
+### `openspec`
+
+1. Read SDD artifacts from canonical OpenSpec paths only.
+2. Write SDD artifacts to canonical OpenSpec paths only.
+3. Do not call thoth-mem save or recovery tools.
 
 ## Hybrid Rules
 
@@ -24,12 +39,17 @@ When running in `hybrid` mode:
 
 Always recover SDD dependencies in this order:
 
-1. `thoth_mem_mem_search` with the exact SDD topic key.
-2. `thoth_mem_mem_get_observation` using the returned observation ID.
-3. If nothing is found and the mode includes files, read the canonical OpenSpec
+1. If the mode is `thoth-mem`, use `thoth_mem_mem_search` with the exact SDD
+   topic key, then `thoth_mem_mem_get_observation` using the returned
+   observation ID.
+2. If the mode is `openspec`, read the canonical OpenSpec path from the
+   filesystem only.
+3. If the mode is `hybrid`, use `thoth_mem_mem_search` with the exact SDD topic
+   key, then `thoth_mem_mem_get_observation` using the returned observation ID.
+4. In `hybrid`, if nothing is found in thoth-mem, read the canonical OpenSpec
    path from the filesystem.
-4. If filesystem recovery succeeds, re-save the artifact to thoth-mem so the
-   two stores converge again.
+5. In `hybrid`, if filesystem recovery succeeds, re-save the artifact to
+   thoth-mem so the two stores converge again.
 
 Never treat the preview returned by `thoth_mem_mem_search` as full source
 material.
@@ -50,4 +70,9 @@ material.
 - Prefer exact topic-key queries over fuzzy natural-language search.
 - If multiple observations match, choose the exact topic-key match for the
   current project.
-- In hybrid mode, use the filesystem copy only as fallback or repair input.
+- In `openspec` mode, repair missing or stale artifacts by rewriting the
+  canonical OpenSpec file only.
+- In `thoth-mem` mode, repair missing or stale artifacts by re-saving the full
+  artifact to thoth-mem only.
+- In `hybrid` mode, use the filesystem copy only as fallback or repair input,
+  then converge both stores.

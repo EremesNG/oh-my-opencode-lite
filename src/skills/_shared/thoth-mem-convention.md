@@ -1,5 +1,14 @@
 # thoth-mem Convention
 
+## Mode Scope
+
+This convention applies only when the artifact store mode includes thoth-mem:
+`thoth-mem` and `hybrid`.
+
+- In `openspec` mode, skip thoth-mem saves.
+- In `openspec` mode, skip thoth-mem recovery and use filesystem artifacts
+  instead.
+
 ## Tool Names
 
 Use the thoth-mem tool names exactly as exposed by the plugin:
@@ -22,6 +31,7 @@ Supported artifact names:
 - `proposal`
 - `spec`
 - `design`
+- `design-brief`
 - `tasks`
 - `apply-progress`
 - `verify-report`

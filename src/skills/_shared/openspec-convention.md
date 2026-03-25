@@ -1,5 +1,13 @@
 # OpenSpec Convention
 
+## Mode Scope
+
+This convention applies only when the artifact store mode includes OpenSpec:
+`openspec` and `hybrid`.
+
+- In `thoth-mem` mode, skip canonical `openspec/` file writes.
+- In `thoth-mem` mode, skip filesystem artifact recovery.
+
 ## Directory Structure
 
 ```text
@@ -30,7 +38,8 @@ openspec/
 | Verify report | `openspec/changes/{change-name}/verify-report.md` | Compliance matrix and evidence |
 
 `apply-progress` and `archive-report` are durable SDD artifacts, but they are
-primarily persisted through thoth-mem topic keys.
+primarily persisted through thoth-mem topic keys when the mode includes
+thoth-mem.
 
 ## Writing Rules
 
