@@ -32,10 +32,24 @@ const SHARED_SKILL_SOURCE_PATH = `src/skills/${SHARED_SKILL_DIRECTORY}`;
  */
 export const CUSTOM_SKILLS: CustomSkill[] = [
   {
+    name: 'brainstorming',
+    description:
+      'Understand user intent and scope through structured clarification before implementation',
+    allowedAgents: ['orchestrator'],
+    sourcePath: 'src/skills/brainstorming',
+  },
+  {
     name: 'cartography',
     description: 'Repository understanding and hierarchical codemap generation',
     allowedAgents: ['orchestrator', 'explorer'],
     sourcePath: 'src/skills/cartography',
+  },
+  {
+    name: 'plan-reviewer',
+    description:
+      'Review SDD task plans for execution blockers and valid references',
+    allowedAgents: ['orchestrator', 'oracle'],
+    sourcePath: 'src/skills/plan-reviewer',
   },
   {
     name: 'sdd-propose',
@@ -66,6 +80,13 @@ export const CUSTOM_SKILLS: CustomSkill[] = [
     description: 'Execute tasks and persist implementation progress',
     allowedAgents: ['orchestrator'],
     sourcePath: 'src/skills/sdd-apply',
+  },
+  {
+    name: 'executing-plans',
+    description:
+      'Execute SDD task lists with real-time progress tracking, sub-agent dispatch, and verification checkpoints',
+    allowedAgents: ['orchestrator'],
+    sourcePath: 'src/skills/executing-plans',
   },
   {
     name: 'sdd-verify',

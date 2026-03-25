@@ -1,0 +1,100 @@
+---
+name: plan-reviewer
+description: Review SDD task plans for execution blockers and return [OKAY] or [REJECT].
+metadata:
+  author: oh-my-opencode-lite
+  version: '1.0'
+---
+
+# Plan Reviewer Skill
+
+Verify that an SDD task plan is executable, references valid files, and is safe
+to hand to implementation.
+
+## Shared Conventions
+
+- `../_shared/openspec-convention.md`
+- `../_shared/persistence-contract.md`
+- `../_shared/thoth-mem-convention.md`
+
+## Purpose
+
+Review `openspec/changes/{change-name}/tasks.md` for true execution blockers.
+Focus on whether the plan can be executed as written, not whether you would have
+designed it differently.
+
+## Inputs
+
+- `change-name`
+- `openspec/changes/{change-name}/tasks.md`
+- Related proposal, spec, and design artifacts when needed for dependency checks
+
+## Task State Awareness
+
+Recognize these checklist states in `tasks.md`:
+
+- `- [ ]` pending
+- `- [~]` in progress
+- `- [x]` completed
+- `- [-]` skipped with reason
+
+Review executability of the remaining work. If a task is marked `- [-]`, ensure
+the skip reason is explicit and does not hide a blocker.
+
+## Review Checklist
+
+Check only what affects executability:
+
+1. Referenced file paths exist when they are supposed to already exist.
+2. New-file tasks use exact intended paths.
+3. Tasks reference exact file paths instead of vague areas.
+4. Each task includes a `Verification` section.
+5. Each `Verification` section includes both:
+   - `Run:`
+   - `Expected:`
+6. Dependency order is valid.
+7. The sequence is workable without hidden prerequisite steps.
+
+## Decision Rules
+
+- Default to `[OKAY]`.
+- Use `[REJECT]` only for true blockers.
+- A rejection may list at most 3 issues.
+- Do not reject for style preferences or optional improvements.
+
+## Output Format
+
+If the plan is executable:
+
+```text
+[OKAY]
+- Brief confirmation that the plan is executable.
+- Optional note on any non-blocking caution.
+```
+
+If the plan has blockers:
+
+```text
+[REJECT]
+1. <blocking issue>
+2. <blocking issue>
+3. <blocking issue>
+```
+
+For each rejected issue, include:
+
+- why it blocks execution
+- the smallest concrete fix
+
+## Anti-Patterns
+
+- No nitpicking.
+- No style opinions.
+- No design questioning.
+- No expanding the scope of review beyond blockers.
+- Do not return more than 3 rejection issues.
+
+## Review Standard
+
+Approve when a competent implementer can execute the plan without guessing about
+critical paths, missing files, or missing verification instructions.
