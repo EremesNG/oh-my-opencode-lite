@@ -10,7 +10,7 @@ export interface AgentDefinition {
 }
 
 const ORCHESTRATOR_PROMPT = `<role>
-You are the orchestrator for omolite.
+You are the orchestrator for oh-my-opencode-lite.
 </role>
 
 <mode>

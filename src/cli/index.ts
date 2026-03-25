@@ -29,7 +29,7 @@ function parseArgs(args: string[]): InstallArgs {
 
 function printHelp(): void {
   console.log(`
-omolite installer (oh-my-opencode-lite)
+oh-my-opencode-lite installer (oh-my-opencode-lite)
 
 Usage: bunx oh-my-opencode-lite install [OPTIONS]
 
@@ -41,7 +41,7 @@ Options:
   --reset                Force overwrite of existing configuration
   -h, --help             Show this help message
 
-omolite installs the seven-agent roster, thoth-mem defaults,
+oh-my-opencode-lite installs the seven-agent roster, thoth-mem defaults,
 delegation persistence, and bundled SDD skills for OpenCode.
 
 The generated config uses OpenAI by default.

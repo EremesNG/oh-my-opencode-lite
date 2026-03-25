@@ -35,7 +35,9 @@ const SYMBOLS = {
 
 function printHeader(isUpdate: boolean): void {
   console.log();
-  console.log(`${BOLD}omolite ${isUpdate ? 'Update' : 'Install'}${RESET}`);
+  console.log(
+    `${BOLD}oh-my-opencode-lite ${isUpdate ? 'Update' : 'Install'}${RESET}`,
+  );
   console.log('='.repeat(30));
   console.log();
 }
@@ -101,7 +103,7 @@ function formatConfigSummary(): string {
   lines.push(`${BOLD}Configuration Summary${RESET}`);
   lines.push('');
   lines.push(`  ${BOLD}Preset:${RESET} ${BLUE}openai${RESET}`);
-  lines.push(`  ${SYMBOLS.check} Seven-agent omolite roster`);
+  lines.push(`  ${SYMBOLS.check} Seven-agent oh-my-opencode-lite roster`);
   lines.push(`  ${SYMBOLS.check} OpenAI models by default`);
   lines.push(`  ${SYMBOLS.check} thoth-mem enabled for orchestrator memory`);
   lines.push(`  ${SYMBOLS.check} Delegation results persisted to disk`);
@@ -132,7 +134,7 @@ async function runInstall(config: InstallConfig): Promise<number> {
     const { ok } = await checkOpenCodeInstalled();
     if (!ok) return 1;
   }
-  printStep(step++, totalSteps, 'Adding omolite plugin...');
+  printStep(step++, totalSteps, 'Adding oh-my-opencode-lite plugin...');
   if (config.dryRun) {
     printInfo('Dry run mode - skipping plugin installation');
   } else {
@@ -147,7 +149,7 @@ async function runInstall(config: InstallConfig): Promise<number> {
     if (!handleStepResult(agentResult, 'Default agents disabled')) return 1;
   }
 
-  printStep(step++, totalSteps, 'Writing omolite configuration...');
+  printStep(step++, totalSteps, 'Writing oh-my-opencode-lite configuration...');
   if (config.dryRun) {
     const liteConfig = generateLiteConfig(config);
     printInfo('Dry run mode - configuration that would be written:');
@@ -203,7 +205,11 @@ async function runInstall(config: InstallConfig): Promise<number> {
 
   // Install custom skills if requested
   if (config.installCustomSkills) {
-    printStep(step++, totalSteps, 'Installing bundled omolite skills...');
+    printStep(
+      step++,
+      totalSteps,
+      'Installing bundled oh-my-opencode-lite skills...',
+    );
     if (config.dryRun) {
       printInfo('Dry run mode - would install bundled skills:');
       for (const skill of CUSTOM_SKILLS) {
@@ -233,8 +239,8 @@ async function runInstall(config: InstallConfig): Promise<number> {
   console.log();
 
   const statusMsg = isUpdate
-    ? 'omolite updated!'
-    : 'omolite installation complete!';
+    ? 'oh-my-opencode-lite updated!'
+    : 'oh-my-opencode-lite installation complete!';
   console.log(`${SYMBOLS.star} ${BOLD}${GREEN}${statusMsg}${RESET}`);
   console.log();
   console.log(`${BOLD}Next steps:${RESET}`);

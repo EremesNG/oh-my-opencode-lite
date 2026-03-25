@@ -37,6 +37,6 @@ After compaction protocol:
 
 SDD topic_key convention:
 - use ${SDD_TOPIC_KEY_FORMAT}
-- examples: sdd/create-omolite-plugin/spec, sdd/create-omolite-plugin/design, sdd/create-omolite-plugin/tasks
+- examples: sdd/add-user-auth/spec, sdd/add-user-auth/design, sdd/add-user-auth/tasks
 </memory_protocol>
 `.trim();

@@ -92,7 +92,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     startTmuxCheck();
   }
 
-  const projectName = path.basename(ctx.directory) || 'omolite';
+  const projectName = path.basename(ctx.directory) || 'oh-my-opencode-lite';
   const thothClient = createThothClient({
     client: ctx.client,
     project: projectName,
