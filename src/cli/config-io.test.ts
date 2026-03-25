@@ -108,20 +108,20 @@ describe('config-io', () => {
     paths.ensureConfigDir();
     writeFileSync(
       configPath,
-      JSON.stringify({ plugin: ['other', 'oh-my-opencode-slim@1.0.0'] }),
+      JSON.stringify({ plugin: ['other', 'oh-my-opencode-lite@1.0.0'] }),
     );
 
     const result = await addPluginToOpenCodeConfig();
     expect(result.success).toBe(true);
 
     const saved = JSON.parse(readFileSync(configPath, 'utf-8'));
-    expect(saved.plugin).toContain('oh-my-opencode-slim');
-    expect(saved.plugin).not.toContain('oh-my-opencode-slim@1.0.0');
+    expect(saved.plugin).toContain('oh-my-opencode-lite');
+    expect(saved.plugin).not.toContain('oh-my-opencode-lite@1.0.0');
     expect(saved.plugin.length).toBe(2);
   });
 
   test('writeLiteConfig writes lite config with OpenAI preset', () => {
-    const litePath = join(tmpDir, 'opencode', 'oh-my-opencode-slim.json');
+    const litePath = join(tmpDir, 'opencode', 'oh-my-opencode-lite.json');
     paths.ensureConfigDir();
 
     const result = writeLiteConfig({
@@ -153,13 +153,13 @@ describe('config-io', () => {
 
   test('detectCurrentConfig detects installed status', () => {
     const configPath = join(tmpDir, 'opencode', 'opencode.json');
-    const litePath = join(tmpDir, 'opencode', 'oh-my-opencode-slim.json');
+    const litePath = join(tmpDir, 'opencode', 'oh-my-opencode-lite.json');
     paths.ensureConfigDir();
 
     writeFileSync(
       configPath,
       JSON.stringify({
-        plugin: ['oh-my-opencode-slim'],
+        plugin: ['oh-my-opencode-lite'],
         provider: {
           kimi: {
             npm: '@ai-sdk/openai-compatible',

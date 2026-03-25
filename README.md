@@ -12,7 +12,7 @@
 ### Quick Start
 
 ```bash
-bunx oh-my-opencode-slim@latest install
+bunx oh-my-opencode-lite@latest install
 ```
 
 The installer generates an OpenAI configuration by default (using `gpt-5.4` and `gpt-5.4-mini`). No provider questions asked.
@@ -20,12 +20,12 @@ The installer generates an OpenAI configuration by default (using `gpt-5.4` and 
 For non-interactive mode:
 
 ```bash
-bunx oh-my-opencode-slim@latest install --no-tui --tmux=no --skills=yes
+bunx oh-my-opencode-lite@latest install --no-tui --tmux=no --skills=yes
 ```
 
 To force overwrite of an existing configuration:
 ```bash
-bunx oh-my-opencode-slim@latest install --reset
+bunx oh-my-opencode-lite@latest install --reset
 ```
 
 ### For Alternative Providers
@@ -38,7 +38,7 @@ An official JSON Schema is included in the package for editor validation and aut
 
 ```jsonc
 {
-  "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
+  "$schema": "https://unpkg.com/oh-my-opencode-lite@latest/oh-my-opencode-lite.schema.json",
   // your config...
 }
 ```
@@ -51,7 +51,7 @@ Paste this into any coding agent:
 
 ```
 Install and configure by following the instructions here:
-https://raw.githubusercontent.com/alvinunreal/oh-my-opencode-slim/refs/heads/master/README.md
+https://raw.githubusercontent.com/EremesNG/oh-my-opencode-lite/refs/heads/master/README.md
 ```
 
 **Detailed installation guide:** [docs/installation.md](docs/installation.md)

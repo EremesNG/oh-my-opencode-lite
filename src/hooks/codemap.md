@@ -93,7 +93,7 @@ Acts as a single entry point that re-exports the factory functions and types for
 
 - **OpenCode SDK**: `@opencode-ai/plugin` (PluginInput type, client access)
 - **OpenCode SDK**: `@opencode-ai/sdk` (Model, UserMessage types)
-- **Internal Utils**: `hasInternalInitiatorMarker`, `SLIM_INTERNAL_INITIATOR_MARKER`
+- **Internal Utils**: `hasInternalInitiatorMarker`, `LITE_INTERNAL_INITIATOR_MARKER`
 - **Internal Logger**: `utils/logger`
 
 ### Consumers

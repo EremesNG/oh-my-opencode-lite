@@ -1,10 +1,10 @@
 # Provider Configurations
 
-oh-my-opencode-slim uses **OpenAI** as the default provider. This document shows how to configure alternative providers by editing your plugin config file.
+oh-my-opencode-lite uses **OpenAI** as the default provider. This document shows how to configure alternative providers by editing your plugin config file.
 
 ## Config File Location
 
-Edit `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc` for comments support).
+Edit `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc` for comments support).
 
 ## Default: OpenAI
 
@@ -130,6 +130,6 @@ You can mix models from different providers across agents. Create a custom prese
 
 **Method 2: Environment variable** (takes precedence over config file):
 ```bash
-export OH_MY_OPENCODE_SLIM_PRESET=my-mix
+export OH_MY_OPENCODE_LITE_PRESET=my-mix
 opencode
 ```

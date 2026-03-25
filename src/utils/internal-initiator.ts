@@ -1,5 +1,5 @@
-export const SLIM_INTERNAL_INITIATOR_MARKER =
-  '<!-- SLIM_INTERNAL_INITIATOR -->';
+export const LITE_INTERNAL_INITIATOR_MARKER =
+  '<!-- LITE_INTERNAL_INITIATOR -->';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -11,7 +11,7 @@ export function createInternalAgentTextPart(text: string): {
 } {
   return {
     type: 'text',
-    text: `${text}\n${SLIM_INTERNAL_INITIATOR_MARKER}`,
+    text: `${text}\n${LITE_INTERNAL_INITIATOR_MARKER}`,
   };
 }
 
@@ -24,5 +24,5 @@ export function hasInternalInitiatorMarker(part: unknown): boolean {
     return false;
   }
 
-  return part.text.includes(SLIM_INTERNAL_INITIATOR_MARKER);
+  return part.text.includes(LITE_INTERNAL_INITIATOR_MARKER);
 }

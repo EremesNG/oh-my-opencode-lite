@@ -1,6 +1,6 @@
 # Quick Reference Guide
 
-Complete reference for oh-my-opencode-slim configuration and capabilities.
+Complete reference for oh-my-opencode-lite configuration and capabilities.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ The default installer generates an OpenAI preset. To use alternative providers (
 
 **Method 1: Edit Config File**
 
-Edit `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`) and change the `preset` field:
+Edit `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc`) and change the `preset` field:
 
 ```json
 {
@@ -34,7 +34,7 @@ Edit `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`) and change the 
 Set the environment variable before running OpenCode:
 
 ```bash
-export OH_MY_OPENCODE_SLIM_PRESET=openai
+export OH_MY_OPENCODE_LITE_PRESET=openai
 opencode
 ```
 
@@ -159,7 +159,7 @@ The skill uses a background Python engine (`cartographer.py`) to manage state an
 
 **How it works under the hood:**
 
-1. **Initialize** - Orchestrator analyzes repo structure and runs `init` to create `.slim/cartography.json` (hashes) and empty templates.
+1. **Initialize** - Orchestrator analyzes repo structure and runs `init` to create `.lite/cartography.json` (hashes) and empty templates.
 2. **Map** - Orchestrator spawns specialized **Explorer** sub-agents to fill codemaps with timeless architectural details (Responsibility, Design, Flow, Integration).
 3. **Update** - On subsequent runs, the engine detects changed files and only refreshes codemaps for affected folders.
 
@@ -182,7 +182,7 @@ python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py update --r
 
 ### Skills Assignment
 
-You can customize which skills each agent is allowed to use in `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`).
+You can customize which skills each agent is allowed to use in `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc`).
 
 **Syntax:**
 
@@ -243,7 +243,7 @@ Control which agents can access which MCP servers using per-agent allowlists:
 
 ### Configuration & Syntax
 
-You can configure MCP access in your plugin configuration file: `~/.config/opencode/oh-my-opencode-slim.json` (or `.jsonc`).
+You can configure MCP access in your plugin configuration file: `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc`).
 
 **Per-Agent Permissions**
 
@@ -296,7 +296,7 @@ You can disable specific MCP servers globally by adding them to the `disabled_mc
 
 #### Quick Setup
 
-1. **Enable tmux integration** in `oh-my-opencode-slim.json` (or `.jsonc`):
+1. **Enable tmux integration** in `oh-my-opencode-lite.json` (or `.jsonc`):
 
    ```json
    {
@@ -374,17 +374,17 @@ OpenCode automatically formats files after they're written or edited using langu
 | File | Purpose |
 |------|---------|
 | `~/.config/opencode/opencode.json` | OpenCode core settings |
-| `~/.config/opencode/oh-my-opencode-slim.json` or `.jsonc` | Plugin settings (agents, tmux, MCPs) |
-| `.opencode/oh-my-opencode-slim.json` or `.jsonc` | Project-local plugin overrides (optional) |
+| `~/.config/opencode/oh-my-opencode-lite.json` or `.jsonc` | Plugin settings (agents, tmux, MCPs) |
+| `.opencode/oh-my-opencode-lite.json` or `.jsonc` | Project-local plugin overrides (optional) |
 
 > **💡 JSONC Support:** Configuration files support JSONC format (JSON with Comments). Use `.jsonc` extension to enable comments and trailing commas. If both `.jsonc` and `.json` exist, `.jsonc` takes precedence.
 
 ### Prompt Overriding
 
-You can customize agent prompts by creating markdown files in `~/.config/opencode/oh-my-opencode-slim/`:
+You can customize agent prompts by creating markdown files in `~/.config/opencode/oh-my-opencode-lite/`:
 
 - With no preset, prompt files are loaded directly from this directory.
-- With `preset` set (for example `test`), the plugin first checks `~/.config/opencode/oh-my-opencode-slim/{preset}/`, then falls back to the root prompt directory.
+- With `preset` set (for example `test`), the plugin first checks `~/.config/opencode/oh-my-opencode-lite/{preset}/`, then falls back to the root prompt directory.
 
 | File | Purpose |
 |------|---------|
@@ -394,7 +394,7 @@ You can customize agent prompts by creating markdown files in `~/.config/opencod
 **Example:**
 
 ```
-~/.config/opencode/oh-my-opencode-slim/
+~/.config/opencode/oh-my-opencode-lite/
   ├── test/
   │   ├── orchestrator.md      # Preset-specific override (preferred)
   │   └── explorer_append.md
@@ -424,8 +424,8 @@ The plugin supports **JSONC** format for configuration files, allowing you to:
 - Use trailing commas in arrays and objects
 
 **File Priority:**
-1. `oh-my-opencode-slim.jsonc` (preferred if exists)
-2. `oh-my-opencode-slim.json` (fallback)
+1. `oh-my-opencode-lite.jsonc` (preferred if exists)
+2. `oh-my-opencode-lite.json` (fallback)
 
 **Example JSONC Configuration:**
 
@@ -450,7 +450,7 @@ The plugin supports **JSONC** format for configuration files, allowing you to:
 }
 ```
 
-### Plugin Config (`oh-my-opencode-slim.json` or `oh-my-opencode-slim.jsonc`)
+### Plugin Config (`oh-my-opencode-lite.json` or `oh-my-opencode-lite.jsonc`)
 
 The installer generates this file with the OpenAI preset by default. You can manually customize it to mix and match models from any provider. See [Provider Configurations](provider-configurations.md) for examples.
 

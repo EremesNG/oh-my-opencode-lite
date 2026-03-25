@@ -9,12 +9,12 @@ It helps agents quickly build a high-quality mental model of an unfamiliar codeb
 Cartography is designed for repository understanding and hierarchical codemap generation:
 
 1. Selects relevant code/config files using LLM judgment
-2. Creates `.slim/cartography.json` for change tracking
+2. Creates `.lite/cartography.json` for change tracking
 3. Generates `codemap.md` templates (per folder) for explorers to fill in
 
 ## How to use
 
-Cartography is installed automatically by the `oh-my-opencode-slim` installer when custom skills are enabled.
+Cartography is installed automatically by the `oh-my-opencode-lite` installer when custom skills are enabled.
 
 ### Run it (manual / local)
 
@@ -33,7 +33,7 @@ python3 cartographer.py update --root /repo
 
 ## Outputs
 
-### `.slim/cartography.json`
+### `.lite/cartography.json`
 
 A change-tracking file with hashes for files/folders.
 

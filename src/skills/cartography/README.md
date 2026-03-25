@@ -7,7 +7,7 @@ Repository understanding and hierarchical codemap generation.
 Cartography helps orchestrators map and understand codebases by:
 
 1. Selecting relevant code/config files using LLM judgment
-2. Creating `.slim/cartography.json` for change tracking
+2. Creating `.lite/cartography.json` for change tracking
 3. Generating empty `codemap.md` templates for explorers to fill in
 
 ## Commands
@@ -25,7 +25,7 @@ python3 cartographer.py update --root /repo
 
 ## Outputs
 
-### .slim/cartography.json
+### .lite/cartography.json
 
 ```json
 {
@@ -54,4 +54,4 @@ Empty templates created in each folder for explorers to fill with:
 
 ## Installation
 
-Installed automatically via oh-my-opencode-slim installer when custom skills are enabled.
+Installed automatically via oh-my-opencode-lite installer when custom skills are enabled.
