@@ -266,6 +266,106 @@ describe('BackgroundTaskManager', () => {
     );
   });
 
+  test('uses background timeout instead of fallback failover timeout', async () => {
+    const ctx = createMockContext({
+      sessionMessagesResult: {
+        data: [
+          {
+            info: { role: 'assistant' },
+            parts: [{ type: 'text', text: 'Completed after slow prompt' }],
+          },
+        ],
+      },
+      promptImpl: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return {};
+      },
+    });
+    const manager = new BackgroundTaskManager(ctx as never, undefined, {
+      background: {
+        maxConcurrentStarts: 10,
+        timeoutMs: 50,
+      },
+      fallback: {
+        enabled: true,
+        timeoutMs: 1,
+        retryDelayMs: 0,
+        chains: {},
+      },
+    });
+
+    const task = manager.launch({
+      agent: 'explorer',
+      prompt: 'do the work',
+      description: 'Slow background work',
+      parentSessionId: 'parent-session',
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await flushAsyncWork();
+
+    expect(task.status).toBe('running');
+    expect(task.error).toBeUndefined();
+
+    await manager.handleSessionStatus({
+      type: 'session.status',
+      properties: {
+        sessionID: task.sessionId,
+        status: { type: 'idle' },
+      },
+    });
+    await flushAsyncWork();
+
+    expect(task.status).toBe('completed');
+    expect(task.result).toBe('Completed after slow prompt');
+  });
+
+  test('ignores idle events while aborting for timeout', async () => {
+    const ctx = createMockContext();
+    const manager = new BackgroundTaskManager(ctx as never);
+    const extractSpy = spyOn(
+      manager as unknown as {
+        extractAndCompleteTask: (task: unknown) => unknown;
+      },
+      'extractAndCompleteTask',
+    );
+
+    const task = {
+      id: 'bg_timeout_guard',
+      sessionId: 'session-timeout-guard',
+      rootSessionId: 'root-session',
+      description: 'guard timeout abort',
+      agent: 'explorer',
+      status: 'running',
+      config: {
+        maxConcurrentStarts: 10,
+        timeoutMs: 300_000,
+      },
+      parentSessionId: 'parent-session',
+      startedAt: new Date(),
+      prompt: 'prompt',
+      _abortingForTimeout: true,
+    };
+
+    const managerState = manager as unknown as {
+      tasks: Map<string, typeof task>;
+      tasksBySessionId: Map<string, string>;
+    };
+    managerState.tasks.set(task.id, task);
+    managerState.tasksBySessionId.set(task.sessionId, task.id);
+
+    await manager.handleSessionStatus({
+      type: 'session.status',
+      properties: {
+        sessionID: task.sessionId,
+        status: { type: 'idle' },
+      },
+    });
+
+    expect(extractSpy).not.toHaveBeenCalled();
+    expect(task.status).toBe('running');
+  });
+
   test('enforces the new seven-agent delegation rules', async () => {
     const ctx = createMockContext();
     const manager = new BackgroundTaskManager(ctx as never);
