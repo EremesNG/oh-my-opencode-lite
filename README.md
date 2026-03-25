@@ -1,6 +1,6 @@
 # oh-my-opencode-lite
 
-Delegate-first OpenCode plugin for the **omolite** workflow: seven agents,
+Delegate-first OpenCode plugin for the **oh-my-opencode-lite** workflow: seven agents,
 disk-persisted delegations, **thoth-mem** integration, and bundled SDD skills.
 
 ## Install
@@ -21,7 +21,7 @@ Reset an existing generated config:
 bunx oh-my-opencode-lite@latest install --reset
 ```
 
-Default install writes an OpenAI-based config with the omolite roster,
+Default install writes an OpenAI-based config with the oh-my-opencode-lite roster,
 recommended external skills, and bundled custom/SDD skills.
 
 ## Seven-agent roster
@@ -34,7 +34,7 @@ recommended external skills, and bundled custom/SDD skills.
 - **quick** — narrow, bounded implementation
 - **deep** — thorough implementation and verification
 
-## What omolite adds
+## What oh-my-opencode-lite adds
 
 - **thoth-mem persistence** for root-session memory workflows
 - **Delegation storage** on disk so background results survive compaction and

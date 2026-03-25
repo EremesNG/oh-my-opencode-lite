@@ -1,4 +1,4 @@
-# omolite Agent Reference
+# oh-my-opencode-lite Agent Reference
 
 ## Project Overview
 
@@ -194,7 +194,7 @@ Rules:
 ## Project Structure
 
 ```text
-omolite/
+oh-my-opencode-lite/
 ├── AGENTS.md
 ├── openspec/
 ├── src/
