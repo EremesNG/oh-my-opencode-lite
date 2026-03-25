@@ -10,16 +10,17 @@ recording an audit trail.
 
 ## Shared Conventions
 
-- Repository-source references: `../../_shared/...`
-- `../_shared/openspec-convention.md`
-- `../_shared/persistence-contract.md`
-- `../_shared/thoth-mem-convention.md`
+- Shared references:
+- `~/.config/opencode/skills/_shared/openspec-convention.md`
+- `~/.config/opencode/skills/_shared/persistence-contract.md`
+- `~/.config/opencode/skills/_shared/thoth-mem-convention.md`
 
 ## Persistence Mode
 
 The orchestrator passes the artifact store mode (`thoth-mem`, `openspec`, or
-`hybrid`). Follow `../_shared/persistence-contract.md` for read/write rules per
-mode.
+`hybrid`). Follow
+`~/.config/opencode/skills/_shared/persistence-contract.md` for read/write
+rules per mode.
 
 - `thoth-mem`: persist to thoth-mem only — do NOT create or modify
   `openspec/` files.
@@ -43,7 +44,8 @@ mode.
 
 1. Read the shared conventions.
 2. Recover `spec`, `design`, `tasks`, and `verify-report` through the
-   retrieval protocol in `../_shared/persistence-contract.md`.
+   retrieval protocol in
+   `~/.config/opencode/skills/_shared/persistence-contract.md`.
 3. Refuse to archive if the verification report still contains unresolved
    critical failures.
 4. If the selected mode includes OpenSpec, merge every change spec from
@@ -86,6 +88,7 @@ Return:
 - Preserve canonical spec structure and untouched requirements.
 - Persist the final audit trail through thoth-mem when the selected mode
   includes it.
-- Use the retrieval protocol in `../_shared/persistence-contract.md` for every
+- Use the retrieval protocol in
+  `~/.config/opencode/skills/_shared/persistence-contract.md` for every
   dependency.
 - Never reference engram.

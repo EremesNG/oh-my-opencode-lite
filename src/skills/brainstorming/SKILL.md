@@ -13,8 +13,8 @@ The goal is clarity, scope calibration, and a user-approved handoff.
 
 ## Shared Conventions
 
-- `../_shared/thoth-mem-convention.md`
-- `../_shared/persistence-contract.md`
+- `~/.config/opencode/skills/_shared/thoth-mem-convention.md`
+- `~/.config/opencode/skills/_shared/persistence-contract.md`
 
 ## HARD GATE
 

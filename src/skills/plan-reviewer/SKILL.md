@@ -13,9 +13,9 @@ to hand to implementation.
 
 ## Shared Conventions
 
-- `../_shared/openspec-convention.md`
-- `../_shared/persistence-contract.md`
-- `../_shared/thoth-mem-convention.md`
+- `~/.config/opencode/skills/_shared/openspec-convention.md`
+- `~/.config/opencode/skills/_shared/persistence-contract.md`
+- `~/.config/opencode/skills/_shared/thoth-mem-convention.md`
 
 ## Purpose
 

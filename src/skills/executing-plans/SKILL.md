@@ -13,9 +13,9 @@ task progress durable, ordered, and verifiable.
 
 ## Shared Conventions
 
-- `../_shared/openspec-convention.md`
-- `../_shared/persistence-contract.md`
-- `../_shared/thoth-mem-convention.md`
+- `~/.config/opencode/skills/_shared/openspec-convention.md`
+- `~/.config/opencode/skills/_shared/persistence-contract.md`
+- `~/.config/opencode/skills/_shared/thoth-mem-convention.md`
 
 ## Ownership Model
 
@@ -49,7 +49,8 @@ checkbox updates.
 3. Build a mental model of the plan: total tasks, remaining work,
    parallelizable work, and dependency order.
 4. Load SDD context from the change directory plus thoth-mem fallback using the
-   retrieval protocol in `../_shared/persistence-contract.md`.
+   retrieval protocol in
+   `~/.config/opencode/skills/_shared/persistence-contract.md`.
 5. Determine the artifact store mode from config before reading or writing any
    SDD artifacts.
 

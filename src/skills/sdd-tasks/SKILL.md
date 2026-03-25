@@ -9,16 +9,17 @@ Translate the approved spec and design into an implementation checklist.
 
 ## Shared Conventions
 
-- Repository-source references: `../../_shared/...`
-- `../_shared/openspec-convention.md`
-- `../_shared/persistence-contract.md`
-- `../_shared/thoth-mem-convention.md`
+- Shared references:
+- `~/.config/opencode/skills/_shared/openspec-convention.md`
+- `~/.config/opencode/skills/_shared/persistence-contract.md`
+- `~/.config/opencode/skills/_shared/thoth-mem-convention.md`
 
 ## Persistence Mode
 
 The orchestrator passes the artifact store mode (`thoth-mem`, `openspec`, or
-`hybrid`). Follow `../_shared/persistence-contract.md` for read/write rules per
-mode.
+`hybrid`). Follow
+`~/.config/opencode/skills/_shared/persistence-contract.md` for read/write
+rules per mode.
 
 - `thoth-mem`: persist to thoth-mem only — do NOT create or modify
   `openspec/` files.
@@ -41,7 +42,7 @@ mode.
 
 1. Read the shared conventions.
 2. Recover `proposal`, `spec`, and `design` via the retrieval protocol in
-   `../_shared/persistence-contract.md`.
+   `~/.config/opencode/skills/_shared/persistence-contract.md`.
 3. If a task plan already exists, recover `sdd/{change-name}/tasks` with the
    same mode-aware retrieval rules before rewriting it.
 4. Build a phased checklist for `openspec/changes/{change-name}/tasks.md`. In
@@ -111,5 +112,5 @@ Return:
 - Include testing and verification work explicitly.
 - Do not create vague tasks such as “implement feature”.
 - Retrieve all dependencies through the mode-aware protocol in
-  `../_shared/persistence-contract.md`.
+  `~/.config/opencode/skills/_shared/persistence-contract.md`.
 - Never reference engram.

@@ -9,16 +9,17 @@ Write or update the change specifications for one or more affected domains.
 
 ## Shared Conventions
 
-- Repository-source references: `../../_shared/...`
-- `../_shared/openspec-convention.md`
-- `../_shared/persistence-contract.md`
-- `../_shared/thoth-mem-convention.md`
+- Shared references:
+- `~/.config/opencode/skills/_shared/openspec-convention.md`
+- `~/.config/opencode/skills/_shared/persistence-contract.md`
+- `~/.config/opencode/skills/_shared/thoth-mem-convention.md`
 
 ## Persistence Mode
 
 The orchestrator passes the artifact store mode (`thoth-mem`, `openspec`, or
-`hybrid`). Follow `../_shared/persistence-contract.md` for read/write rules per
-mode.
+`hybrid`). Follow
+`~/.config/opencode/skills/_shared/persistence-contract.md` for read/write
+rules per mode.
 
 - `thoth-mem`: persist to thoth-mem only — do NOT create or modify
   `openspec/` files.
@@ -40,7 +41,7 @@ mode.
 
 1. Read the shared conventions.
 2. Recover the proposal using the retrieval protocol in
-   `../_shared/persistence-contract.md`.
+   `~/.config/opencode/skills/_shared/persistence-contract.md`.
 3. If the change already has spec work, recover `sdd/{change-name}/spec` with
    the same mode-aware retrieval rules before editing.
 4. Read `openspec/specs/{domain}/spec.md` for each affected domain to determine
@@ -98,6 +99,7 @@ Return:
 - Every requirement must have at least one Given/When/Then scenario.
 - Specs describe behavior, not implementation details.
 - Keep domain boundaries explicit.
-- Use the retrieval protocol from `../_shared/persistence-contract.md` for
-  every SDD dependency.
+- Use the retrieval protocol from
+  `~/.config/opencode/skills/_shared/persistence-contract.md` for every SDD
+  dependency.
 - Never reference engram.

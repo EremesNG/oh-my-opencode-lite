@@ -10,16 +10,17 @@ orchestrator.
 
 ## Shared Conventions
 
-- Repository-source references: `../../_shared/...`
-- `../_shared/openspec-convention.md`
-- `../_shared/persistence-contract.md`
-- `../_shared/thoth-mem-convention.md`
+- Shared references:
+- `~/.config/opencode/skills/_shared/openspec-convention.md`
+- `~/.config/opencode/skills/_shared/persistence-contract.md`
+- `~/.config/opencode/skills/_shared/thoth-mem-convention.md`
 
 ## Persistence Mode
 
 The orchestrator passes the artifact store mode (`thoth-mem`, `openspec`, or
-`hybrid`). Follow `../_shared/persistence-contract.md` for read/write rules per
-mode.
+`hybrid`). Follow
+`~/.config/opencode/skills/_shared/persistence-contract.md` for read/write
+rules per mode.
 
 - `thoth-mem`: persist to thoth-mem only — do NOT create or modify
   `openspec/` files.
@@ -42,7 +43,7 @@ mode.
 
 1. Read the shared conventions.
 2. Recover `spec`, `design`, and `tasks` with the retrieval protocol in
-    `../_shared/persistence-contract.md`.
+   `~/.config/opencode/skills/_shared/persistence-contract.md`.
 3. Read the affected code before editing anything.
 4. Execute only the assigned checklist items.
 5. In modes that include thoth-mem, persist an implementation progress report
@@ -94,7 +95,7 @@ Return:
 - Update only the tasks assigned in the current batch.
 - Persist the progress artifact whenever the selected mode includes thoth-mem.
 - Retrieve every SDD dependency with the mode-aware protocol in
-  `../_shared/persistence-contract.md`.
+  `~/.config/opencode/skills/_shared/persistence-contract.md`.
 - Return structured execution evidence to the orchestrator so it can manage task
   state correctly.
 - Never reference engram.
