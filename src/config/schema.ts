@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { DEFAULT_DELEGATION_TIMEOUT } from './constants';
+import {
+  BACKGROUND_TASK_TIMEOUT_MS,
+  DEFAULT_DELEGATION_TIMEOUT,
+} from './constants';
 
 const AGENT_NAMES = [
   'orchestrator',
@@ -156,6 +159,7 @@ export type DelegationConfig = z.infer<typeof DelegationConfigSchema>;
 // Background task configuration
 export const BackgroundTaskConfigSchema = z.object({
   maxConcurrentStarts: z.number().min(1).max(50).default(10),
+  timeoutMs: z.number().min(0).default(BACKGROUND_TASK_TIMEOUT_MS),
 });
 
 export type BackgroundTaskConfig = z.infer<typeof BackgroundTaskConfigSchema>;
