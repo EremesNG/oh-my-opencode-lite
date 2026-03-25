@@ -10,7 +10,11 @@
     },
     "scoringEngineVersion": {
       "type": "string",
-      "enum": ["v1", "v2-shadow", "v2"]
+      "enum": [
+        "v1",
+        "v2-shadow",
+        "v2"
+      ]
     },
     "balanceProviderUsage": {
       "type": "boolean"
@@ -38,7 +42,12 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": ["primary", "fallback1", "fallback2", "fallback3"]
+          "required": [
+            "primary",
+            "fallback1",
+            "fallback2",
+            "fallback3"
+          ]
         },
         "oracle": {
           "type": "object",
@@ -60,7 +69,12 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": ["primary", "fallback1", "fallback2", "fallback3"]
+          "required": [
+            "primary",
+            "fallback1",
+            "fallback2",
+            "fallback3"
+          ]
         },
         "designer": {
           "type": "object",
@@ -82,7 +96,12 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": ["primary", "fallback1", "fallback2", "fallback3"]
+          "required": [
+            "primary",
+            "fallback1",
+            "fallback2",
+            "fallback3"
+          ]
         },
         "explorer": {
           "type": "object",
@@ -104,7 +123,12 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": ["primary", "fallback1", "fallback2", "fallback3"]
+          "required": [
+            "primary",
+            "fallback1",
+            "fallback2",
+            "fallback3"
+          ]
         },
         "librarian": {
           "type": "object",
@@ -126,7 +150,12 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": ["primary", "fallback1", "fallback2", "fallback3"]
+          "required": [
+            "primary",
+            "fallback1",
+            "fallback2",
+            "fallback3"
+          ]
         },
         "quick": {
           "type": "object",
@@ -148,7 +177,12 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": ["primary", "fallback1", "fallback2", "fallback3"]
+          "required": [
+            "primary",
+            "fallback1",
+            "fallback2",
+            "fallback3"
+          ]
         },
         "deep": {
           "type": "object",
@@ -170,7 +204,12 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": ["primary", "fallback1", "fallback2", "fallback3"]
+          "required": [
+            "primary",
+            "fallback1",
+            "fallback2",
+            "fallback3"
+          ]
         }
       },
       "required": [
@@ -219,7 +258,9 @@
                             "type": "string"
                           }
                         },
-                        "required": ["id"]
+                        "required": [
+                          "id"
+                        ]
                       }
                     ]
                   }
@@ -268,7 +309,9 @@
                           "type": "string"
                         }
                       },
-                      "required": ["id"]
+                      "required": [
+                        "id"
+                      ]
                     }
                   ]
                 }
@@ -450,6 +493,57 @@
         "timeout": {
           "default": 900000,
           "type": "number"
+        }
+      }
+    },
+    "clarificationGate": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "default": "auto",
+          "type": "string",
+          "enum": [
+            "off",
+            "explicit-only",
+            "auto",
+            "auto-for-planning"
+          ]
+        },
+        "min_scope_signals": {
+          "default": 2,
+          "type": "number",
+          "minimum": 0
+        },
+        "hard_complex_signal_threshold": {
+          "default": 3,
+          "type": "number",
+          "minimum": 0
+        },
+        "explicit_keywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "planning_keywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "artifactStore": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "default": "hybrid",
+          "type": "string",
+          "enum": [
+            "thoth-mem",
+            "openspec",
+            "hybrid"
+          ]
         }
       }
     }
