@@ -3,6 +3,38 @@ import type { PluginConfig } from '../config';
 import { SUBAGENT_NAMES } from '../config';
 import { createAgents, getAgentConfigs, isSubagent } from './index';
 
+type PermissionAction = 'allow' | 'ask' | 'deny';
+type PermissionRecord = Record<
+  string,
+  PermissionAction | Record<string, PermissionAction>
+>;
+
+function getAgentByName(
+  name: string,
+  config?: PluginConfig,
+): ReturnType<typeof createAgents>[number] | undefined {
+  return createAgents(config).find((agent) => agent.name === name);
+}
+
+function getPermissionRecord(
+  name: string,
+  config?: PluginConfig,
+): PermissionRecord {
+  const permission = getAgentByName(name, config)?.config.permission;
+  expect(permission).toBeDefined();
+  return permission as PermissionRecord;
+}
+
+function getSkillPermissionRecord(
+  name: string,
+  config?: PluginConfig,
+): Record<string, PermissionAction> {
+  const skillPermission = getPermissionRecord(name, config).skill;
+  expect(skillPermission).toBeDefined();
+  expect(typeof skillPermission).toBe('object');
+  return skillPermission as Record<string, PermissionAction>;
+}
+
 describe('agent alias backward compatibility', () => {
   test("applies 'explore' config to 'explorer' agent", () => {
     const config: PluginConfig = {
@@ -10,10 +42,10 @@ describe('agent alias backward compatibility', () => {
         explore: { model: 'test/old-explore-model' },
       },
     };
-    const agents = createAgents(config);
-    const explorer = agents.find((a) => a.name === 'explorer');
-    expect(explorer).toBeDefined();
-    expect(explorer?.config.model).toBe('test/old-explore-model');
+
+    expect(getAgentByName('explorer', config)?.config.model).toBe(
+      'test/old-explore-model',
+    );
   });
 
   test("applies 'frontend-ui-ux-engineer' config to 'designer' agent", () => {
@@ -22,10 +54,10 @@ describe('agent alias backward compatibility', () => {
         'frontend-ui-ux-engineer': { model: 'test/old-frontend-model' },
       },
     };
-    const agents = createAgents(config);
-    const designer = agents.find((a) => a.name === 'designer');
-    expect(designer).toBeDefined();
-    expect(designer?.config.model).toBe('test/old-frontend-model');
+
+    expect(getAgentByName('designer', config)?.config.model).toBe(
+      'test/old-frontend-model',
+    );
   });
 
   test('new name takes priority over old alias', () => {
@@ -35,25 +67,8 @@ describe('agent alias backward compatibility', () => {
         explorer: { model: 'new-model' },
       },
     };
-    const agents = createAgents(config);
-    const explorer = agents.find((a) => a.name === 'explorer');
-    expect(explorer?.config.model).toBe('new-model');
-  });
 
-  test('new agent names work directly', () => {
-    const config: PluginConfig = {
-      agents: {
-        explorer: { model: 'direct-explorer' },
-        designer: { model: 'direct-designer' },
-      },
-    };
-    const agents = createAgents(config);
-    expect(agents.find((a) => a.name === 'explorer')?.config.model).toBe(
-      'direct-explorer',
-    );
-    expect(agents.find((a) => a.name === 'designer')?.config.model).toBe(
-      'direct-designer',
-    );
+    expect(getAgentByName('explorer', config)?.config.model).toBe('new-model');
   });
 
   test('temperature override via old alias', () => {
@@ -62,9 +77,8 @@ describe('agent alias backward compatibility', () => {
         explore: { temperature: 0.5 },
       },
     };
-    const agents = createAgents(config);
-    const explorer = agents.find((a) => a.name === 'explorer');
-    expect(explorer?.config.temperature).toBe(0.5);
+
+    expect(getAgentByName('explorer', config)?.config.temperature).toBe(0.5);
   });
 
   test('variant override via old alias', () => {
@@ -73,49 +87,18 @@ describe('agent alias backward compatibility', () => {
         explore: { variant: 'low' },
       },
     };
-    const agents = createAgents(config);
-    const explorer = agents.find((a) => a.name === 'explorer');
-    expect(explorer?.config.variant).toBe('low');
-  });
-});
 
-describe('fixer agent fallback', () => {
-  test('fixer inherits librarian model when no fixer config provided', () => {
-    const config: PluginConfig = {
-      agents: {
-        librarian: { model: 'librarian-custom-model' },
-      },
-    };
-    const agents = createAgents(config);
-    const fixer = agents.find((a) => a.name === 'fixer');
-    const librarian = agents.find((a) => a.name === 'librarian');
-    expect(fixer?.config.model).toBe(librarian?.config.model);
-  });
-
-  test('fixer uses its own model when explicitly configured', () => {
-    const config: PluginConfig = {
-      agents: {
-        librarian: { model: 'librarian-model' },
-        fixer: { model: 'fixer-specific-model' },
-      },
-    };
-    const agents = createAgents(config);
-    const fixer = agents.find((a) => a.name === 'fixer');
-    expect(fixer?.config.model).toBe('fixer-specific-model');
+    expect(getAgentByName('explorer', config)?.config.variant).toBe('low');
   });
 });
 
 describe('orchestrator agent', () => {
   test('orchestrator is first in agents array', () => {
-    const agents = createAgents();
-    expect(agents[0].name).toBe('orchestrator');
+    expect(createAgents()[0]?.name).toBe('orchestrator');
   });
 
   test('orchestrator has question permission set to allow', () => {
-    const agents = createAgents();
-    const orchestrator = agents.find((a) => a.name === 'orchestrator');
-    expect(orchestrator?.config.permission).toBeDefined();
-    expect((orchestrator?.config.permission as any).question).toBe('allow');
+    expect(getPermissionRecord('orchestrator').question).toBe('allow');
   });
 
   test('orchestrator accepts overrides', () => {
@@ -124,10 +107,13 @@ describe('orchestrator agent', () => {
         orchestrator: { model: 'custom-orchestrator-model', temperature: 0.3 },
       },
     };
-    const agents = createAgents(config);
-    const orchestrator = agents.find((a) => a.name === 'orchestrator');
-    expect(orchestrator?.config.model).toBe('custom-orchestrator-model');
-    expect(orchestrator?.config.temperature).toBe(0.3);
+
+    expect(getAgentByName('orchestrator', config)?.config.model).toBe(
+      'custom-orchestrator-model',
+    );
+    expect(getAgentByName('orchestrator', config)?.config.temperature).toBe(
+      0.3,
+    );
   });
 
   test('orchestrator accepts variant override', () => {
@@ -136,9 +122,8 @@ describe('orchestrator agent', () => {
         orchestrator: { variant: 'high' },
       },
     };
-    const agents = createAgents(config);
-    const orchestrator = agents.find((a) => a.name === 'orchestrator');
-    expect(orchestrator?.config.variant).toBe('high');
+
+    expect(getAgentByName('orchestrator', config)?.config.variant).toBe('high');
   });
 
   test('orchestrator stores model array with per-model variants in _modelArray', () => {
@@ -153,14 +138,21 @@ describe('orchestrator agent', () => {
         },
       },
     };
-    const agents = createAgents(config);
-    const orchestrator = agents.find((a) => a.name === 'orchestrator');
+
+    const orchestrator = getAgentByName('orchestrator', config);
     expect(orchestrator?._modelArray).toEqual([
       { id: 'google/gemini-3-pro', variant: 'high' },
       { id: 'github-copilot/claude-3.5-haiku' },
       { id: 'openai/gpt-4' },
     ]);
     expect(orchestrator?.config.model).toBeUndefined();
+  });
+
+  test('orchestrator prompt is delegate-first and forbids inline repo work', () => {
+    const prompt = getAgentByName('orchestrator')?.config.prompt;
+    expect(prompt).toContain('delegate-first');
+    expect(prompt).toContain('must not read source files inline');
+    expect(prompt).toContain('must not write or patch code inline');
   });
 });
 
@@ -176,8 +168,8 @@ describe('per-model variant in array config', () => {
         },
       },
     };
-    const agents = createAgents(config);
-    const explorer = agents.find((a) => a.name === 'explorer');
+
+    const explorer = getAgentByName('explorer', config);
     expect(explorer?._modelArray).toEqual([
       { id: 'google/gemini-3-flash', variant: 'low' },
       { id: 'openai/gpt-4o-mini' },
@@ -197,46 +189,107 @@ describe('per-model variant in array config', () => {
         },
       },
     };
-    const agents = createAgents(config);
-    const orchestrator = agents.find((a) => a.name === 'orchestrator');
-    // top-level variant still set as default
+
+    const orchestrator = getAgentByName('orchestrator', config);
     expect(orchestrator?.config.variant).toBe('low');
-    // per-model variants stored in _modelArray
     expect(orchestrator?._modelArray?.[0]?.variant).toBe('high');
     expect(orchestrator?._modelArray?.[1]?.variant).toBeUndefined();
   });
 });
 
 describe('skill permissions', () => {
-  test('orchestrator gets cartography skill allowed by default', () => {
-    const agents = createAgents();
-    const orchestrator = agents.find((a) => a.name === 'orchestrator');
-    expect(orchestrator).toBeDefined();
-    const skillPerm = (
-      orchestrator?.config.permission as Record<string, unknown>
-    )?.skill as Record<string, string>;
-    // orchestrator gets wildcard allow (from RECOMMENDED_SKILLS wildcard entry)
-    expect(skillPerm?.['*']).toBe('allow');
-    // CUSTOM_SKILLS loop must also add a named cartography entry for orchestrator
-    expect(skillPerm?.cartography).toBe('allow');
+  test('orchestrator gets wildcard and cartography skills allowed by default', () => {
+    const skillPerm = getSkillPermissionRecord('orchestrator');
+    expect(skillPerm['*']).toBe('allow');
+    expect(skillPerm.cartography).toBe('allow');
   });
 
   test('explorer gets cartography skill allowed by default', () => {
-    const agents = createAgents();
-    const explorer = agents.find((a) => a.name === 'explorer');
-    expect(explorer).toBeDefined();
-    const skillPerm = (explorer?.config.permission as Record<string, unknown>)
-      ?.skill as Record<string, string>;
-    expect(skillPerm?.cartography).toBe('allow');
+    expect(getSkillPermissionRecord('explorer').cartography).toBe('allow');
   });
 
   test('oracle gets requesting-code-review skill allowed by default', () => {
-    const agents = createAgents();
-    const oracle = agents.find((a) => a.name === 'oracle');
-    expect(oracle).toBeDefined();
-    const skillPerm = (oracle?.config.permission as Record<string, unknown>)
-      ?.skill as Record<string, string>;
-    expect(skillPerm?.['requesting-code-review']).toBe('allow');
+    expect(getSkillPermissionRecord('oracle')['requesting-code-review']).toBe(
+      'allow',
+    );
+  });
+
+  test('designer gets agent-browser skill allowed by default', () => {
+    expect(getSkillPermissionRecord('designer')['agent-browser']).toBe('allow');
+  });
+});
+
+describe('tool restriction defaults', () => {
+  test('orchestrator can delegate but cannot use workspace tools inline', () => {
+    const permission = getPermissionRecord('orchestrator');
+    expect(permission.task).toBe('allow');
+    expect(permission.background_task).toBe('allow');
+    expect(permission.read).toBe('deny');
+    expect(permission.write).toBe('deny');
+    expect(permission.edit).toBe('deny');
+    expect(permission.bash).toBe('deny');
+    expect(permission.ast_grep_search).toBe('deny');
+    expect(permission.lsp_diagnostics).toBe('deny');
+  });
+
+  test('explorer is background-only and read-only by default', () => {
+    const permission = getPermissionRecord('explorer');
+    expect(permission.task).toBe('deny');
+    expect(permission.background_task).toBe('deny');
+    expect(permission.read).toBe('allow');
+    expect(permission.glob).toBe('allow');
+    expect(permission.grep).toBe('allow');
+    expect(permission.ast_grep_search).toBe('allow');
+    expect(permission.write).toBe('deny');
+    expect(permission.edit).toBe('deny');
+  });
+
+  test('oracle is synchronous and read-only by default', () => {
+    const permission = getPermissionRecord('oracle');
+    expect(permission.task).toBe('deny');
+    expect(permission.background_task).toBe('deny');
+    expect(permission.read).toBe('allow');
+    expect(permission.lsp_goto_definition).toBe('allow');
+    expect(permission.write).toBe('deny');
+    expect(permission.edit).toBe('deny');
+  });
+
+  test('designer, quick, and deep are write-capable leaf agents by default', () => {
+    for (const agentName of ['designer', 'quick', 'deep']) {
+      const permission = getPermissionRecord(agentName);
+      expect(permission.task).toBe('deny');
+      expect(permission.background_task).toBe('deny');
+      expect(permission.read).toBe('allow');
+      expect(permission.write).toBe('allow');
+      expect(permission.edit).toBe('allow');
+      expect(permission.bash).toBe('allow');
+    }
+  });
+});
+
+describe('prompt role markers', () => {
+  test('explorer prompt states background-only mode', () => {
+    expect(getAgentByName('explorer')?.config.prompt).toContain(
+      'background-only',
+    );
+  });
+
+  test('librarian prompt states background-only mode', () => {
+    expect(getAgentByName('librarian')?.config.prompt).toContain(
+      'background-only',
+    );
+  });
+
+  test('oracle prompt states read-only mode', () => {
+    expect(getAgentByName('oracle')?.config.prompt).toContain('read-only');
+  });
+
+  test('designer, quick, and deep prompts state write-capable mode', () => {
+    expect(getAgentByName('designer')?.config.prompt).toContain(
+      'write-capable',
+    );
+    expect(getAgentByName('quick')?.config.prompt).toContain('write-capable');
+    expect(getAgentByName('deep')?.config.prompt).toContain('write-capable');
   });
 });
 
@@ -246,34 +299,30 @@ describe('isSubagent type guard', () => {
     expect(isSubagent('librarian')).toBe(true);
     expect(isSubagent('oracle')).toBe(true);
     expect(isSubagent('designer')).toBe(true);
-    expect(isSubagent('fixer')).toBe(true);
+    expect(isSubagent('quick')).toBe(true);
+    expect(isSubagent('deep')).toBe(true);
   });
 
-  test('returns false for orchestrator', () => {
+  test('returns false for orchestrator and invalid names', () => {
     expect(isSubagent('orchestrator')).toBe(false);
-  });
-
-  test('returns false for invalid agent names', () => {
     expect(isSubagent('invalid-agent')).toBe(false);
     expect(isSubagent('')).toBe(false);
-    expect(isSubagent('explore')).toBe(false); // old alias, not actual agent name
+    expect(isSubagent('explore')).toBe(false);
   });
 });
 
 describe('agent classification', () => {
   test('SUBAGENT_NAMES excludes orchestrator', () => {
     expect(SUBAGENT_NAMES).not.toContain('orchestrator');
-    expect(SUBAGENT_NAMES).toContain('explorer');
-    expect(SUBAGENT_NAMES).toContain('fixer');
+    expect(SUBAGENT_NAMES).toContain('quick');
+    expect(SUBAGENT_NAMES).toContain('deep');
   });
 
-  test('getAgentConfigs applies correct classification visibility and mode', () => {
+  test('getAgentConfigs applies correct classification mode', () => {
     const configs = getAgentConfigs();
 
-    // Primary agent
     expect(configs.orchestrator.mode).toBe('primary');
 
-    // Subagents
     for (const name of SUBAGENT_NAMES) {
       expect(configs[name].mode).toBe('subagent');
     }
@@ -281,20 +330,26 @@ describe('agent classification', () => {
 });
 
 describe('createAgents', () => {
-  test('creates all agents without config', () => {
-    const agents = createAgents();
-    const names = agents.map((a) => a.name);
+  test('creates the seven-agent roster', () => {
+    const names = createAgents().map((agent) => agent.name);
+
     expect(names).toContain('orchestrator');
     expect(names).toContain('explorer');
-    expect(names).toContain('designer');
-    expect(names).toContain('oracle');
     expect(names).toContain('librarian');
-    expect(names).toContain('fixer');
+    expect(names).toContain('oracle');
+    expect(names).toContain('designer');
+    expect(names).toContain('quick');
+    expect(names).toContain('deep');
+    expect(names).not.toContain('fixer');
   });
 
-  test('creates exactly 6 agents (1 primary + 5 subagents)', () => {
-    const agents = createAgents();
-    expect(agents.length).toBe(6);
+  test('creates exactly 7 agents (1 primary + 6 subagents)', () => {
+    expect(createAgents()).toHaveLength(7);
+  });
+
+  test('rejects legacy fixer requests as unsupported', () => {
+    expect(getAgentByName('fixer')).toBeUndefined();
+    expect(isSubagent('fixer')).toBe(false);
   });
 });
 
@@ -303,8 +358,8 @@ describe('getAgentConfigs', () => {
     const configs = getAgentConfigs();
     expect(configs.orchestrator).toBeDefined();
     expect(configs.explorer).toBeDefined();
-    // orchestrator has no hardcoded default model; resolved at runtime via
-    // chat.message hook when _modelArray is configured, or left to the user
+    expect(configs.quick).toBeDefined();
+    expect(configs.deep).toBeDefined();
     expect(configs.explorer.model).toBeDefined();
   });
 
@@ -312,5 +367,19 @@ describe('getAgentConfigs', () => {
     const configs = getAgentConfigs();
     expect(configs.orchestrator.description).toBeDefined();
     expect(configs.explorer.description).toBeDefined();
+    expect(configs.quick.description).toBeDefined();
+    expect(configs.deep.description).toBeDefined();
+  });
+
+  test('uses updated default MCP assignments', () => {
+    const configs = getAgentConfigs();
+    expect(configs.orchestrator.mcps).toEqual(['thoth_mem']);
+    expect(configs.librarian.mcps).toEqual([
+      'websearch',
+      'context7',
+      'grep_app',
+    ]);
+    expect(configs.quick.mcps).toEqual([]);
+    expect(configs.deep.mcps).toEqual([]);
   });
 });

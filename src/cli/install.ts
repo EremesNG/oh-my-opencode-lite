@@ -35,9 +35,7 @@ const SYMBOLS = {
 
 function printHeader(isUpdate: boolean): void {
   console.log();
-  console.log(
-    `${BOLD}oh-my-opencode-lite ${isUpdate ? 'Update' : 'Install'}${RESET}`,
-  );
+  console.log(`${BOLD}omolite ${isUpdate ? 'Update' : 'Install'}${RESET}`);
   console.log('='.repeat(30));
   console.log();
 }
@@ -103,7 +101,11 @@ function formatConfigSummary(): string {
   lines.push(`${BOLD}Configuration Summary${RESET}`);
   lines.push('');
   lines.push(`  ${BOLD}Preset:${RESET} ${BLUE}openai${RESET}`);
-  lines.push(`  ${SYMBOLS.check} OpenAI (default)`);
+  lines.push(`  ${SYMBOLS.check} Seven-agent omolite roster`);
+  lines.push(`  ${SYMBOLS.check} OpenAI models by default`);
+  lines.push(`  ${SYMBOLS.check} thoth-mem enabled for orchestrator memory`);
+  lines.push(`  ${SYMBOLS.check} Delegation results persisted to disk`);
+  lines.push(`  ${SYMBOLS.check} Bundled SDD skills ready for install`);
   const seeDocs = 'see docs/provider-configurations.md';
   lines.push(`  ${DIM}○ Kimi — ${seeDocs}${RESET}`);
   lines.push(`  ${DIM}○ GitHub Copilot — ${seeDocs}${RESET}`);
@@ -130,7 +132,7 @@ async function runInstall(config: InstallConfig): Promise<number> {
     const { ok } = await checkOpenCodeInstalled();
     if (!ok) return 1;
   }
-  printStep(step++, totalSteps, 'Adding oh-my-opencode-lite plugin...');
+  printStep(step++, totalSteps, 'Adding omolite plugin...');
   if (config.dryRun) {
     printInfo('Dry run mode - skipping plugin installation');
   } else {
@@ -145,7 +147,7 @@ async function runInstall(config: InstallConfig): Promise<number> {
     if (!handleStepResult(agentResult, 'Default agents disabled')) return 1;
   }
 
-  printStep(step++, totalSteps, 'Writing oh-my-opencode-lite configuration...');
+  printStep(step++, totalSteps, 'Writing omolite configuration...');
   if (config.dryRun) {
     const liteConfig = generateLiteConfig(config);
     printInfo('Dry run mode - configuration that would be written:');
@@ -176,7 +178,7 @@ async function runInstall(config: InstallConfig): Promise<number> {
 
   // Install skills if requested
   if (config.installSkills) {
-    printStep(step++, totalSteps, 'Installing recommended skills...');
+    printStep(step++, totalSteps, 'Installing recommended external skills...');
     if (config.dryRun) {
       printInfo('Dry run mode - would install skills:');
       for (const skill of RECOMMENDED_SKILLS) {
@@ -201,9 +203,9 @@ async function runInstall(config: InstallConfig): Promise<number> {
 
   // Install custom skills if requested
   if (config.installCustomSkills) {
-    printStep(step++, totalSteps, 'Installing custom skills...');
+    printStep(step++, totalSteps, 'Installing bundled omolite skills...');
     if (config.dryRun) {
-      printInfo('Dry run mode - would install custom skills:');
+      printInfo('Dry run mode - would install bundled skills:');
       for (const skill of CUSTOM_SKILLS) {
         printInfo(`  - ${skill.name}`);
       }
@@ -231,8 +233,8 @@ async function runInstall(config: InstallConfig): Promise<number> {
   console.log();
 
   const statusMsg = isUpdate
-    ? 'Configuration updated!'
-    : 'Installation complete!';
+    ? 'omolite updated!'
+    : 'omolite installation complete!';
   console.log(`${SYMBOLS.star} ${BOLD}${GREEN}${statusMsg}${RESET}`);
   console.log();
   console.log(`${BOLD}Next steps:${RESET}`);
@@ -244,6 +246,12 @@ async function runInstall(config: InstallConfig): Promise<number> {
   const modelsInfo =
     'Default configuration uses OpenAI models (gpt-5.4 / gpt-5.4-mini).';
   console.log(`${BOLD}${modelsInfo}${RESET}`);
+  console.log(
+    `  ${DIM}Includes the seven-agent roster, thoth-mem memory defaults,${RESET}`,
+  );
+  console.log(
+    `  ${DIM}delegation persistence, and bundled SDD skills.${RESET}`,
+  );
   const altProviders =
     'For alternative providers (Kimi, GitHub Copilot, ZAI Coding Plan)';
   console.log(`${BOLD}${altProviders}, see:${RESET}`);

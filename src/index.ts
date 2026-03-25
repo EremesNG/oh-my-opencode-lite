@@ -1,8 +1,11 @@
+import path from 'node:path';
 import type { Plugin } from '@opencode-ai/plugin';
+import type { Event, Model } from '@opencode-ai/sdk';
 import { createAgents, getAgentConfigs } from './agents';
 import { BackgroundTaskManager, TmuxSessionManager } from './background';
 import { loadPluginConfig, type TmuxConfig } from './config';
 import { parseList } from './config/agent-mcps';
+import { DelegationManager } from './delegation';
 import {
   createAutoUpdateCheckerHook,
   createChatHeadersHook,
@@ -10,9 +13,11 @@ import {
   createJsonErrorRecoveryHook,
   createPhaseReminderHook,
   createPostReadNudgeHook,
+  createThothMemHook,
   ForegroundFallbackManager,
 } from './hooks';
 import { createBuiltinMcps } from './mcp';
+import { createThothClient } from './thoth';
 import {
   ast_grep_replace,
   ast_grep_search,
@@ -87,14 +92,37 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     startTmuxCheck();
   }
 
-  const backgroundManager = new BackgroundTaskManager(ctx, tmuxConfig, config);
+  const projectName = path.basename(ctx.directory) || 'omolite';
+  const thothClient = createThothClient({
+    client: ctx.client,
+    project: projectName,
+    directory: ctx.directory,
+    timeoutMs: config.thoth?.timeout,
+    enabled: true,
+  });
+
+  let backgroundManager: BackgroundTaskManager;
+  const delegationManager = new DelegationManager({
+    directory: ctx.directory,
+    config: config.delegation,
+    getActiveTaskIds: (rootSessionId) =>
+      backgroundManager?.getActiveTaskIds(rootSessionId) ?? [],
+  });
+
+  backgroundManager = new BackgroundTaskManager(
+    ctx,
+    tmuxConfig,
+    config,
+    delegationManager,
+  );
   const backgroundTools = createBackgroundTools(
     ctx,
     backgroundManager,
     tmuxConfig,
     config,
   );
-  const mcps = createBuiltinMcps(config.disabled_mcps);
+  // Register built-in MCPs, including thoth_mem.
+  const mcps = createBuiltinMcps(config.disabled_mcps, config.thoth);
 
   // Initialize TmuxSessionManager to handle OpenCode's built-in Task tool sessions
   const tmuxSessionManager = new TmuxSessionManager(ctx, tmuxConfig);
@@ -111,6 +139,14 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
   // Initialize post-read nudge hook
   const postReadNudgeHook = createPostReadNudgeHook();
 
+  const thothMemHook = createThothMemHook({
+    client: ctx.client,
+    project: projectName,
+    directory: ctx.directory,
+    thoth: config.thoth,
+    enabled: thothClient.enabled,
+  });
+
   const chatHeadersHook = createChatHeadersHook(ctx);
 
   // Initialize delegate-task retry guidance hook
@@ -125,6 +161,23 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     runtimeChains,
     config.fallback?.enabled !== false && Object.keys(runtimeChains).length > 0,
   );
+
+  type ThothEventInput = { event: Event };
+  type ThothSystemTransformInput = { sessionID?: string; model: Model };
+  type ThothSystemTransformOutput = { system: string[] };
+  type ThothCompactingInput = { sessionID: string };
+  type ThothCompactingOutput = { context: string[]; prompt?: string };
+  type ThothToolAfterInput = {
+    tool: string;
+    sessionID: string;
+    callID: string;
+    args: unknown;
+  };
+  type ThothToolAfterOutput = {
+    title: string;
+    output: string;
+    metadata: unknown;
+  };
 
   return {
     name: 'oh-my-opencode-lite',
@@ -321,6 +374,8 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
       // Handle auto-update checking
       await autoUpdateChecker.event(input);
 
+      await thothMemHook.event(input as ThothEventInput);
+
       // Handle tmux pane spawning for OpenCode's Task tool sessions
       await tmuxSessionManager.onSessionCreated(
         input.event as {
@@ -366,9 +421,33 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
 
     'chat.headers': chatHeadersHook['chat.headers'],
 
-    // Inject phase reminder before sending to API (doesn't show in UI)
+    'experimental.chat.system.transform': async (input, output) => {
+      if (thothMemHook['experimental.chat.system.transform']) {
+        await thothMemHook['experimental.chat.system.transform'](
+          input as ThothSystemTransformInput,
+          output as ThothSystemTransformOutput,
+        );
+      }
+    },
+
     'experimental.chat.messages.transform':
       phaseReminderHook['experimental.chat.messages.transform'],
+
+    'experimental.session.compacting': async (input, output) => {
+      if (thothMemHook['experimental.session.compacting']) {
+        await thothMemHook['experimental.session.compacting'](
+          input as ThothCompactingInput,
+          output as ThothCompactingOutput,
+        );
+      }
+
+      const delegationSummary = await backgroundManager.getDelegationSummary(
+        (input as { sessionID: string }).sessionID,
+      );
+      if (delegationSummary) {
+        (output as { context: string[] }).context.push(delegationSummary);
+      }
+    },
 
     // Post-tool hooks: retry guidance for delegation errors + post-read nudge
     'tool.execute.after': async (input, output) => {
@@ -389,6 +468,13 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
           metadata: unknown;
         },
       );
+
+      if (thothMemHook['tool.execute.after']) {
+        await thothMemHook['tool.execute.after'](
+          input as ThothToolAfterInput,
+          output as ThothToolAfterOutput,
+        );
+      }
 
       await postReadNudgeHook['tool.execute.after'](
         input as {

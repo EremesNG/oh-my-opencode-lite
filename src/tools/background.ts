@@ -3,7 +3,10 @@ import {
   type ToolDefinition,
   tool,
 } from '@opencode-ai/plugin';
-import type { BackgroundTaskManager } from '../background';
+import {
+  BACKGROUND_CAPABLE_AGENTS,
+  type BackgroundTaskManager,
+} from '../background';
 import type { PluginConfig } from '../config';
 import { SUBAGENT_NAMES } from '../config';
 import type { TmuxConfig } from '../config/schema';
@@ -25,6 +28,43 @@ export function createBackgroundTools(
   _pluginConfig?: PluginConfig,
 ): Record<string, ToolDefinition> {
   const agentNames = SUBAGENT_NAMES.join(', ');
+  const backgroundCapableAgents = BACKGROUND_CAPABLE_AGENTS.join(', ');
+
+  function formatDuration(startedAt: Date, completedAt?: Date): string {
+    const endTime = completedAt?.getTime() ?? Date.now();
+    return `${Math.floor((endTime - startedAt.getTime()) / 1000)}s`;
+  }
+
+  function formatTaskOutput(task: {
+    id: string;
+    description: string;
+    status: string;
+    startedAt: Date;
+    completedAt?: Date;
+    result?: string;
+    error?: string;
+  }): string {
+    let output = `Task: ${task.id}
+Description: ${task.description}
+Status: ${task.status}
+Duration: ${formatDuration(task.startedAt, task.completedAt)}
+
+---
+
+`;
+
+    if (task.status === 'completed' && task.result != null) {
+      output += task.result;
+    } else if (task.status === 'failed') {
+      output += `Error: ${task.error}`;
+    } else if (task.status === 'cancelled') {
+      output += '(Task cancelled)';
+    } else {
+      output += '(Task still running)';
+    }
+
+    return output;
+  }
 
   // Tool for launching agent tasks (fire-and-forget)
   const background_task = tool({
@@ -58,6 +98,10 @@ Key behaviors:
       const description = String(args.description);
       const parentSessionId = (toolContext as { sessionID: string }).sessionID;
 
+      if (!manager.isBackgroundCapableAgent(agent)) {
+        return `Agent '${agent}' is not background-capable. Allowed background agents: ${backgroundCapableAgents}`;
+      }
+
       // Validate agent against delegation rules
       if (!manager.isAgentAllowed(parentSessionId, agent)) {
         const allowed = manager.getAllowedSubagents(parentSessionId);
@@ -65,7 +109,7 @@ Key behaviors:
       }
 
       // Fire-and-forget launch
-      const task = manager.launch({
+      const task = await manager.launchBackgroundTask({
         agent,
         prompt,
         description,
@@ -86,7 +130,7 @@ Use \`background_output\` with task_id="${task.id}" to get results.`;
   const background_output = tool({
     description: `Get background task results after completion notification received.
 
-timeout=0: returns status immediately (no wait)
+      timeout=0: returns status immediately (no wait)
 timeout=N: waits up to N ms for completion
 
 Returns: results if completed, error if failed, status if running.`,
@@ -98,7 +142,7 @@ Returns: results if completed, error if failed, status if running.`,
         .optional()
         .describe('Wait for completion (in ms, 0=no wait, default: 0)'),
     },
-    async execute(args) {
+    async execute(args, toolContext) {
       const taskId = String(args.task_id);
       const timeout =
         typeof args.timeout === 'number' && args.timeout > 0 ? args.timeout : 0;
@@ -116,36 +160,34 @@ Returns: results if completed, error if failed, status if running.`,
         task = await manager.waitForCompletion(taskId, timeout);
       }
 
-      if (!task) {
-        return `Task not found: ${taskId}`;
+      if (task) {
+        return formatTaskOutput(task);
       }
 
-      // Calculate task duration
-      const duration = task.completedAt
-        ? `${Math.floor((task.completedAt.getTime() - task.startedAt.getTime()) / 1000)}s`
-        : `${Math.floor((Date.now() - task.startedAt.getTime()) / 1000)}s`;
+      const sessionId =
+        toolContext &&
+        typeof toolContext === 'object' &&
+        'sessionID' in toolContext
+          ? String((toolContext as { sessionID: string }).sessionID)
+          : null;
 
-      let output = `Task: ${task.id}
- Description: ${task.description}
- Status: ${task.status}
- Duration: ${duration}
-
- ---
-
- `;
-
-      // Include task result or error based on status
-      if (task.status === 'completed' && task.result != null) {
-        output += task.result;
-      } else if (task.status === 'failed') {
-        output += `Error: ${task.error}`;
-      } else if (task.status === 'cancelled') {
-        output += '(Task cancelled)';
-      } else {
-        output += '(Task still running)';
+      if (sessionId) {
+        const persisted = await manager.readDelegation(taskId, sessionId);
+        if (persisted) {
+          return formatTaskOutput({
+            id: persisted.header.id,
+            description: persisted.record.title,
+            status: 'completed',
+            startedAt: new Date(persisted.record.startedAt),
+            completedAt: persisted.record.completedAt
+              ? new Date(persisted.record.completedAt)
+              : undefined,
+            result: persisted.record.content,
+          });
+        }
       }
 
-      return output;
+      return `Task unavailable: ${taskId}`;
     },
   });
 

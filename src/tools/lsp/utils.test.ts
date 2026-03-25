@@ -29,7 +29,10 @@ describe('utils', () => {
 
   describe('uriToPath', () => {
     test('should convert file URI to path', () => {
-      const uri = 'file:///home/user/project/file.ts';
+      const uri =
+        process.platform === 'win32'
+          ? 'file:///C:/home/user/project/file.ts'
+          : 'file:///home/user/project/file.ts';
       const path = uriToPath(uri);
       expect(path).toContain('home');
       expect(path).toContain('file.ts');
@@ -39,7 +42,10 @@ describe('utils', () => {
   describe('formatLocation', () => {
     test('should format Location object', () => {
       const loc = {
-        uri: 'file:///home/user/test.ts',
+        uri:
+          process.platform === 'win32'
+            ? 'file:///C:/home/user/test.ts'
+            : 'file:///home/user/test.ts',
         range: {
           start: { line: 9, character: 5 },
           end: { line: 9, character: 10 },
@@ -94,7 +100,8 @@ describe('utils', () => {
 
   describe('applyWorkspaceEdit', () => {
     test('should apply single file edit', () => {
-      const uri = 'file:///test.ts';
+      const uri =
+        process.platform === 'win32' ? 'file:///C:/test.ts' : 'file:///test.ts';
       const filePath = uriToPath(uri);
       (readFileSync as any).mockReturnValue('line1\nline2\nline3');
 
@@ -119,7 +126,8 @@ describe('utils', () => {
     });
 
     test('should handle overlapping edits by sorting them in reverse order', () => {
-      const uri = 'file:///test.ts';
+      const uri =
+        process.platform === 'win32' ? 'file:///C:/test.ts' : 'file:///test.ts';
       (readFileSync as any).mockReturnValue('abcde');
 
       const edit = {
@@ -150,22 +158,22 @@ describe('utils', () => {
     });
 
     test('should handle create file operation', () => {
+      const uri =
+        process.platform === 'win32' ? 'file:///C:/new.ts' : 'file:///new.ts';
       const edit = {
-        documentChanges: [{ kind: 'create', uri: 'file:///new.ts' }],
+        documentChanges: [{ kind: 'create', uri }],
       };
 
       const result = applyWorkspaceEdit(edit as any);
       expect(result.success).toBe(true);
-      expect(writeFileSync).toHaveBeenCalledWith(
-        uriToPath('file:///new.ts'),
-        '',
-        'utf-8',
-      );
+      expect(writeFileSync).toHaveBeenCalledWith(uriToPath(uri), '', 'utf-8');
     });
 
     test('should handle rename file operation', () => {
-      const oldUri = 'file:///old.ts';
-      const newUri = 'file:///new.ts';
+      const oldUri =
+        process.platform === 'win32' ? 'file:///C:/old.ts' : 'file:///old.ts';
+      const newUri =
+        process.platform === 'win32' ? 'file:///C:/new.ts' : 'file:///new.ts';
       (readFileSync as any).mockReturnValue('some content');
 
       const edit = {
@@ -183,7 +191,10 @@ describe('utils', () => {
     });
 
     test('should handle delete file operation', () => {
-      const uri = 'file:///delete.ts';
+      const uri =
+        process.platform === 'win32'
+          ? 'file:///C:/delete.ts'
+          : 'file:///delete.ts';
       const edit = {
         documentChanges: [{ kind: 'delete', uri }],
       };

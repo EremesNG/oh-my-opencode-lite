@@ -10,7 +10,8 @@ export const MODEL_MAPPINGS = {
     librarian: { model: 'openai/gpt-5.4-mini', variant: 'low' },
     explorer: { model: 'openai/gpt-5.4-mini', variant: 'low' },
     designer: { model: 'openai/gpt-5.4-mini', variant: 'medium' },
-    fixer: { model: 'openai/gpt-5.4-mini', variant: 'low' },
+    quick: { model: 'openai/gpt-5.4-mini', variant: 'low' },
+    deep: { model: 'openai/gpt-5.4', variant: 'high' },
   },
   kimi: {
     orchestrator: { model: 'kimi-for-coding/k2p5' },
@@ -18,7 +19,8 @@ export const MODEL_MAPPINGS = {
     librarian: { model: 'kimi-for-coding/k2p5', variant: 'low' },
     explorer: { model: 'kimi-for-coding/k2p5', variant: 'low' },
     designer: { model: 'kimi-for-coding/k2p5', variant: 'medium' },
-    fixer: { model: 'kimi-for-coding/k2p5', variant: 'low' },
+    quick: { model: 'kimi-for-coding/k2p5', variant: 'low' },
+    deep: { model: 'kimi-for-coding/k2p5', variant: 'high' },
   },
   copilot: {
     orchestrator: { model: 'github-copilot/claude-opus-4.6' },
@@ -29,7 +31,8 @@ export const MODEL_MAPPINGS = {
       model: 'github-copilot/gemini-3.1-pro-preview',
       variant: 'medium',
     },
-    fixer: { model: 'github-copilot/claude-sonnet-4.6', variant: 'low' },
+    quick: { model: 'github-copilot/claude-sonnet-4.6', variant: 'low' },
+    deep: { model: 'github-copilot/claude-opus-4.6', variant: 'high' },
   },
   'zai-plan': {
     orchestrator: { model: 'zai-coding-plan/glm-5' },
@@ -37,7 +40,8 @@ export const MODEL_MAPPINGS = {
     librarian: { model: 'zai-coding-plan/glm-5', variant: 'low' },
     explorer: { model: 'zai-coding-plan/glm-5', variant: 'low' },
     designer: { model: 'zai-coding-plan/glm-5', variant: 'medium' },
-    fixer: { model: 'zai-coding-plan/glm-5', variant: 'low' },
+    quick: { model: 'zai-coding-plan/glm-5', variant: 'low' },
+    deep: { model: 'zai-coding-plan/glm-5', variant: 'high' },
   },
 } as const;
 

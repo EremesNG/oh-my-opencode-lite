@@ -1,96 +1,80 @@
 import { describe, expect, test } from 'bun:test';
+import { DEFAULT_THOTH_COMMAND } from '../config';
 import { createBuiltinMcps } from './index';
 
 describe('createBuiltinMcps', () => {
-  test('returns all MCPs when no disabled list provided', () => {
+  test('registers the default thoth-mem MCP by default', () => {
     const mcps = createBuiltinMcps();
-    const names = Object.keys(mcps);
+    const names = Object.keys(mcps).sort();
 
-    expect(names).toContain('websearch');
-    expect(names).toContain('context7');
-    expect(names).toContain('grep_app');
+    expect(names).toEqual(['context7', 'grep_app', 'thoth_mem', 'websearch']);
+
+    const thoth = mcps.thoth_mem;
+    expect(thoth).toBeDefined();
+    expect('command' in thoth).toBe(true);
+    if (!('command' in thoth)) {
+      throw new Error('Expected local thoth MCP');
+    }
+    expect(thoth.command).toEqual(DEFAULT_THOTH_COMMAND);
   });
 
-  test('returns all MCPs with empty disabled list', () => {
-    const mcps = createBuiltinMcps([]);
-    const names = Object.keys(mcps);
+  test('omits thoth-mem MCP when disabled', () => {
+    const mcps = createBuiltinMcps(['thoth_mem']);
 
-    expect(names.length).toBe(3);
-    expect(names).toContain('websearch');
-    expect(names).toContain('context7');
-    expect(names).toContain('grep_app');
+    expect(Object.keys(mcps).sort()).toEqual([
+      'context7',
+      'grep_app',
+      'websearch',
+    ]);
+    expect(mcps.thoth_mem).toBeUndefined();
   });
 
-  test('excludes single disabled MCP', () => {
-    const mcps = createBuiltinMcps(['websearch']);
-    const names = Object.keys(mcps);
+  test('applies custom thoth invocation settings to MCP definition', () => {
+    const mcps = createBuiltinMcps([], {
+      command: ['bun', 'x', 'thoth-mem'],
+      data_dir: '/tmp/thoth-data',
+      environment: {
+        THOTH_PROFILE: 'test',
+      },
+      timeout: 12345,
+    });
 
-    expect(names).not.toContain('websearch');
-    expect(names).toContain('context7');
-    expect(names).toContain('grep_app');
+    const thoth = mcps.thoth_mem;
+    expect('command' in thoth).toBe(true);
+    expect(thoth).toMatchObject({
+      type: 'local',
+      command: ['bun', 'x', 'thoth-mem'],
+      environment: {
+        THOTH_DATA_DIR: '/tmp/thoth-data',
+        THOTH_PROFILE: 'test',
+      },
+      timeout: 12345,
+    });
   });
 
-  test('excludes multiple disabled MCPs', () => {
-    const mcps = createBuiltinMcps(['websearch', 'grep_app']);
-    const names = Object.keys(mcps);
+  test('leaves unrelated MCPs enabled when thoth-mem is disabled', () => {
+    const mcps = createBuiltinMcps(['thoth_mem']);
 
-    expect(names).not.toContain('websearch');
-    expect(names).not.toContain('grep_app');
-    expect(names).toContain('context7');
-    expect(names.length).toBe(1);
-  });
-
-  test('excludes all MCPs when all disabled', () => {
-    const mcps = createBuiltinMcps(['websearch', 'context7', 'grep_app']);
-    const names = Object.keys(mcps);
-
-    expect(names.length).toBe(0);
+    expect(mcps.websearch).toBeDefined();
+    expect(mcps.context7).toBeDefined();
+    expect(mcps.grep_app).toBeDefined();
   });
 
   test('ignores unknown MCP names in disabled list', () => {
     const mcps = createBuiltinMcps(['unknown_mcp', 'nonexistent']);
-    const names = Object.keys(mcps);
 
-    // All valid MCPs should still be present
-    expect(names.length).toBe(3);
-    expect(names).toContain('websearch');
-    expect(names).toContain('context7');
-    expect(names).toContain('grep_app');
+    expect(Object.keys(mcps)).toHaveLength(4);
+    expect(mcps.thoth_mem).toBeDefined();
   });
 
   test('MCP configs have required properties', () => {
     const mcps = createBuiltinMcps();
 
-    for (const [_name, config] of Object.entries(mcps)) {
+    for (const config of Object.values(mcps)) {
       expect(config).toBeDefined();
-      // Each MCP should have either url (remote) or command (local)
       const hasUrl = 'url' in config;
       const hasCommand = 'command' in config;
       expect(hasUrl || hasCommand).toBe(true);
     }
-  });
-
-  test('websearch MCP has correct structure', () => {
-    const mcps = createBuiltinMcps();
-    const websearch = mcps.websearch;
-
-    expect(websearch).toBeDefined();
-    expect('url' in websearch).toBe(true);
-  });
-
-  test('context7 MCP has correct structure', () => {
-    const mcps = createBuiltinMcps();
-    const context7 = mcps.context7;
-
-    expect(context7).toBeDefined();
-    expect('url' in context7).toBe(true);
-  });
-
-  test('grep_app MCP has correct structure', () => {
-    const mcps = createBuiltinMcps();
-    const grep_app = mcps.grep_app;
-
-    expect(grep_app).toBeDefined();
-    expect('url' in grep_app).toBe(true);
   });
 });

@@ -20,6 +20,10 @@ import {
   SUBAGENT_DELEGATION_RULES,
 } from '../config';
 import type { TmuxConfig } from '../config/schema';
+import type {
+  DelegationManager,
+  PersistedDelegationRecord,
+} from '../delegation';
 import {
   applyAgentVariant,
   createInternalAgentTextPart,
@@ -39,6 +43,53 @@ type PromptBody = {
 };
 
 type OpencodeClient = PluginInput['client'];
+
+export const BACKGROUND_CAPABLE_AGENTS = ['explorer', 'librarian'] as const;
+export type BackgroundCapableAgent = (typeof BACKGROUND_CAPABLE_AGENTS)[number];
+export type BackgroundTaskStatus =
+  | 'pending'
+  | 'starting'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+const DEFAULT_DELEGATION_SUMMARY_LIMIT = 5;
+
+function generateFallbackTaskId(): string {
+  return `bg_${Math.random().toString(36).substring(2, 10)}`;
+}
+
+function normalizeSummary(text: string, maxLength = 160): string {
+  const firstLine = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+
+  if (!firstLine) {
+    return '(No output)';
+  }
+
+  const collapsed = firstLine.replace(/\s+/g, ' ');
+  if (collapsed.length <= maxLength) {
+    return collapsed;
+  }
+
+  return `${collapsed.slice(0, maxLength - 1)}…`;
+}
+
+function formatDelegationDigestLine(
+  id: string,
+  agent: string,
+  title: string,
+  summary: string,
+): string {
+  const normalizedTitle = title.trim().length > 0 ? title.trim() : id;
+  const normalizedSummary = summary.trim();
+  return `- ${id} (@${agent}) ${normalizedTitle}${
+    normalizedSummary.length > 0 ? ` — ${normalizedSummary}` : ''
+  }`;
+}
 
 function parseModelReference(model: string): {
   providerID: string;
@@ -62,17 +113,14 @@ function parseModelReference(model: string): {
 export interface BackgroundTask {
   id: string; // Unique task identifier (e.g., "bg_abc123")
   sessionId?: string; // OpenCode session ID (set when starting)
+  rootSessionId: string; // Root session ID used for delegation persistence
   description: string; // Human-readable task description
   agent: string; // Agent name handling the task
-  status:
-    | 'pending'
-    | 'starting'
-    | 'running'
-    | 'completed'
-    | 'failed'
-    | 'cancelled';
+  status: BackgroundTaskStatus;
   result?: string; // Final output from the agent (when completed)
   error?: string; // Error message (when failed)
+  persistencePath?: string; // Delegation persistence path when available
+  persistenceError?: string; // Persistence failure details when unavailable
   config: BackgroundTaskConfig; // Task configuration
   parentSessionId: string; // Parent session ID for notifications
   startedAt: Date; // Task creation timestamp
@@ -90,10 +138,6 @@ export interface LaunchOptions {
   parentSessionId: string; // Parent session ID for task hierarchy
 }
 
-function generateTaskId(): string {
-  return `bg_${Math.random().toString(36).substring(2, 10)}`;
-}
-
 export class BackgroundTaskManager {
   private tasks = new Map<string, BackgroundTask>();
   private tasksBySessionId = new Map<string, string>();
@@ -104,6 +148,7 @@ export class BackgroundTaskManager {
   private tmuxEnabled: boolean;
   private config?: PluginConfig;
   private backgroundConfig: BackgroundTaskConfig;
+  private delegationManager?: DelegationManager;
 
   // Start queue
   private startQueue: BackgroundTask[] = [];
@@ -120,15 +165,100 @@ export class BackgroundTaskManager {
     ctx: PluginInput,
     tmuxConfig?: TmuxConfig,
     config?: PluginConfig,
+    delegationManager?: DelegationManager,
   ) {
     this.client = ctx.client;
     this.directory = ctx.directory;
     this.tmuxEnabled = tmuxConfig?.enabled ?? false;
     this.config = config;
+    this.delegationManager = delegationManager;
     this.backgroundConfig = config?.background ?? {
       maxConcurrentStarts: 10,
     };
     this.maxConcurrentStarts = this.backgroundConfig.maxConcurrentStarts;
+  }
+
+  private resolveRootSessionId(sessionId: string): string {
+    const taskId = this.tasksBySessionId.get(sessionId);
+    if (!taskId) {
+      return sessionId;
+    }
+
+    return this.tasks.get(taskId)?.rootSessionId ?? sessionId;
+  }
+
+  private async createTaskId(rootSessionId: string): Promise<string> {
+    if (!this.delegationManager) {
+      let candidate = generateFallbackTaskId();
+      const activeTaskIds = new Set(this.getActiveTaskIds(rootSessionId));
+      while (activeTaskIds.has(candidate)) {
+        candidate = generateFallbackTaskId();
+      }
+      return candidate;
+    }
+
+    try {
+      return await this.delegationManager.createTaskId(rootSessionId);
+    } catch (error) {
+      log(
+        '[background-manager] delegation id generation failed; using fallback',
+        {
+          rootSessionId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+      let candidate = generateFallbackTaskId();
+      const activeTaskIds = new Set(this.getActiveTaskIds(rootSessionId));
+      while (activeTaskIds.has(candidate)) {
+        candidate = generateFallbackTaskId();
+      }
+      return candidate;
+    }
+  }
+
+  private buildDelegationSummary(task: BackgroundTask): string {
+    return normalizeSummary(task.result ?? '');
+  }
+
+  private async persistCompletedTask(task: BackgroundTask): Promise<void> {
+    if (!this.delegationManager || task.status !== 'completed') {
+      return;
+    }
+
+    try {
+      const persistedRecord = await this.delegationManager.persist({
+        rootSessionId: task.rootSessionId,
+        record: {
+          id: task.id,
+          agent: task.agent,
+          status: 'complete',
+          title: task.description,
+          summary: this.buildDelegationSummary(task),
+          startedAt: task.startedAt.toISOString(),
+          completedAt: task.completedAt?.toISOString() ?? null,
+          content: task.result ?? '(No output)',
+        },
+      });
+
+      if (!persistedRecord) {
+        task.persistenceError = 'Persistent delegation storage unavailable';
+        log('[background-manager] delegation persistence unavailable', {
+          taskId: task.id,
+          rootSessionId: task.rootSessionId,
+        });
+        return;
+      }
+
+      task.persistencePath = persistedRecord.path;
+      task.persistenceError = undefined;
+    } catch (error) {
+      task.persistenceError = 'Persistent delegation storage unavailable';
+      log('[background-manager] delegation persistence failed', {
+        taskId: task.id,
+        rootSessionId: task.rootSessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   /**
@@ -175,19 +305,31 @@ export class BackgroundTaskManager {
     return this.getSubagentRules(parentAgentName);
   }
 
-  /**
-   * Launch a new background task (fire-and-forget).
-   *
-   * Phase A (sync): Creates task record and returns immediately.
-   * Phase B (async): Session creation and prompt sending happen in background.
-   *
-   * @param opts - Task configuration options
-   * @returns The created background task with pending status
-   */
-  launch(opts: LaunchOptions): BackgroundTask {
-    const task: BackgroundTask = {
-      id: generateTaskId(),
+  isBackgroundCapableAgent(
+    agentName: string,
+  ): agentName is BackgroundCapableAgent {
+    return (BACKGROUND_CAPABLE_AGENTS as readonly string[]).includes(agentName);
+  }
+
+  getBackgroundCapableAgents(): readonly BackgroundCapableAgent[] {
+    return BACKGROUND_CAPABLE_AGENTS;
+  }
+
+  getActiveTaskIds(rootSessionId: string): string[] {
+    return Array.from(this.tasks.values())
+      .filter((task) => task.rootSessionId === rootSessionId)
+      .map((task) => task.id);
+  }
+
+  private createTaskRecord(
+    opts: LaunchOptions,
+    taskId: string,
+    rootSessionId: string,
+  ): BackgroundTask {
+    return {
+      id: taskId,
       sessionId: undefined,
+      rootSessionId,
       description: opts.description,
       agent: opts.agent,
       status: 'pending',
@@ -198,18 +340,53 @@ export class BackgroundTaskManager {
       parentSessionId: opts.parentSessionId,
       prompt: opts.prompt,
     };
+  }
 
+  private registerLaunchedTask(task: BackgroundTask): BackgroundTask {
     this.tasks.set(task.id, task);
 
     // Queue task for background start
     this.enqueueStart(task);
 
     log(`[background-manager] task launched: ${task.id}`, {
-      agent: opts.agent,
-      description: opts.description,
+      agent: task.agent,
+      description: task.description,
+      rootSessionId: task.rootSessionId,
     });
 
     return task;
+  }
+
+  /**
+   * Launch a new background task (fire-and-forget).
+   *
+   * Phase A (sync): Creates task record and returns immediately.
+   * Phase B (async): Session creation and prompt sending happen in background.
+   *
+   * @param opts - Task configuration options
+   * @returns The created background task with pending status
+   */
+  launch(opts: LaunchOptions): BackgroundTask {
+    const rootSessionId = this.resolveRootSessionId(opts.parentSessionId);
+    return this.registerLaunchedTask(
+      this.createTaskRecord(opts, generateFallbackTaskId(), rootSessionId),
+    );
+  }
+
+  async launchBackgroundTask(opts: LaunchOptions): Promise<BackgroundTask> {
+    if (!this.isBackgroundCapableAgent(opts.agent)) {
+      throw new Error(
+        `Agent '${opts.agent}' is not background-capable. Allowed agents: ${BACKGROUND_CAPABLE_AGENTS.join(', ')}`,
+      );
+    }
+
+    const rootSessionId = this.resolveRootSessionId(opts.parentSessionId);
+    const task = this.createTaskRecord(
+      opts,
+      await this.createTaskId(rootSessionId),
+      rootSessionId,
+    );
+    return this.registerLaunchedTask(task);
   }
 
   /**
@@ -607,6 +784,7 @@ export class BackgroundTaskManager {
 
     if (status === 'completed') {
       task.result = resultOrError;
+      void this.persistCompletedTask(task);
     } else {
       task.error = resultOrError;
     }
@@ -673,6 +851,76 @@ export class BackgroundTaskManager {
    */
   getResult(taskId: string): BackgroundTask | null {
     return this.tasks.get(taskId) ?? null;
+  }
+
+  async readDelegation(
+    taskId: string,
+    sessionId: string,
+  ): Promise<PersistedDelegationRecord | null> {
+    if (!this.delegationManager) {
+      return null;
+    }
+
+    const rootSessionId = this.resolveRootSessionId(sessionId);
+    const record = await this.delegationManager.read(taskId, rootSessionId);
+    if (record?.header.status !== 'complete') {
+      return null;
+    }
+
+    return record;
+  }
+
+  async getDelegationSummary(
+    sessionId: string,
+    limit = DEFAULT_DELEGATION_SUMMARY_LIMIT,
+  ): Promise<string | null> {
+    const rootSessionId = this.resolveRootSessionId(sessionId);
+
+    if (this.delegationManager) {
+      try {
+        const persistedSummary =
+          await this.delegationManager.summarizeForInjection(
+            rootSessionId,
+            limit,
+          );
+        if (persistedSummary) {
+          return persistedSummary;
+        }
+      } catch (error) {
+        log('[background-manager] delegation summary unavailable', {
+          rootSessionId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    const completedTasks = Array.from(this.tasks.values())
+      .filter(
+        (task) =>
+          task.rootSessionId === rootSessionId && task.status === 'completed',
+      )
+      .sort(
+        (left, right) =>
+          (right.completedAt?.getTime() ?? 0) -
+          (left.completedAt?.getTime() ?? 0),
+      )
+      .slice(0, Math.max(limit, 1));
+
+    if (completedTasks.length === 0) {
+      return null;
+    }
+
+    return [
+      '## Delegation Digest',
+      ...completedTasks.map((task) =>
+        formatDelegationDigestLine(
+          task.id,
+          task.agent,
+          task.description,
+          this.buildDelegationSummary(task),
+        ),
+      ),
+    ].join('\n');
   }
 
   /**

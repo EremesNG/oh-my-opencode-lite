@@ -157,7 +157,34 @@
             "fallback3"
           ]
         },
-        "fixer": {
+        "quick": {
+          "type": "object",
+          "properties": {
+            "primary": {
+              "type": "string",
+              "pattern": "^[^/\\s]+\\/[^\\s]+$"
+            },
+            "fallback1": {
+              "type": "string",
+              "pattern": "^[^/\\s]+\\/[^\\s]+$"
+            },
+            "fallback2": {
+              "type": "string",
+              "pattern": "^[^/\\s]+\\/[^\\s]+$"
+            },
+            "fallback3": {
+              "type": "string",
+              "pattern": "^[^/\\s]+\\/[^\\s]+$"
+            }
+          },
+          "required": [
+            "primary",
+            "fallback1",
+            "fallback2",
+            "fallback3"
+          ]
+        },
+        "deep": {
           "type": "object",
           "properties": {
             "primary": {
@@ -191,7 +218,8 @@
         "designer",
         "explorer",
         "librarian",
-        "fixer"
+        "quick",
+        "deep"
       ],
       "additionalProperties": false
     },
@@ -424,7 +452,14 @@
                 "type": "string"
               }
             },
-            "fixer": {
+            "quick": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deep": {
               "minItems": 1,
               "type": "array",
               "items": {
@@ -439,6 +474,44 @@
               "type": "string"
             }
           }
+        }
+      }
+    },
+    "thoth": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "data_dir": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "timeout": {
+          "type": "number"
+        }
+      }
+    },
+    "delegation": {
+      "type": "object",
+      "properties": {
+        "storage_dir": {
+          "type": "string"
+        },
+        "timeout": {
+          "default": 900000,
+          "type": "number"
         }
       }
     }

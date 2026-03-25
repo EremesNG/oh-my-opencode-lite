@@ -1,6 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { CUSTOM_SKILLS } from './custom-skills';
 
+const SDD_SKILL_NAMES = CUSTOM_SKILLS.filter((skill) =>
+  skill.name.startsWith('sdd-'),
+).map((skill) => skill.name);
+
 /**
  * A recommended skill to install via `npx skills add`.
  */
@@ -162,6 +166,10 @@ export function getSkillPermissionsForAgent(
     if (isAllowed) {
       permissions[skill.name] = 'allow';
     }
+  }
+
+  for (const skillName of SDD_SKILL_NAMES) {
+    permissions[skillName] = agentName === 'orchestrator' ? 'allow' : 'deny';
   }
 
   // Apply permissions for externally-managed skills (not installed by this plugin)

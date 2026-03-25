@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { loadAgentPrompt, loadPluginConfig } from './loader';
+import type { PluginConfig } from './schema';
 
 // Test deepMerge indirectly through loadPluginConfig behavior
 // since deepMerge is not exported
@@ -80,6 +81,56 @@ describe('loadPluginConfig', () => {
     expect(config.balanceProviderUsage).toBe(true);
   });
 
+  test('accepts valid thoth configuration', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
+      JSON.stringify({
+        thoth: {
+          command: ['bun', 'x', 'thoth-mem'],
+          data_dir: '/tmp/thoth-data',
+          environment: {
+            THOTH_PROFILE: 'test',
+          },
+          timeout: 25000,
+        },
+      }),
+    );
+
+    const config = loadPluginConfig(projectDir);
+    expect(config.thoth).toEqual({
+      command: ['bun', 'x', 'thoth-mem'],
+      data_dir: '/tmp/thoth-data',
+      environment: {
+        THOTH_PROFILE: 'test',
+      },
+      timeout: 25000,
+    });
+  });
+
+  test('accepts valid delegation configuration', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
+      JSON.stringify({
+        delegation: {
+          storage_dir: '/tmp/omolite-delegations',
+          timeout: 30000,
+        },
+      }),
+    );
+
+    const config = loadPluginConfig(projectDir);
+    expect(config.delegation).toEqual({
+      storage_dir: '/tmp/omolite-delegations',
+      timeout: 30000,
+    });
+  });
+
   test('loads manual plan structure when configured', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
@@ -118,7 +169,13 @@ describe('loadPluginConfig', () => {
             fallback2: 'chutes/kimi-k2.5',
             fallback3: 'opencode/gpt-5-nano',
           },
-          fixer: {
+          quick: {
+            primary: 'openai/gpt-5.4-mini',
+            fallback1: 'anthropic/claude-sonnet-4.6',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          deep: {
             primary: 'openai/gpt-5.4',
             fallback1: 'anthropic/claude-opus-4-6',
             fallback2: 'chutes/kimi-k2.5',
@@ -132,6 +189,61 @@ describe('loadPluginConfig', () => {
     expect(config.manualPlan?.oracle?.fallback2).toBe(
       'chutes/Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8-TEE',
     );
+    expect(config.manualPlan?.quick?.primary).toBe('openai/gpt-5.4-mini');
+    expect(config.manualPlan?.deep?.fallback1).toBe(
+      'anthropic/claude-opus-4-6',
+    );
+  });
+
+  test('rejects legacy fixer manual plan entries', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
+      JSON.stringify({
+        manualPlan: {
+          orchestrator: {
+            primary: 'openai/gpt-5.4',
+            fallback1: 'anthropic/claude-opus-4-6',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          oracle: {
+            primary: 'openai/gpt-5.4',
+            fallback1: 'anthropic/claude-opus-4-6',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          designer: {
+            primary: 'openai/gpt-5.4',
+            fallback1: 'anthropic/claude-opus-4-6',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          explorer: {
+            primary: 'openai/gpt-5.4-mini',
+            fallback1: 'anthropic/claude-sonnet-4.6',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          librarian: {
+            primary: 'openai/gpt-5.4-mini',
+            fallback1: 'anthropic/claude-sonnet-4.6',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+          fixer: {
+            primary: 'openai/gpt-5.4-mini',
+            fallback1: 'anthropic/claude-sonnet-4.6',
+            fallback2: 'chutes/kimi-k2.5',
+            fallback3: 'opencode/gpt-5-nano',
+          },
+        },
+      }),
+    );
+
+    expect(loadPluginConfig(projectDir)).toEqual({});
   });
 
   test('ignores invalid config (schema violation or malformed JSON)', () => {
@@ -151,6 +263,38 @@ describe('loadPluginConfig', () => {
       path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
       '{ invalid json }',
     );
+    expect(loadPluginConfig(projectDir)).toEqual({});
+  });
+
+  test('rejects invalid thoth configuration', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
+      JSON.stringify({
+        thoth: {
+          command: 'npx -y thoth-mem@latest',
+        },
+      }),
+    );
+
+    expect(loadPluginConfig(projectDir)).toEqual({});
+  });
+
+  test('rejects invalid delegation configuration', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
+      JSON.stringify({
+        delegation: {
+          storage_dir: 123,
+        },
+      }),
+    );
+
     expect(loadPluginConfig(projectDir)).toEqual({});
   });
 
@@ -425,6 +569,81 @@ describe('deepMerge behavior', () => {
 
     const config = loadPluginConfig(projectDir);
     expect(config.fallback?.chains.writing).toEqual(['openai/gpt-5.4']);
+  });
+
+  test('merges thoth and delegation configs from user and project', () => {
+    const userOpencodeDir = path.join(userConfigDir, 'opencode');
+    fs.mkdirSync(userOpencodeDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(userOpencodeDir, 'oh-my-opencode-lite.json'),
+      JSON.stringify({
+        thoth: {
+          command: ['npx', '-y', 'thoth-mem@latest'],
+          environment: {
+            THOTH_PROFILE: 'user',
+          },
+          timeout: 15000,
+        },
+        delegation: {
+          storage_dir: '/user/delegations',
+        },
+      }),
+    );
+
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
+      JSON.stringify({
+        thoth: {
+          data_dir: '/project/thoth',
+          environment: {
+            THOTH_PROJECT: 'project',
+          },
+        },
+        delegation: {
+          timeout: 12345,
+        },
+      }),
+    );
+
+    const config = loadPluginConfig(projectDir);
+
+    expect((config as PluginConfig).thoth).toEqual({
+      command: ['npx', '-y', 'thoth-mem@latest'],
+      data_dir: '/project/thoth',
+      environment: {
+        THOTH_PROFILE: 'user',
+        THOTH_PROJECT: 'project',
+      },
+      timeout: 15000,
+    });
+    expect((config as PluginConfig).delegation).toEqual({
+      storage_dir: '/user/delegations',
+      timeout: 12345,
+    });
+  });
+
+  test('applies default delegation timeout when omitted', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
+      JSON.stringify({
+        delegation: {
+          storage_dir: '/tmp/omolite-delegations',
+        },
+      }),
+    );
+
+    const config = loadPluginConfig(projectDir);
+
+    expect((config as PluginConfig).delegation).toEqual({
+      storage_dir: '/tmp/omolite-delegations',
+      timeout: 900000,
+    });
   });
 });
 
@@ -989,13 +1208,14 @@ describe('loadAgentPrompt', () => {
 
     // Use a unique agent name and check for it specifically
     const originalReadFileSync = fs.readFileSync;
+    const readFileSyncMock = ((p, o) => {
+      if (typeof p === 'string' && p.includes('error-agent.md')) {
+        throw new Error('Read error');
+      }
+      return originalReadFileSync(p, o as BufferEncoding | undefined);
+    }) as typeof fs.readFileSync;
     const readSpy = spyOn(fs, 'readFileSync').mockImplementation(
-      (p: any, o: any) => {
-        if (typeof p === 'string' && p.includes('error-agent.md')) {
-          throw new Error('Read error');
-        }
-        return originalReadFileSync(p, o);
-      },
+      readFileSyncMock,
     );
 
     try {
@@ -1084,13 +1304,14 @@ describe('loadAgentPrompt', () => {
 
     const consoleWarnSpy = spyOn(console, 'warn');
     const originalReadFileSync = fs.readFileSync;
+    const readFileSyncMock = ((p, o) => {
+      if (typeof p === 'string' && p === presetPromptPath) {
+        throw new Error('Preset read error');
+      }
+      return originalReadFileSync(p, o as BufferEncoding | undefined);
+    }) as typeof fs.readFileSync;
     const readSpy = spyOn(fs, 'readFileSync').mockImplementation(
-      (p: any, o: any) => {
-        if (typeof p === 'string' && p === presetPromptPath) {
-          throw new Error('Preset read error');
-        }
-        return originalReadFileSync(p, o);
-      },
+      readFileSyncMock,
     );
 
     try {

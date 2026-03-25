@@ -24,6 +24,9 @@ export interface CustomSkill {
   sourcePath: string;
 }
 
+const SHARED_SKILL_DIRECTORY = '_shared';
+const SHARED_SKILL_SOURCE_PATH = `src/skills/${SHARED_SKILL_DIRECTORY}`;
+
 /**
  * Registry of custom skills bundled in this repository.
  */
@@ -33,6 +36,48 @@ export const CUSTOM_SKILLS: CustomSkill[] = [
     description: 'Repository understanding and hierarchical codemap generation',
     allowedAgents: ['orchestrator', 'explorer'],
     sourcePath: 'src/skills/cartography',
+  },
+  {
+    name: 'sdd-propose',
+    description: 'Create change proposals for OpenSpec workflows',
+    allowedAgents: ['orchestrator'],
+    sourcePath: 'src/skills/sdd-propose',
+  },
+  {
+    name: 'sdd-spec',
+    description: 'Write OpenSpec delta specifications',
+    allowedAgents: ['orchestrator'],
+    sourcePath: 'src/skills/sdd-spec',
+  },
+  {
+    name: 'sdd-design',
+    description: 'Create technical design artifacts for changes',
+    allowedAgents: ['orchestrator'],
+    sourcePath: 'src/skills/sdd-design',
+  },
+  {
+    name: 'sdd-tasks',
+    description: 'Generate phased implementation task checklists',
+    allowedAgents: ['orchestrator'],
+    sourcePath: 'src/skills/sdd-tasks',
+  },
+  {
+    name: 'sdd-apply',
+    description: 'Execute tasks and persist implementation progress',
+    allowedAgents: ['orchestrator'],
+    sourcePath: 'src/skills/sdd-apply',
+  },
+  {
+    name: 'sdd-verify',
+    description: 'Build verification reports and compliance matrices',
+    allowedAgents: ['orchestrator'],
+    sourcePath: 'src/skills/sdd-verify',
+  },
+  {
+    name: 'sdd-archive',
+    description: 'Archive completed OpenSpec changes with audit trails',
+    allowedAgents: ['orchestrator'],
+    sourcePath: 'src/skills/sdd-archive',
   },
 ];
 
@@ -69,6 +114,19 @@ function copyDirRecursive(src: string, dest: string): void {
   }
 }
 
+function installSharedSkillAssets(packageRoot: string): boolean {
+  const sharedSourcePath = join(packageRoot, SHARED_SKILL_SOURCE_PATH);
+  const sharedTargetPath = join(getCustomSkillsDir(), SHARED_SKILL_DIRECTORY);
+
+  if (!existsSync(sharedSourcePath)) {
+    console.error(`Custom skill shared assets not found: ${sharedSourcePath}`);
+    return false;
+  }
+
+  copyDirRecursive(sharedSourcePath, sharedTargetPath);
+  return true;
+}
+
 /**
  * Install a custom skill by copying from src/skills/ to the OpenCode skills directory
  * @param skill - The custom skill to install
@@ -80,6 +138,10 @@ export function installCustomSkill(skill: CustomSkill): boolean {
     const packageRoot = fileURLToPath(new URL('../..', import.meta.url));
     const sourcePath = join(packageRoot, skill.sourcePath);
     const targetPath = join(getCustomSkillsDir(), skill.name);
+
+    if (!installSharedSkillAssets(packageRoot)) {
+      return false;
+    }
 
     // Validate source exists
     if (!existsSync(sourcePath)) {

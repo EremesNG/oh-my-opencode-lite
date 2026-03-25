@@ -4,34 +4,51 @@ export const AGENT_ALIASES: Record<string, string> = {
   'frontend-ui-ux-engineer': 'designer',
 };
 
-export const SUBAGENT_NAMES = [
+type BuiltinAgentName =
+  | 'orchestrator'
+  | 'explorer'
+  | 'librarian'
+  | 'oracle'
+  | 'designer'
+  | 'quick'
+  | 'deep';
+
+export type AgentName = BuiltinAgentName | (string & {});
+
+export const SUBAGENT_NAMES: readonly string[] = [
   'explorer',
   'librarian',
   'oracle',
   'designer',
-  'fixer',
-] as const;
+  'quick',
+  'deep',
+];
 
 export const ORCHESTRATOR_NAME = 'orchestrator' as const;
 
-export const ALL_AGENT_NAMES = [ORCHESTRATOR_NAME, ...SUBAGENT_NAMES] as const;
-
-// Agent name type (for use in DEFAULT_MODELS)
-export type AgentName = (typeof ALL_AGENT_NAMES)[number];
+export const ALL_AGENT_NAMES: readonly BuiltinAgentName[] = [
+  ORCHESTRATOR_NAME,
+  'explorer',
+  'librarian',
+  'oracle',
+  'designer',
+  'quick',
+  'deep',
+];
 
 // Subagent delegation rules: which agents can spawn which subagents
 // orchestrator: can spawn all subagents (full delegation)
-// fixer: leaf node — prompt forbids delegation; use grep/glob for lookups
-// designer: can spawn explorer (for research during design)
+// quick/deep/designer: leaf nodes — no default delegation
 // explorer/librarian/oracle: cannot spawn any subagents (leaf nodes)
 // Unknown agent types not listed here default to explorer-only access
 export const SUBAGENT_DELEGATION_RULES: Record<AgentName, readonly string[]> = {
   orchestrator: SUBAGENT_NAMES,
-  fixer: [],
   designer: [],
   explorer: [],
   librarian: [],
   oracle: [],
+  quick: [],
+  deep: [],
 };
 
 // Default models for each agent
@@ -42,7 +59,8 @@ export const DEFAULT_MODELS: Record<AgentName, string | undefined> = {
   librarian: 'openai/gpt-5.4-mini',
   explorer: 'openai/gpt-5.4-mini',
   designer: 'openai/gpt-5.4-mini',
-  fixer: 'openai/gpt-5.4-mini',
+  quick: 'openai/gpt-5.4-mini',
+  deep: 'openai/gpt-5.4',
 };
 
 // Polling configuration
@@ -54,6 +72,10 @@ export const POLL_INTERVAL_BACKGROUND_MS = 2000;
 export const DEFAULT_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 export const MAX_POLL_TIME_MS = 5 * 60 * 1000; // 5 minutes
 export const FALLBACK_FAILOVER_TIMEOUT_MS = 15_000;
+export const DEFAULT_DELEGATION_TIMEOUT = 900_000;
+
+// Thoth defaults
+export const DEFAULT_THOTH_COMMAND = ['npx', '-y', 'thoth-mem@latest'];
 
 // Polling stability
 export const STABLE_POLLS_THRESHOLD = 3;

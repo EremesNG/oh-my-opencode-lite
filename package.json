@@ -1,7 +1,7 @@
 {
   "name": "oh-my-opencode-lite",
   "version": "0.1.0",
-  "description": "Spec-driven AI orchestration with Thoth-Mem persistent memory.",
+  "description": "Delegate-first OpenCode plugin with seven agents, thoth-mem persistence, and bundled SDD skills.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -31,6 +31,7 @@
   "files": [
     "dist",
     "src/skills",
+    "src/skills/_shared",
     "oh-my-opencode-lite.schema.json",
     "README.md",
     "LICENSE"
@@ -55,6 +56,7 @@
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@opencode-ai/plugin": "^1.2.6",
     "@opencode-ai/sdk": "^1.2.6",
+    "unique-names-generator": "^4.7.1",
     "vscode-jsonrpc": "^8.2.0",
     "vscode-languageserver-protocol": "^3.17.5",
     "which": "^6.0.0",

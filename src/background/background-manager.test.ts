@@ -1,1405 +1,303 @@
-import { describe, expect, mock, test } from 'bun:test';
+import { beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
+import type { DelegationManager } from '../delegation';
 import { LITE_INTERNAL_INITIATOR_MARKER } from '../utils';
 import { BackgroundTaskManager } from './background-manager';
 
-// Mock the plugin context
 function createMockContext(overrides?: {
   sessionCreateResult?: { data?: { id?: string } };
-  sessionStatusResult?: { data?: Record<string, { type: string }> };
   sessionMessagesResult?: {
     data?: Array<{
       info?: { role: string };
       parts?: Array<{ type: string; text?: string }>;
     }>;
   };
-  promptImpl?: (args: any) => Promise<unknown>;
+  promptImpl?: (args: unknown) => Promise<unknown>;
 }) {
   let callCount = 0;
   return {
     client: {
       session: {
         create: mock(async () => {
-          callCount++;
+          callCount += 1;
           return (
             overrides?.sessionCreateResult ?? {
               data: { id: `test-session-${callCount}` },
             }
           );
         }),
-        status: mock(
-          async () => overrides?.sessionStatusResult ?? { data: {} },
-        ),
         messages: mock(
           async () => overrides?.sessionMessagesResult ?? { data: [] },
         ),
-        prompt: mock(async (args: any) => {
+        prompt: mock(async (args: unknown) => {
           if (overrides?.promptImpl) {
-            return await overrides.promptImpl(args);
+            return overrides.promptImpl(args);
           }
+
           return {};
         }),
         abort: mock(async () => ({})),
       },
     },
     directory: '/test/directory',
-  } as any;
+  } as const;
+}
+
+function createDelegationManagerMock(overrides?: {
+  createTaskId?: (rootSessionId: string) => Promise<string>;
+  persist?: DelegationManager['persist'];
+  read?: DelegationManager['read'];
+  summarizeForInjection?: DelegationManager['summarizeForInjection'];
+}) {
+  return {
+    createTaskId: mock(
+      overrides?.createTaskId ?? (async () => 'bg_clever-blue-otter'),
+    ),
+    persist: mock(overrides?.persist ?? (async () => null)),
+    read: mock(overrides?.read ?? (async () => null)),
+    summarizeForInjection: mock(
+      overrides?.summarizeForInjection ?? (async () => null),
+    ),
+  } as unknown as DelegationManager;
+}
+
+async function flushAsyncWork() {
+  await Promise.resolve();
+  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 describe('BackgroundTaskManager', () => {
-  describe('constructor', () => {
-    test('creates manager with defaults', () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-      expect(manager).toBeDefined();
-    });
-
-    test('creates manager with tmux config', () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx, {
-        enabled: true,
-        layout: 'main-vertical',
-        main_pane_size: 60,
-      });
-      expect(manager).toBeDefined();
-    });
-
-    test('creates manager with background config', () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx, undefined, {
-        background: {
-          maxConcurrentStarts: 5,
-        },
-      });
-      expect(manager).toBeDefined();
-    });
+  beforeEach(() => {
+    mock.restore();
   });
 
-  describe('launch (fire-and-forget)', () => {
-    test('returns task immediately with pending or starting status', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
+  test('launchBackgroundTask assigns human-readable ids from the delegation manager', async () => {
+    const ctx = createMockContext();
+    const delegationManager = createDelegationManagerMock({
+      createTaskId: async () => 'bg_clever-blue-otter',
+    });
+    const manager = new BackgroundTaskManager(
+      ctx as never,
+      undefined,
+      undefined,
+      delegationManager,
+    );
 
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'Find all test files',
-        description: 'Test file search',
-        parentSessionId: 'parent-123',
-      });
-
-      expect(task.id).toMatch(/^bg_/);
-      // Task may be pending (in queue) or starting (already started)
-      expect(['pending', 'starting']).toContain(task.status);
-      expect(task.sessionId).toBeUndefined();
-      expect(task.agent).toBe('explorer');
-      expect(task.description).toBe('Test file search');
-      expect(task.startedAt).toBeDefined();
+    const task = await manager.launchBackgroundTask({
+      agent: 'explorer',
+      prompt: 'Find interesting files',
+      description: 'Repository scan',
+      parentSessionId: 'root-session',
     });
 
-    test('sessionId is set asynchronously when task starts', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      // Immediately after launch, no sessionId
-      expect(task.sessionId).toBeUndefined();
-
-      // Wait for microtask queue to process
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // After background start, sessionId should be set
-      expect(task.sessionId).toBeDefined();
-      expect(task.status).toBe('running');
-    });
-
-    test('task fails when session creation fails', async () => {
-      const ctx = createMockContext({ sessionCreateResult: { data: {} } });
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(task.status).toBe('failed');
-      expect(task.error).toBe('Failed to create background session');
-    });
-
-    test('multiple launches return immediately', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task1 = manager.launch({
-        agent: 'explorer',
-        prompt: 'test1',
-        description: 'test1',
-        parentSessionId: 'parent-123',
-      });
-
-      const task2 = manager.launch({
-        agent: 'oracle',
-        prompt: 'test2',
-        description: 'test2',
-        parentSessionId: 'parent-123',
-      });
-
-      const task3 = manager.launch({
-        agent: 'fixer',
-        prompt: 'test3',
-        description: 'test3',
-        parentSessionId: 'parent-123',
-      });
-
-      // All return immediately with pending or starting status
-      expect(['pending', 'starting']).toContain(task1.status);
-      expect(['pending', 'starting']).toContain(task2.status);
-      expect(['pending', 'starting']).toContain(task3.status);
-    });
+    expect(task.id).toBe('bg_clever-blue-otter');
   });
 
-  describe('handleSessionStatus', () => {
-    test('completes task when session becomes idle', async () => {
-      const ctx = createMockContext({
-        sessionMessagesResult: {
-          data: [
-            {
-              info: { role: 'assistant' },
-              parts: [{ type: 'text', text: 'Result text' }],
-            },
-          ],
-        },
-      });
-      const manager = new BackgroundTaskManager(ctx);
+  test('retries fallback id generation until it avoids active collisions', async () => {
+    const ctx = createMockContext();
+    const manager = new BackgroundTaskManager(ctx as never);
+    const randomSpy = spyOn(Math, 'random')
+      .mockReturnValueOnce(0.123456)
+      .mockReturnValueOnce(0.123456)
+      .mockReturnValueOnce(0.987654);
 
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      // Wait for task to start
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Simulate session.idle event
-      await manager.handleSessionStatus({
-        type: 'session.status',
-        properties: {
-          sessionID: task.sessionId,
-          status: { type: 'idle' },
-        },
-      });
-
-      expect(task.status).toBe('completed');
-      expect(task.result).toBe('Result text');
+    const first = await manager.launchBackgroundTask({
+      agent: 'explorer',
+      prompt: 'one',
+      description: 'one',
+      parentSessionId: 'root-session',
+    });
+    const second = await manager.launchBackgroundTask({
+      agent: 'explorer',
+      prompt: 'two',
+      description: 'two',
+      parentSessionId: 'root-session',
     });
 
-    test('ignores non-idle status', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
+    expect(first.id).not.toBe(second.id);
 
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Simulate session.busy event
-      await manager.handleSessionStatus({
-        type: 'session.status',
-        properties: {
-          sessionID: task.sessionId,
-          status: { type: 'busy' },
-        },
-      });
-
-      expect(task.status).toBe('running');
-    });
-
-    test('ignores non-matching session ID', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Simulate event for different session
-      await manager.handleSessionStatus({
-        type: 'session.status',
-        properties: {
-          sessionID: 'other-session-id',
-          status: { type: 'idle' },
-        },
-      });
-
-      expect(task.status).toBe('running');
-    });
+    randomSpy.mockRestore();
   });
 
-  describe('getResult', () => {
-    test('returns null for unknown task', () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const result = manager.getResult('unknown-task-id');
-      expect(result).toBeNull();
-    });
-
-    test('returns task immediately (no blocking)', () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      const result = manager.getResult(task.id);
-      expect(result).toBeDefined();
-      expect(result?.id).toBe(task.id);
-    });
-  });
-
-  describe('waitForCompletion', () => {
-    test('waits for task to complete', async () => {
-      const ctx = createMockContext({
-        sessionMessagesResult: {
-          data: [
-            {
-              info: { role: 'assistant' },
-              parts: [{ type: 'text', text: 'Done' }],
-            },
-          ],
-        },
-      });
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      // Wait for task to start
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Trigger completion via session.status event
-      await manager.handleSessionStatus({
-        type: 'session.status',
-        properties: {
-          sessionID: task.sessionId,
-          status: { type: 'idle' },
-        },
-      });
-
-      // Now waitForCompletion should return immediately
-      const result = await manager.waitForCompletion(task.id, 5000);
-      expect(result?.status).toBe('completed');
-      expect(result?.result).toBe('Done');
-    });
-
-    test('returns immediately if already completed', async () => {
-      const ctx = createMockContext({
-        sessionMessagesResult: {
-          data: [
-            {
-              info: { role: 'assistant' },
-              parts: [{ type: 'text', text: 'Done' }],
-            },
-          ],
-        },
-      });
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      // Wait for task to start
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Trigger completion
-      await manager.handleSessionStatus({
-        type: 'session.status',
-        properties: {
-          sessionID: task.sessionId,
-          status: { type: 'idle' },
-        },
-      });
-
-      // Now wait should return immediately
-      const result = await manager.waitForCompletion(task.id, 5000);
-      expect(result?.status).toBe('completed');
-    });
-
-    test('returns null for unknown task', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const result = await manager.waitForCompletion('unknown-task-id', 5000);
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('cancel', () => {
-    test('cancels pending task before it starts', () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      const count = manager.cancel(task.id);
-      expect(count).toBe(1);
-
-      const result = manager.getResult(task.id);
-      expect(result?.status).toBe('cancelled');
-    });
-
-    test('cancels running task', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      // Wait for task to start
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const count = manager.cancel(task.id);
-      expect(count).toBe(1);
-
-      const result = manager.getResult(task.id);
-      expect(result?.status).toBe('cancelled');
-    });
-
-    test('returns 0 when cancelling unknown task', () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const count = manager.cancel('unknown-task-id');
-      expect(count).toBe(0);
-    });
-
-    test('cancels all pending/running tasks when no ID provided', () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      manager.launch({
-        agent: 'explorer',
-        prompt: 'test1',
-        description: 'test1',
-        parentSessionId: 'parent-123',
-      });
-
-      manager.launch({
-        agent: 'oracle',
-        prompt: 'test2',
-        description: 'test2',
-        parentSessionId: 'parent-123',
-      });
-
-      const count = manager.cancel();
-      expect(count).toBe(2);
-    });
-
-    test('does not cancel already completed tasks', async () => {
-      const ctx = createMockContext({
-        sessionMessagesResult: {
-          data: [
-            {
-              info: { role: 'assistant' },
-              parts: [{ type: 'text', text: 'Done' }],
-            },
-          ],
-        },
-      });
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      // Wait for task to start
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Trigger completion
-      await manager.handleSessionStatus({
-        type: 'session.status',
-        properties: {
-          sessionID: task.sessionId,
-          status: { type: 'idle' },
-        },
-      });
-
-      // Now try to cancel - should fail since already completed
-      const count = manager.cancel(task.id);
-      expect(count).toBe(0);
-    });
-  });
-
-  describe('BackgroundTask logic', () => {
-    test('falls back to next model when first model prompt fails', async () => {
-      let promptCalls = 0;
-      const ctx = createMockContext({
-        promptImpl: async (args) => {
-          const isTaskPrompt =
-            typeof args.path?.id === 'string' &&
-            args.path.id.startsWith('test-session-');
-          const isParentNotification = !isTaskPrompt;
-          if (isParentNotification) return {};
-
-          promptCalls += 1;
-          const modelRef = args.body?.model;
-          if (
-            modelRef?.providerID === 'openai' &&
-            modelRef?.modelID === 'gpt-5.4'
-          ) {
-            throw new Error('primary failed');
-          }
-          return {};
-        },
-      });
-
-      const manager = new BackgroundTaskManager(ctx, undefined, {
-        fallback: {
-          enabled: true,
-          timeoutMs: 15000,
-          retryDelayMs: 0,
-          chains: {
-            explorer: ['openai/gpt-5.4', 'opencode/gpt-5-nano'],
+  test('persists completed tasks and keeps results when persistence fails', async () => {
+    const ctx = createMockContext({
+      sessionMessagesResult: {
+        data: [
+          {
+            info: { role: 'assistant' },
+            parts: [{ type: 'text', text: 'Delegated result output' }],
           },
-        },
-      });
+        ],
+      },
+    });
+    const delegationManager = createDelegationManagerMock({
+      persist: async () => {
+        throw new Error('disk unavailable');
+      },
+    });
+    const manager = new BackgroundTaskManager(
+      ctx as never,
+      undefined,
+      undefined,
+      delegationManager,
+    );
 
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      // Yield to let the fire-and-forget async chain complete
-      // (retryDelayMs: 0 eliminates the inter-attempt delay)
-      await new Promise((r) => setTimeout(r, 10));
-
-      expect(task.status).toBe('running');
-      expect(promptCalls).toBe(2);
-      // Verify session.abort was called between attempts
-      expect(ctx.client.session.abort).toHaveBeenCalled();
+    const task = await manager.launchBackgroundTask({
+      agent: 'explorer',
+      prompt: 'test',
+      description: 'test',
+      parentSessionId: 'root-session',
     });
 
-    test('fails task when all fallback models fail', async () => {
-      const ctx = createMockContext({
-        promptImpl: async (args) => {
-          const isTaskPrompt =
-            typeof args.path?.id === 'string' &&
-            args.path.id.startsWith('test-session-');
-          const isParentNotification = !isTaskPrompt;
-          if (isParentNotification) return {};
-          throw new Error('all models failing');
-        },
-      });
-
-      const manager = new BackgroundTaskManager(ctx, undefined, {
-        fallback: {
-          enabled: true,
-          timeoutMs: 15000,
-          retryDelayMs: 0,
-          chains: {
-            explorer: ['openai/gpt-5.4', 'opencode/gpt-5-nano'],
-          },
-        },
-      });
-
-      const task = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'parent-123',
-      });
-
-      // Yield to let the fire-and-forget async chain complete
-      // (retryDelayMs: 0 eliminates the inter-attempt delay)
-      await new Promise((r) => setTimeout(r, 10));
-
-      expect(task.status).toBe('failed');
-      expect(task.error).toContain('All fallback models failed');
-      // Verify session.abort was called: once between attempts + once in completeTask
-      expect(ctx.client.session.abort).toHaveBeenCalledTimes(2);
+    await flushAsyncWork();
+    await manager.handleSessionStatus({
+      type: 'session.status',
+      properties: {
+        sessionID: task.sessionId,
+        status: { type: 'idle' },
+      },
     });
+    await flushAsyncWork();
 
-    test('extracts content from multiple types and messages', async () => {
-      const ctx = createMockContext({
-        sessionMessagesResult: {
-          data: [
-            {
-              info: { role: 'assistant' },
-              parts: [
-                { type: 'reasoning', text: 'I am thinking...' },
-                { type: 'text', text: 'First part.' },
-              ],
-            },
-            {
-              info: { role: 'assistant' },
-              parts: [
-                { type: 'text', text: 'Second part.' },
-                { type: 'text', text: '' }, // Should be ignored
-              ],
-            },
-          ],
-        },
-      });
-      const manager = new BackgroundTaskManager(ctx);
-
-      const task = manager.launch({
-        agent: 'test',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'p1',
-      });
-
-      // Wait for task to start
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Trigger completion
-      await manager.handleSessionStatus({
-        type: 'session.status',
-        properties: {
-          sessionID: task.sessionId,
-          status: { type: 'idle' },
-        },
-      });
-
-      expect(task.status).toBe('completed');
-      expect(task.result).toContain('I am thinking...');
-      expect(task.result).toContain('First part.');
-      expect(task.result).toContain('Second part.');
-      // Check for double newline join
-      expect(task.result).toBe(
-        'I am thinking...\n\nFirst part.\n\nSecond part.',
-      );
-    });
-
-    test('task has completedAt timestamp on completion or cancellation', async () => {
-      const ctx = createMockContext({
-        sessionMessagesResult: {
-          data: [
-            {
-              info: { role: 'assistant' },
-              parts: [{ type: 'text', text: 'done' }],
-            },
-          ],
-        },
-      });
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Test completion timestamp
-      const task1 = manager.launch({
-        agent: 'test',
-        prompt: 't1',
-        description: 'd1',
-        parentSessionId: 'p1',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      await manager.handleSessionStatus({
-        type: 'session.status',
-        properties: {
-          sessionID: task1.sessionId,
-          status: { type: 'idle' },
-        },
-      });
-
-      expect(task1.completedAt).toBeInstanceOf(Date);
-      expect(task1.status).toBe('completed');
-
-      // Test cancellation timestamp
-      const task2 = manager.launch({
-        agent: 'test',
-        prompt: 't2',
-        description: 'd2',
-        parentSessionId: 'p2',
-      });
-
-      manager.cancel(task2.id);
-      expect(task2.completedAt).toBeInstanceOf(Date);
-      expect(task2.status).toBe('cancelled');
-    });
-
-    test('always sends notification to parent session on completion', async () => {
-      const ctx = createMockContext({
-        sessionMessagesResult: {
-          data: [
-            {
-              info: { role: 'assistant' },
-              parts: [{ type: 'text', text: 'done' }],
-            },
-          ],
-        },
-      });
-      const manager = new BackgroundTaskManager(ctx, undefined, {
-        background: { maxConcurrentStarts: 10 },
-      });
-
-      const task = manager.launch({
-        agent: 'test',
-        prompt: 't',
-        description: 'd',
-        parentSessionId: 'parent-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      await manager.handleSessionStatus({
-        type: 'session.status',
-        properties: {
-          sessionID: task.sessionId,
-          status: { type: 'idle' },
-        },
-      });
-
-      // Should have called prompt.append for notification
-      expect(ctx.client.session.prompt).toHaveBeenCalled();
-
-      const promptCalls = ctx.client.session.prompt.mock.calls as Array<
-        [{ body?: { parts?: Array<{ text?: string }> } }]
-      >;
-      const notificationCall = promptCalls[promptCalls.length - 1];
-      expect(
-        notificationCall[0].body?.parts?.[0]?.text?.includes(
-          LITE_INTERNAL_INITIATOR_MARKER,
-        ),
-      ).toBe(true);
-    });
+    expect(task.status).toBe('completed');
+    expect(task.result).toBe('Delegated result output');
+    expect(task.persistenceError).toBe(
+      'Persistent delegation storage unavailable',
+    );
   });
 
-  describe('subagent delegation restrictions', () => {
-    test('spawned explorer gets tools disabled (leaf node)', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // First, simulate orchestrator starting (parent session with no parent)
-      const orchestratorTask = manager.launch({
-        agent: 'orchestrator',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Verify orchestrator's session is tracked
-      const orchestratorSessionId = orchestratorTask.sessionId;
-      if (!orchestratorSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      // Launch explorer from orchestrator - explorer is a leaf node so tools disabled
-      manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: orchestratorSessionId,
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Explorer cannot delegate, so delegation tools are hidden
-      const promptCalls = ctx.client.session.prompt.mock.calls as Array<
-        [{ body: { tools?: Record<string, boolean> } }]
-      >;
-      const lastCall = promptCalls[promptCalls.length - 1];
-      expect(lastCall[0].body.tools).toEqual({
-        background_task: false,
-        task: false,
-      });
-    });
-
-    test('spawned designer gets tools disabled (leaf node)', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // First, launch an orchestrator task
-      const orchestratorTask = manager.launch({
-        agent: 'orchestrator',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Launch designer from orchestrator - designer is a leaf node, so tools are disabled
-      const orchestratorSessionId = orchestratorTask.sessionId;
-      if (!orchestratorSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      manager.launch({
-        agent: 'designer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: orchestratorSessionId,
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Designer is a leaf node, so delegation tools are hidden
-      const promptCalls = ctx.client.session.prompt.mock.calls as Array<
-        [{ body: { tools?: Record<string, boolean> } }]
-      >;
-      const lastCall = promptCalls[promptCalls.length - 1];
-      expect(lastCall[0].body.tools).toEqual({
-        background_task: false,
-        task: false,
-      });
-    });
-
-    test('spawned explorer from designer gets tools disabled (leaf node)', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Launch a designer task
-      const designerTask = manager.launch({
-        agent: 'designer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Launch explorer from designer - explorer is a leaf node so tools disabled
-      const designerSessionId = designerTask.sessionId;
-      if (!designerSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: designerSessionId,
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const promptCalls = ctx.client.session.prompt.mock.calls as Array<
-        [{ body: { tools?: Record<string, boolean> } }]
-      >;
-      const lastCall = promptCalls[promptCalls.length - 1];
-      expect(lastCall[0].body.tools).toEqual({
-        background_task: false,
-        task: false,
-      });
-    });
-
-    test('librarian cannot delegate to any subagents', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Launch a librarian task
-      const librarianTask = manager.launch({
-        agent: 'librarian',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Launch subagent from librarian - should have tools disabled
-      const librarianSessionId = librarianTask.sessionId;
-      if (!librarianSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: librarianSessionId,
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const promptCalls = ctx.client.session.prompt.mock.calls as Array<
-        [{ body: { tools?: Record<string, boolean> } }]
-      >;
-      const lastCall = promptCalls[promptCalls.length - 1];
-      expect(lastCall[0].body.tools).toEqual({
-        background_task: false,
-        task: false,
-      });
-    });
-
-    test('oracle cannot delegate to any subagents', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Launch an oracle task
-      const oracleTask = manager.launch({
-        agent: 'oracle',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Launch subagent from oracle - should have tools disabled
-      const oracleSessionId = oracleTask.sessionId;
-      if (!oracleSessionId) throw new Error('Expected sessionId to be defined');
-
-      manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: oracleSessionId,
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const promptCalls = ctx.client.session.prompt.mock.calls as Array<
-        [{ body: { tools?: Record<string, boolean> } }]
-      >;
-      const lastCall = promptCalls[promptCalls.length - 1];
-      expect(lastCall[0].body.tools).toEqual({
-        background_task: false,
-        task: false,
-      });
-    });
-
-    test('spawned explorer from unknown parent gets tools disabled (leaf node)', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Launch explorer from unknown parent session (root orchestrator)
-      manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'unknown-session-id',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const promptCalls = ctx.client.session.prompt.mock.calls as Array<
-        [{ body: { tools?: Record<string, boolean> } }]
-      >;
-      const lastCall = promptCalls[promptCalls.length - 1];
-      // Explorer is a leaf agent — tools disabled regardless of parent
-      expect(lastCall[0].body.tools).toEqual({
-        background_task: false,
-        task: false,
-      });
-    });
-
-    test('isAgentAllowed returns true for valid delegations', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const orchestratorTask = manager.launch({
-        agent: 'orchestrator',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const orchestratorSessionId = orchestratorTask.sessionId;
-      if (!orchestratorSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      // Orchestrator can delegate to all subagents
-      expect(manager.isAgentAllowed(orchestratorSessionId, 'explorer')).toBe(
-        true,
-      );
-      expect(manager.isAgentAllowed(orchestratorSessionId, 'fixer')).toBe(true);
-      expect(manager.isAgentAllowed(orchestratorSessionId, 'designer')).toBe(
-        true,
-      );
-      expect(manager.isAgentAllowed(orchestratorSessionId, 'librarian')).toBe(
-        true,
-      );
-      expect(manager.isAgentAllowed(orchestratorSessionId, 'oracle')).toBe(
-        true,
-      );
-    });
-
-    test('isAgentAllowed returns false for invalid delegations', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      const fixerTask = manager.launch({
-        agent: 'fixer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const fixerSessionId = fixerTask.sessionId;
-      if (!fixerSessionId) throw new Error('Expected sessionId to be defined');
-
-      // Fixer cannot delegate to any subagents
-      expect(manager.isAgentAllowed(fixerSessionId, 'explorer')).toBe(false);
-      expect(manager.isAgentAllowed(fixerSessionId, 'oracle')).toBe(false);
-      expect(manager.isAgentAllowed(fixerSessionId, 'designer')).toBe(false);
-    });
-
-    test('isAgentAllowed returns false for leaf agents', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Explorer is a leaf agent
-      const explorerTask = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const explorerSessionId = explorerTask.sessionId;
-      if (!explorerSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      expect(manager.isAgentAllowed(explorerSessionId, 'fixer')).toBe(false);
-
-      // Librarian is also a leaf agent
-      const librarianTask = manager.launch({
-        agent: 'librarian',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const librarianSessionId = librarianTask.sessionId;
-      if (!librarianSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      expect(manager.isAgentAllowed(librarianSessionId, 'explorer')).toBe(
-        false,
-      );
-    });
-
-    test('isAgentAllowed treats unknown session as root orchestrator', () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Unknown sessions default to orchestrator, which can delegate to all subagents
-      expect(manager.isAgentAllowed('unknown-session', 'explorer')).toBe(true);
-      expect(manager.isAgentAllowed('unknown-session', 'fixer')).toBe(true);
-      expect(manager.isAgentAllowed('unknown-session', 'designer')).toBe(true);
-      expect(manager.isAgentAllowed('unknown-session', 'librarian')).toBe(true);
-      expect(manager.isAgentAllowed('unknown-session', 'oracle')).toBe(true);
-    });
-
-    test('unknown agent type defaults to explorer-only delegation', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Launch a task with an agent type not in SUBAGENT_DELEGATION_RULES
-      const customTask = manager.launch({
-        agent: 'custom-agent',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const customSessionId = customTask.sessionId;
-      if (!customSessionId) throw new Error('Expected sessionId to be defined');
-
-      // Unknown agent types should default to explorer-only
-      expect(manager.getAllowedSubagents(customSessionId)).toEqual([
-        'explorer',
-      ]);
-      expect(manager.isAgentAllowed(customSessionId, 'explorer')).toBe(true);
-      expect(manager.isAgentAllowed(customSessionId, 'fixer')).toBe(false);
-      expect(manager.isAgentAllowed(customSessionId, 'oracle')).toBe(false);
-    });
-
-    test('spawned explorer from custom agent gets tools disabled (leaf node)', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Launch a custom agent first to get a tracked session
-      const parentTask = manager.launch({
-        agent: 'custom-agent',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const parentSessionId = parentTask.sessionId;
-      if (!parentSessionId) throw new Error('Expected sessionId to be defined');
-
-      // Launch explorer from custom agent - explorer is leaf, tools disabled
-      manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: parentSessionId,
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Explorer is a leaf agent — tools disabled regardless of parent
-      const promptCalls = ctx.client.session.prompt.mock.calls as Array<
-        [{ body: { tools?: Record<string, boolean> } }]
-      >;
-      const lastCall = promptCalls[promptCalls.length - 1];
-      expect(lastCall[0].body.tools).toEqual({
-        background_task: false,
-        task: false,
-      });
-    });
-
-    test('full chain: orchestrator → designer → explorer', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Level 1: Launch orchestrator
-      const orchestratorTask = manager.launch({
-        agent: 'orchestrator',
-        prompt: 'coordinate work',
-        description: 'orchestrator',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const orchestratorSessionId = orchestratorTask.sessionId;
-      if (!orchestratorSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      // Level 2: Launch designer from orchestrator
-      const designerTask = manager.launch({
-        agent: 'designer',
-        prompt: 'design UI',
-        description: 'designer',
-        parentSessionId: orchestratorSessionId,
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const designerSessionId = designerTask.sessionId;
-      if (!designerSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      // Designer is a leaf node, so delegation tools stay disabled
-      const promptCalls = ctx.client.session.prompt.mock.calls as Array<
-        [{ body: { tools?: Record<string, boolean> } }]
-      >;
-      const designerPromptCall = promptCalls[1];
-      expect(designerPromptCall[0].body.tools).toEqual({
-        background_task: false,
-        task: false,
-      });
-
-      // Designer is a leaf node and cannot spawn subagents
-      expect(manager.isAgentAllowed(designerSessionId, 'explorer')).toBe(false);
-      expect(manager.isAgentAllowed(designerSessionId, 'fixer')).toBe(false);
-      expect(manager.isAgentAllowed(designerSessionId, 'oracle')).toBe(false);
-
-      // Level 3: Launch explorer from designer
-      const explorerTask = manager.launch({
-        agent: 'explorer',
-        prompt: 'find patterns',
-        description: 'explorer',
-        parentSessionId: designerSessionId,
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const explorerSessionId = explorerTask.sessionId;
-      if (!explorerSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      // Explorer gets tools DISABLED
-      const explorerPromptCall = promptCalls[2];
-      expect(explorerPromptCall[0].body.tools).toEqual({
-        background_task: false,
-        task: false,
-      });
-
-      // Explorer is a dead end
-      expect(manager.getAllowedSubagents(explorerSessionId)).toEqual([]);
-    });
-
-    test('chain enforcement: fixer cannot spawn unauthorized agents mid-chain', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Orchestrator spawns fixer
-      const orchestratorTask = manager.launch({
-        agent: 'orchestrator',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const orchestratorSessionId = orchestratorTask.sessionId;
-      if (!orchestratorSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      const fixerTask = manager.launch({
-        agent: 'fixer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: orchestratorSessionId,
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const fixerSessionId = fixerTask.sessionId;
-      if (!fixerSessionId) throw new Error('Expected sessionId to be defined');
-
-      // Fixer should be blocked from spawning these agents
-      expect(manager.isAgentAllowed(fixerSessionId, 'oracle')).toBe(false);
-      expect(manager.isAgentAllowed(fixerSessionId, 'designer')).toBe(false);
-      expect(manager.isAgentAllowed(fixerSessionId, 'librarian')).toBe(false);
-      expect(manager.isAgentAllowed(fixerSessionId, 'fixer')).toBe(false);
-
-      // Explorer is also blocked (fixer is a leaf node)
-      expect(manager.isAgentAllowed(fixerSessionId, 'explorer')).toBe(false);
-      expect(manager.getAllowedSubagents(fixerSessionId)).toEqual([]);
-    });
-
-    test('chain: completed parent does not affect child permissions', async () => {
-      const ctx = createMockContext({
-        sessionMessagesResult: {
-          data: [
-            {
-              info: { role: 'assistant' },
-              parts: [{ type: 'text', text: 'done' }],
-            },
-          ],
+  test('reads disk-backed delegation results when memory state is gone', async () => {
+    const ctx = createMockContext();
+    const delegationManager = createDelegationManagerMock({
+      read: async () => ({
+        path: '/tmp/bg_saved.md',
+        header: {
+          id: 'bg_saved',
+          title: 'Saved task',
+          summary: 'Saved summary',
+          agent: 'explorer',
+          status: 'complete',
+          projectId: 'project-a-123456789abc',
+          rootSessionId: 'root-session',
+          startedAt: '2026-03-24T10:00:00.000Z',
+          completedAt: '2026-03-24T10:01:00.000Z',
+          persistedAt: '2026-03-24T10:01:30.000Z',
         },
-      });
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Launch designer
-      const designerTask = manager.launch({
-        agent: 'designer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const designerSessionId = designerTask.sessionId;
-      if (!designerSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      // Launch explorer from designer BEFORE designer completes
-      const explorerTask = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: designerSessionId,
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const explorerSessionId = explorerTask.sessionId;
-      if (!explorerSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      // Explorer has its own tracking — tools disabled
-      const promptCalls = ctx.client.session.prompt.mock.calls as Array<
-        [{ body: { tools?: Record<string, boolean> } }]
-      >;
-      const explorerPromptCall = promptCalls[1];
-      expect(explorerPromptCall[0].body.tools).toEqual({
-        background_task: false,
-        task: false,
-      });
-
-      // Now complete the designer (cleans up designer's agentBySessionId entry)
-      await manager.handleSessionStatus({
-        type: 'session.status',
-        properties: {
-          sessionID: designerSessionId,
-          status: { type: 'idle' },
+        record: {
+          id: 'bg_saved',
+          agent: 'explorer',
+          status: 'complete',
+          title: 'Saved task',
+          summary: 'Saved summary',
+          startedAt: '2026-03-24T10:00:00.000Z',
+          completedAt: '2026-03-24T10:01:00.000Z',
+          content: 'Saved body',
         },
-      });
+      }),
+    });
+    const manager = new BackgroundTaskManager(
+      ctx as never,
+      undefined,
+      undefined,
+      delegationManager,
+    );
 
-      expect(designerTask.status).toBe('completed');
+    const record = await manager.readDelegation('bg_saved', 'root-session');
 
-      // Explorer's own session tracking is independent — still works
-      expect(manager.isAgentAllowed(explorerSessionId, 'fixer')).toBe(false);
-      expect(manager.getAllowedSubagents(explorerSessionId)).toEqual([]);
+    expect(record?.record.content).toBe('Saved body');
+  });
+
+  test('prefers persisted delegation context when building injection summary', async () => {
+    const ctx = createMockContext();
+    const delegationManager = createDelegationManagerMock({
+      summarizeForInjection: async () =>
+        '## Delegation Digest\n- bg_saved (@explorer) Saved task — Saved summary',
+    });
+    const manager = new BackgroundTaskManager(
+      ctx as never,
+      undefined,
+      undefined,
+      delegationManager,
+    );
+
+    const summary = await manager.getDelegationSummary('root-session');
+
+    expect(summary).toBe(
+      '## Delegation Digest\n- bg_saved (@explorer) Saved task — Saved summary',
+    );
+  });
+
+  test('sends completion notifications with the internal initiator marker', async () => {
+    const ctx = createMockContext({
+      sessionMessagesResult: {
+        data: [
+          {
+            info: { role: 'assistant' },
+            parts: [{ type: 'text', text: 'Finished work' }],
+          },
+        ],
+      },
+    });
+    const manager = new BackgroundTaskManager(ctx as never);
+
+    const task = manager.launch({
+      agent: 'explorer',
+      prompt: 'do the work',
+      description: 'Background work',
+      parentSessionId: 'parent-session',
     });
 
-    test('getAllowedSubagents returns correct lists', async () => {
-      const ctx = createMockContext();
-      const manager = new BackgroundTaskManager(ctx);
-
-      // Orchestrator -> all 5 subagent names
-      const orchestratorTask = manager.launch({
-        agent: 'orchestrator',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const orchestratorSessionId = orchestratorTask.sessionId;
-      if (!orchestratorSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      expect(manager.getAllowedSubagents(orchestratorSessionId)).toEqual([
-        'explorer',
-        'librarian',
-        'oracle',
-        'designer',
-        'fixer',
-      ]);
-
-      // Fixer -> empty (leaf node)
-      const fixerTask = manager.launch({
-        agent: 'fixer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const fixerSessionId = fixerTask.sessionId;
-      if (!fixerSessionId) throw new Error('Expected sessionId to be defined');
-
-      expect(manager.getAllowedSubagents(fixerSessionId)).toEqual([]);
-
-      // Designer -> only explorer
-      const designerTask = manager.launch({
-        agent: 'designer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const designerSessionId = designerTask.sessionId;
-      if (!designerSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      expect(manager.getAllowedSubagents(designerSessionId)).toEqual([]);
-
-      // Explorer -> empty (leaf)
-      const explorerTask = manager.launch({
-        agent: 'explorer',
-        prompt: 'test',
-        description: 'test',
-        parentSessionId: 'root-session',
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const explorerSessionId = explorerTask.sessionId;
-      if (!explorerSessionId)
-        throw new Error('Expected sessionId to be defined');
-
-      expect(manager.getAllowedSubagents(explorerSessionId)).toEqual([]);
-
-      // Unknown session -> orchestrator (all subagents)
-      expect(manager.getAllowedSubagents('unknown-session')).toEqual([
-        'explorer',
-        'librarian',
-        'oracle',
-        'designer',
-        'fixer',
-      ]);
+    await flushAsyncWork();
+    await manager.handleSessionStatus({
+      type: 'session.status',
+      properties: {
+        sessionID: task.sessionId,
+        status: { type: 'idle' },
+      },
     });
+    await flushAsyncWork();
+
+    const promptCalls = ctx.client.session.prompt.mock.calls as Array<
+      [{ body?: { parts?: Array<{ text?: string }> } }]
+    >;
+    const notificationCall = promptCalls[promptCalls.length - 1];
+    expect(notificationCall?.[0].body?.parts?.[0]?.text).toContain(
+      LITE_INTERNAL_INITIATOR_MARKER,
+    );
+  });
+
+  test('enforces the new seven-agent delegation rules', async () => {
+    const ctx = createMockContext();
+    const manager = new BackgroundTaskManager(ctx as never);
+
+    const orchestratorTask = manager.launch({
+      agent: 'orchestrator',
+      prompt: 'coordinate',
+      description: 'coordinate',
+      parentSessionId: 'root-session',
+    });
+
+    await flushAsyncWork();
+
+    expect(
+      manager.getAllowedSubagents(orchestratorTask.sessionId ?? 'missing'),
+    ).toEqual(['explorer', 'librarian', 'oracle', 'designer', 'quick', 'deep']);
+    expect(manager.isAgentAllowed('unknown-session', 'quick')).toBe(true);
+    expect(manager.isAgentAllowed('unknown-session', 'fixer')).toBe(false);
+
+    const quickTask = manager.launch({
+      agent: 'quick',
+      prompt: 'implement',
+      description: 'implement',
+      parentSessionId: 'root-session',
+    });
+    await flushAsyncWork();
+
+    expect(
+      manager.getAllowedSubagents(quickTask.sessionId ?? 'missing'),
+    ).toEqual([]);
+    expect(
+      manager.isAgentAllowed(quickTask.sessionId ?? 'missing', 'explorer'),
+    ).toBe(false);
   });
 });

@@ -29,24 +29,28 @@ function parseArgs(args: string[]): InstallArgs {
 
 function printHelp(): void {
   console.log(`
-oh-my-opencode-lite installer
+omolite installer (oh-my-opencode-lite)
 
 Usage: bunx oh-my-opencode-lite install [OPTIONS]
 
 Options:
   --tmux=yes|no          Enable tmux integration (yes/no)
-  --skills=yes|no        Install recommended skills (yes/no)
+  --skills=yes|no        Install recommended + bundled skills
   --no-tui               Non-interactive mode
   --dry-run              Simulate install without writing files
   --reset                Force overwrite of existing configuration
   -h, --help             Show this help message
 
-The installer generates an OpenAI configuration by default.
+omolite installs the seven-agent roster, thoth-mem defaults,
+delegation persistence, and bundled SDD skills for OpenCode.
+
+The generated config uses OpenAI by default.
 For alternative providers, see docs/provider-configurations.md.
 
 Examples:
-  bunx oh-my-opencode-lite install
+  bunx oh-my-opencode-lite@latest install
   bunx oh-my-opencode-lite install --no-tui --tmux=no --skills=yes
+  bunx oh-my-opencode-lite install --dry-run
   bunx oh-my-opencode-lite install --reset
 `);
 }

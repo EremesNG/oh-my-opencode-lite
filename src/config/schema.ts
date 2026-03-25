@@ -1,22 +1,19 @@
 import { z } from 'zod';
+import { DEFAULT_DELEGATION_TIMEOUT } from './constants';
 
-const FALLBACK_AGENT_NAMES = [
+const AGENT_NAMES = [
   'orchestrator',
   'oracle',
   'designer',
   'explorer',
   'librarian',
-  'fixer',
+  'quick',
+  'deep',
 ] as const;
 
-const MANUAL_AGENT_NAMES = [
-  'orchestrator',
-  'oracle',
-  'designer',
-  'explorer',
-  'librarian',
-  'fixer',
-] as const;
+const FALLBACK_AGENT_NAMES = [...AGENT_NAMES] as const;
+
+const MANUAL_AGENT_NAMES = [...AGENT_NAMES] as const;
 
 const ProviderModelIdSchema = z
   .string()
@@ -54,7 +51,8 @@ export const ManualPlanSchema = z
     designer: ManualAgentPlanSchema,
     explorer: ManualAgentPlanSchema,
     librarian: ManualAgentPlanSchema,
-    fixer: ManualAgentPlanSchema,
+    quick: ManualAgentPlanSchema,
+    deep: ManualAgentPlanSchema,
   })
   .strict();
 
@@ -71,7 +69,8 @@ const FallbackChainsSchema = z
     designer: AgentModelChainSchema.optional(),
     explorer: AgentModelChainSchema.optional(),
     librarian: AgentModelChainSchema.optional(),
-    fixer: AgentModelChainSchema.optional(),
+    quick: AgentModelChainSchema.optional(),
+    deep: AgentModelChainSchema.optional(),
   })
   .catchall(AgentModelChainSchema);
 
@@ -129,8 +128,30 @@ export const PresetSchema = z.record(z.string(), AgentOverrideConfigSchema);
 export type Preset = z.infer<typeof PresetSchema>;
 
 // MCP names
-export const McpNameSchema = z.enum(['websearch', 'context7', 'grep_app']);
-export type McpName = z.infer<typeof McpNameSchema>;
+export const AgentNameSchema = z.enum(AGENT_NAMES);
+export const McpNameSchema = z.enum([
+  'websearch',
+  'context7',
+  'grep_app',
+  'thoth_mem',
+]);
+export type McpName = string;
+
+export const ThothConfigSchema = z.object({
+  command: z.array(z.string()).optional(),
+  data_dir: z.string().optional(),
+  environment: z.record(z.string(), z.string()).optional(),
+  timeout: z.number().optional(),
+});
+
+export type ThothConfig = z.infer<typeof ThothConfigSchema>;
+
+export const DelegationConfigSchema = z.object({
+  storage_dir: z.string().optional(),
+  timeout: z.number().optional().default(DEFAULT_DELEGATION_TIMEOUT),
+});
+
+export type DelegationConfig = z.infer<typeof DelegationConfigSchema>;
 
 // Background task configuration
 export const BackgroundTaskConfigSchema = z.object({
@@ -161,6 +182,8 @@ export const PluginConfigSchema = z.object({
   tmux: TmuxConfigSchema.optional(),
   background: BackgroundTaskConfigSchema.optional(),
   fallback: FailoverConfigSchema.optional(),
+  thoth: ThothConfigSchema.optional(),
+  delegation: DelegationConfigSchema.optional(),
 });
 
 export type PluginConfig = z.infer<typeof PluginConfigSchema>;

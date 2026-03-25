@@ -10,12 +10,13 @@ import {
 } from '../config';
 import { getAgentMcpList } from '../config/agent-mcps';
 
+import { createDeepAgent } from './deep';
 import { createDesignerAgent } from './designer';
 import { createExplorerAgent } from './explorer';
-import { createFixerAgent } from './fixer';
 import { createLibrarianAgent } from './librarian';
 import { createOracleAgent } from './oracle';
 import { type AgentDefinition, createOrchestratorAgent } from './orchestrator';
+import { createQuickAgent } from './quick';
 
 export type { AgentDefinition } from './orchestrator';
 
@@ -25,65 +26,168 @@ type AgentFactory = (
   customAppendPrompt?: string,
 ) => AgentDefinition;
 
-// Agent Configuration Helpers
+type PermissionAction = 'ask' | 'allow' | 'deny';
+type SkillPermissionMap = Record<string, PermissionAction>;
+type PermissionMap = Record<
+  string,
+  PermissionAction | SkillPermissionMap | undefined
+>;
 
-/**
- * Apply user-provided overrides to an agent's configuration.
- * Supports overriding model (string or priority array), variant, and temperature.
- * When model is an array, stores it as _modelArray for runtime fallback resolution
- * and clears config.model so OpenCode does not pre-resolve a stale value.
- */
+const ORCHESTRATOR_TOOL_PERMISSIONS: PermissionMap = {
+  task: 'allow',
+  background_task: 'allow',
+  read: 'deny',
+  write: 'deny',
+  edit: 'deny',
+  bash: 'deny',
+  glob: 'deny',
+  grep: 'deny',
+  apply_patch: 'deny',
+  ast_grep_search: 'deny',
+  ast_grep_replace: 'deny',
+  lsp_goto_definition: 'deny',
+  lsp_find_references: 'deny',
+  lsp_diagnostics: 'deny',
+  lsp_rename: 'deny',
+};
+
+const EXPLORER_TOOL_PERMISSIONS: PermissionMap = {
+  task: 'deny',
+  background_task: 'deny',
+  read: 'allow',
+  glob: 'allow',
+  grep: 'allow',
+  ast_grep_search: 'allow',
+  ast_grep_replace: 'deny',
+  lsp_goto_definition: 'allow',
+  lsp_find_references: 'allow',
+  lsp_diagnostics: 'allow',
+  lsp_rename: 'deny',
+  write: 'deny',
+  edit: 'deny',
+  bash: 'deny',
+  apply_patch: 'deny',
+};
+
+const LIBRARIAN_TOOL_PERMISSIONS: PermissionMap = {
+  task: 'deny',
+  background_task: 'deny',
+  read: 'allow',
+  glob: 'allow',
+  grep: 'allow',
+  write: 'deny',
+  edit: 'deny',
+  bash: 'deny',
+  apply_patch: 'deny',
+  ast_grep_search: 'deny',
+  ast_grep_replace: 'deny',
+  lsp_goto_definition: 'deny',
+  lsp_find_references: 'deny',
+  lsp_diagnostics: 'deny',
+  lsp_rename: 'deny',
+};
+
+const ORACLE_TOOL_PERMISSIONS: PermissionMap = {
+  task: 'deny',
+  background_task: 'deny',
+  read: 'allow',
+  glob: 'allow',
+  grep: 'allow',
+  ast_grep_search: 'allow',
+  ast_grep_replace: 'deny',
+  lsp_goto_definition: 'allow',
+  lsp_find_references: 'allow',
+  lsp_diagnostics: 'allow',
+  lsp_rename: 'deny',
+  write: 'deny',
+  edit: 'deny',
+  bash: 'deny',
+  apply_patch: 'deny',
+};
+
+const WRITE_AGENT_TOOL_PERMISSIONS: PermissionMap = {
+  task: 'deny',
+  background_task: 'deny',
+  read: 'allow',
+  glob: 'allow',
+  grep: 'allow',
+  write: 'allow',
+  edit: 'allow',
+  bash: 'allow',
+  apply_patch: 'allow',
+  ast_grep_search: 'allow',
+  ast_grep_replace: 'allow',
+  lsp_goto_definition: 'allow',
+  lsp_find_references: 'allow',
+  lsp_diagnostics: 'allow',
+  lsp_rename: 'allow',
+};
+
+const DEFAULT_TOOL_PERMISSIONS: Record<string, PermissionMap> = {
+  orchestrator: ORCHESTRATOR_TOOL_PERMISSIONS,
+  explorer: EXPLORER_TOOL_PERMISSIONS,
+  librarian: LIBRARIAN_TOOL_PERMISSIONS,
+  oracle: ORACLE_TOOL_PERMISSIONS,
+  designer: WRITE_AGENT_TOOL_PERMISSIONS,
+  quick: WRITE_AGENT_TOOL_PERMISSIONS,
+  deep: WRITE_AGENT_TOOL_PERMISSIONS,
+};
+
+function normalizeModelArray(
+  model: Array<string | { id: string; variant?: string }>,
+): Array<{ id: string; variant?: string }> {
+  return model.map((entry) =>
+    typeof entry === 'string' ? { id: entry } : entry,
+  );
+}
+
 function applyOverrides(
   agent: AgentDefinition,
   override: AgentOverrideConfig,
 ): void {
   if (override.model) {
     if (Array.isArray(override.model)) {
-      agent._modelArray = override.model.map((m) =>
-        typeof m === 'string' ? { id: m } : m,
-      );
-      agent.config.model = undefined; // cleared; runtime hook resolves from _modelArray
+      agent._modelArray = normalizeModelArray(override.model);
+      agent.config.model = undefined;
     } else {
       agent.config.model = override.model;
     }
   }
-  if (override.variant) agent.config.variant = override.variant;
-  if (override.temperature !== undefined)
+
+  if (override.variant) {
+    agent.config.variant = override.variant;
+  }
+
+  if (override.temperature !== undefined) {
     agent.config.temperature = override.temperature;
+  }
 }
 
-/**
- * Apply default permissions to an agent.
- * Sets 'question' permission to 'allow' and includes skill permission presets.
- * If configuredSkills is provided, it honors that list instead of defaults.
- */
 function applyDefaultPermissions(
   agent: AgentDefinition,
   configuredSkills?: string[],
 ): void {
-  const existing = (agent.config.permission ?? {}) as Record<
-    string,
-    'ask' | 'allow' | 'deny' | Record<string, 'ask' | 'allow' | 'deny'>
-  >;
-
-  // Get skill-specific permissions for this agent
+  const existing = (agent.config.permission ?? {}) as PermissionMap;
   const skillPermissions = getSkillPermissionsForAgent(
     agent.name,
     configuredSkills,
   );
+  const toolPermissions = DEFAULT_TOOL_PERMISSIONS[agent.name] ?? {};
+  const existingSkillPermissions =
+    typeof existing.skill === 'object' && existing.skill
+      ? (existing.skill as SkillPermissionMap)
+      : {};
 
   agent.config.permission = {
+    ...toolPermissions,
     ...existing,
     question: 'allow',
-    // Apply skill permissions as nested object under 'skill' key
     skill: {
-      ...(typeof existing.skill === 'object' ? existing.skill : {}),
+      ...existingSkillPermissions,
       ...skillPermissions,
     },
   } as SDKAgentConfig['permission'];
 }
-
-// Agent Classification
 
 export type SubagentName = (typeof SUBAGENT_NAMES)[number];
 
@@ -91,57 +195,27 @@ export function isSubagent(name: string): name is SubagentName {
   return (SUBAGENT_NAMES as readonly string[]).includes(name);
 }
 
-// Agent Factories
-
 const SUBAGENT_FACTORIES: Record<SubagentName, AgentFactory> = {
   explorer: createExplorerAgent,
   librarian: createLibrarianAgent,
   oracle: createOracleAgent,
   designer: createDesignerAgent,
-  fixer: createFixerAgent,
+  quick: createQuickAgent,
+  deep: createDeepAgent,
 };
 
-// Public API
-
-/**
- * Create all agent definitions with optional configuration overrides.
- * Instantiates the orchestrator and all subagents, applying user config and defaults.
- *
- * @param config - Optional plugin configuration with agent overrides
- * @returns Array of agent definitions (orchestrator first, then subagents)
- */
 export function createAgents(config?: PluginConfig): AgentDefinition[] {
-  // TEMP: If fixer has no config, inherit from librarian's model to avoid breaking
-  // existing users who don't have fixer in their config yet
-  const getModelForAgent = (name: SubagentName): string => {
-    if (name === 'fixer' && !getAgentOverride(config, 'fixer')?.model) {
-      const librarianOverride = getAgentOverride(config, 'librarian')?.model;
-      let librarianModel: string | undefined;
-      if (Array.isArray(librarianOverride)) {
-        const first = librarianOverride[0];
-        librarianModel = typeof first === 'string' ? first : first?.id;
-      } else {
-        librarianModel = librarianOverride;
-      }
-      return librarianModel ?? (DEFAULT_MODELS.librarian as string);
-    }
-    // Subagents always have a defined default model; cast is safe here
-    return DEFAULT_MODELS[name] as string;
-  };
-
-  // 1. Gather all sub-agent definitions with custom prompts
   const protoSubAgents = (
     Object.entries(SUBAGENT_FACTORIES) as [SubagentName, AgentFactory][]
   ).map(([name, factory]) => {
-    const customPrompts = loadAgentPrompt(name, config?.preset);
+    const prompts = loadAgentPrompt(name, config?.preset);
     return factory(
-      getModelForAgent(name),
-      customPrompts.prompt,
-      customPrompts.appendPrompt,
+      DEFAULT_MODELS[name] as string,
+      prompts.prompt,
+      prompts.appendPrompt,
     );
   });
 
-  // 2. Apply overrides and default permissions to each agent
   const allSubAgents = protoSubAgents.map((agent) => {
     const override = getAgentOverride(config, agent.name);
     if (override) {
@@ -151,18 +225,14 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
     return agent;
   });
 
-  // 3. Create Orchestrator (with its own overrides and custom prompts)
-  // DEFAULT_MODELS.orchestrator is undefined; model is resolved via override or
-  // left unset so the runtime chat.message hook can pick it from _modelArray.
   const orchestratorOverride = getAgentOverride(config, 'orchestrator');
-  const orchestratorModel =
-    orchestratorOverride?.model ?? DEFAULT_MODELS.orchestrator;
   const orchestratorPrompts = loadAgentPrompt('orchestrator', config?.preset);
   const orchestrator = createOrchestratorAgent(
-    orchestratorModel,
+    orchestratorOverride?.model ?? DEFAULT_MODELS.orchestrator,
     orchestratorPrompts.prompt,
     orchestratorPrompts.appendPrompt,
   );
+
   applyDefaultPermissions(orchestrator, orchestratorOverride?.skills);
   if (orchestratorOverride) {
     applyOverrides(orchestrator, orchestratorOverride);
@@ -171,33 +241,26 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
   return [orchestrator, ...allSubAgents];
 }
 
-/**
- * Get agent configurations formatted for the OpenCode SDK.
- * Converts agent definitions to SDK config format and applies classification metadata.
- *
- * @param config - Optional plugin configuration with agent overrides
- * @returns Record mapping agent names to their SDK configurations
- */
 export function getAgentConfigs(
   config?: PluginConfig,
-): Record<string, SDKAgentConfig> {
+): Record<string, SDKAgentConfig & { mcps?: string[] }> {
   const agents = createAgents(config);
+
   return Object.fromEntries(
-    agents.map((a) => {
+    agents.map((agent) => {
       const sdkConfig: SDKAgentConfig & { mcps?: string[] } = {
-        ...a.config,
-        description: a.description,
-        mcps: getAgentMcpList(a.name, config),
+        ...agent.config,
+        description: agent.description,
+        mcps: getAgentMcpList(agent.name, config),
       };
 
-      // Apply classification-based visibility and mode
-      if (isSubagent(a.name)) {
+      if (isSubagent(agent.name)) {
         sdkConfig.mode = 'subagent';
-      } else if (a.name === 'orchestrator') {
+      } else if (agent.name === 'orchestrator') {
         sdkConfig.mode = 'primary';
       }
 
-      return [a.name, sdkConfig];
+      return [agent.name, sdkConfig];
     }),
   );
 }

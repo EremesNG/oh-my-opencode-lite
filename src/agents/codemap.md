@@ -30,19 +30,19 @@ All agents follow a consistent factory pattern:
 **Primary Agent**
 - **Orchestrator**: Central coordinator that delegates tasks to specialists based on quality/speed/cost/reliability trade-offs
 
-**Subagents** (5 specialized agents)
+**Subagents** (6 specialized agents)
 1. **Explorer** - Codebase navigation and pattern matching (temperature: 0.1)
 2. **Librarian** - External documentation and library research (temperature: 0.1)
 3. **Oracle** - Strategic technical advisor and architecture guidance (temperature: 0.1)
 4. **Designer** - UI/UX design and implementation (temperature: 0.7)
-5. **Fixer** - Fast implementation specialist (temperature: 0.2)
+5. **Quick** - Fast bounded implementation specialist (temperature: 0.2)
+6. **Deep** - Thorough correctness-first implementation specialist (temperature: 0.1)
 
 ### Configuration System
 
 **Override Application**
 - Model and temperature can be overridden per agent via user config
 - Model can be string or priority-ordered array for runtime fallback resolution
-- Fallback mechanism: Fixer inherits Librarian's model if not configured
 - Default models defined in `../config/DEFAULT_MODELS`
 
 **Permission System**
@@ -63,8 +63,9 @@ All agents follow a consistent factory pattern:
 | Explorer | Codebase navigation | grep, glob, ast_grep_search | Read-only, parallel | 0.1 |
 | Librarian | External docs | context7, grep_app, websearch | Evidence-based, citations required | 0.1 |
 | Oracle | Architecture guidance | Analysis tools, code review | Read-only, advisory | 0.1 |
-| Designer | UI/UX implementation | Tailwind, CSS, animations | Visual excellence priority | 0.7 |
-| Fixer | Implementation | Edit/write, lsp_diagnostics | No research/delegation, structured output | 0.2 |
+| Designer | UI/UX implementation | Read/edit/write, browser verification | Visual verification ownership | 0.4 |
+| Quick | Fast implementation | Read/edit/write, bash, diagnostics | No research/delegation, bounded scope | 0.2 |
+| Deep | Thorough implementation | Read/edit/write, bash, diagnostics | No research/delegation, correctness-first | 0.1 |
 
 ## Flow
 
@@ -74,7 +75,7 @@ All agents follow a consistent factory pattern:
 createAgents(config?)
   │
   ├─→ For each subagent:
-  │   ├─→ Get model (with fallback for fixer)
+  │   ├─→ Get model from defaults
   │   ├─→ Load custom prompts
   │   ├─→ Call factory function
   │   ├─→ Apply overrides (model, temperature, variant)
@@ -127,15 +128,16 @@ Delegation Check
     ├─→ Complex/evolving APIs? → @librarian
     ├─→ High-stakes decisions? → @oracle
     ├─→ User-facing polish? → @designer
-    ├─→ Clear spec, parallel tasks? → @fixer
-    └─→ Simple/quick? → Do yourself
+    ├─→ UI/UX implementation? → @designer
+    ├─→ Clear bounded implementation? → @quick
+    └─→ Thorough correctness-critical implementation? → @deep
     │
     ↓
 Parallelize (if applicable)
     │
     ├─→ Multiple @explorer searches?
     ├─→ @explorer + @librarian research?
-    └─→ Multiple @fixer instances?
+    └─→ Independent read-only work in parallel?
     │
     ↓
 Execute & Integrate
@@ -152,7 +154,7 @@ Orchestrator
     ↓ delegates to
 Explorer (find files) + Librarian (get docs)
     ↓ provide context to
-Fixer (implement changes)
+Quick or Deep (implement changes)
 ```
 
 **Advisory Pattern**
@@ -161,7 +163,7 @@ Orchestrator
     ↓ delegates to
 Oracle (architecture decision)
     ↓ provides guidance to
-Orchestrator (implements or delegates to Fixer)
+Orchestrator (delegates to Quick, Deep, or Designer)
 ```
 
 **Design Pattern**
@@ -232,14 +234,13 @@ Agents are configured with specific MCP tool lists:
 
 1. **Factory Pattern**: Consistent agent creation with customization hooks
 2. **Temperature Gradient**: 0.1 (precision) → 0.7 (creativity) based on role
-3. **Read-Only Specialists**: Explorer, Librarian, Oracle don't modify code
-4. **Execution Specialist**: Fixer is the only agent that makes code changes
-5. **Fallback Model**: Fixer inherits Librarian's model for backward compatibility
-6. **Permission Defaults**: All agents get `question: 'allow'` for smooth UX
-7. **Custom Prompt Flexibility**: Full replacement or append mode for customization
-8. **Parallel-First**: Orchestrator encouraged to parallelize independent tasks
-9. **Evidence-Based Research**: Librarian must provide sources and citations
-10. **Visual Excellence Priority**: Designer prioritizes aesthetics over code perfection
+3. **Read-Only Specialists**: Explorer, Librarian, and Oracle do not modify code
+4. **Split Implementers**: Quick handles bounded work while Deep handles thorough implementation
+5. **Permission Defaults**: All agents get `question: 'allow'` for smooth UX
+6. **Custom Prompt Flexibility**: Full replacement or append mode for customization
+7. **Delegate-First Orchestration**: Orchestrator coordinates instead of doing repo work inline
+8. **Evidence-Based Research**: Librarian must provide sources and citations
+9. **Visual Verification Ownership**: Designer decides, implements, and verifies user-facing work
 
 ## File Structure
 
@@ -248,11 +249,13 @@ src/agents/
 ├── index.ts          # Main entry point, agent factory registry, config application
 ├── index.test.ts     # Unit tests for agent creation and configuration
 ├── orchestrator.ts   # Orchestrator agent definition, delegation workflow, AgentDefinition interface
+├── prompt-utils.ts   # Shared prompt composition helpers
 ├── explorer.ts       # Codebase navigation specialist
 ├── librarian.ts      # Documentation and library research specialist
 ├── oracle.ts         # Strategic technical advisor
-├── fixer.ts          # Fast implementation specialist
-└── designer.ts       # UI/UX design specialist
+├── designer.ts       # UI/UX design specialist
+├── quick.ts          # Fast bounded implementation specialist
+└── deep.ts           # Thorough implementation specialist
 ```
 
 ## Extension Points

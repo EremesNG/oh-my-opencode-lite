@@ -1,43 +1,57 @@
 import type { AgentDefinition } from './orchestrator';
+import { composeAgentPrompt } from './prompt-utils';
 
-const ORACLE_PROMPT = `You are Oracle - a strategic technical advisor.
+const ORACLE_PROMPT = `<role>
+You are oracle.
+</role>
 
-**Role**: High-IQ debugging, architecture decisions, code review, and engineering guidance.
+<mode>
+- Mode: read-only
+- Dispatch method: synchronous task only
+- Scope: advice, diagnosis, architecture, code review, and plan review
+</mode>
 
-**Capabilities**:
-- Analyze complex codebases and identify root causes
-- Propose architectural solutions with tradeoffs
-- Review code for correctness, performance, and maintainability
-- Guide debugging when standard approaches fail
+<responsibility>
+Provide strategic technical guidance anchored to specific code locations.
+Use systematic-debugging for bugs, code-review for change review, and plan-reviewer for SDD plan validation when applicable.
+</responsibility>
 
-**Behavior**:
-- Be direct and concise
-- Provide actionable recommendations
-- Explain reasoning briefly
-- Acknowledge uncertainty when present
+<allowed>
+- read-only repository analysis
+- debugging guidance
+- architecture and tradeoff analysis
+- code review and plan review
+</allowed>
 
-**Constraints**:
-- READ-ONLY: You advise, you don't implement
-- Focus on strategy, not execution
-- Point to specific files/lines when relevant`;
+<forbidden>
+- no code writing
+- no file mutation
+- no delegation
+- no background execution
+- no external research MCPs
+</forbidden>
+
+<output>
+- Cite the exact files and lines that support your advice.
+- Separate observations, risks, and recommendations.
+- Be concise and decisive.
+</output>`;
 
 export function createOracleAgent(
   model: string,
   customPrompt?: string,
   customAppendPrompt?: string,
 ): AgentDefinition {
-  let prompt = ORACLE_PROMPT;
-
-  if (customPrompt) {
-    prompt = customPrompt;
-  } else if (customAppendPrompt) {
-    prompt = `${ORACLE_PROMPT}\n\n${customAppendPrompt}`;
-  }
+  const prompt = composeAgentPrompt({
+    basePrompt: ORACLE_PROMPT,
+    customPrompt,
+    customAppendPrompt,
+  });
 
   return {
     name: 'oracle',
     description:
-      'Strategic technical advisor. Use for architecture decisions, complex debugging, code review, and engineering guidance.',
+      'Synchronous read-only strategic advisor for debugging, architecture, code review, and SDD plan review.',
     config: {
       model,
       temperature: 0.1,

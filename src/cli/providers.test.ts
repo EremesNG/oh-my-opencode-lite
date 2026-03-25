@@ -14,6 +14,7 @@ describe('providers', () => {
       hasTmux: false,
       installSkills: false,
       installCustomSkills: false,
+      reset: false,
     });
 
     expect(config.preset).toBe('openai');
@@ -21,8 +22,11 @@ describe('providers', () => {
     expect(agents).toBeDefined();
     expect(agents.orchestrator.model).toBe('openai/gpt-5.4');
     expect(agents.orchestrator.variant).toBeUndefined();
-    expect(agents.fixer.model).toBe('openai/gpt-5.4-mini');
-    expect(agents.fixer.variant).toBe('low');
+    expect(agents.quick.model).toBe('openai/gpt-5.4-mini');
+    expect(agents.quick.variant).toBe('low');
+    expect(agents.deep.model).toBe('openai/gpt-5.4');
+    expect(agents.deep.variant).toBe('high');
+    expect(agents.orchestrator.skills).toEqual(['*']);
   });
 
   test('generateLiteConfig uses correct OpenAI models', () => {
@@ -30,6 +34,7 @@ describe('providers', () => {
       hasTmux: false,
       installSkills: false,
       installCustomSkills: false,
+      reset: false,
     });
 
     const agents = (config.presets as any).openai;
@@ -44,6 +49,10 @@ describe('providers', () => {
     expect(agents.explorer.variant).toBe('low');
     expect(agents.designer.model).toBe('openai/gpt-5.4-mini');
     expect(agents.designer.variant).toBe('medium');
+    expect(agents.quick.model).toBe('openai/gpt-5.4-mini');
+    expect(agents.quick.variant).toBe('low');
+    expect(agents.deep.model).toBe('openai/gpt-5.4');
+    expect(agents.deep.variant).toBe('high');
   });
 
   test('generateLiteConfig enables tmux when requested', () => {
@@ -51,6 +60,7 @@ describe('providers', () => {
       hasTmux: true,
       installSkills: false,
       installCustomSkills: false,
+      reset: false,
     });
 
     expect(config.tmux).toBeDefined();
@@ -63,6 +73,7 @@ describe('providers', () => {
       hasTmux: false,
       installSkills: true,
       installCustomSkills: false,
+      reset: false,
     });
 
     const agents = (config.presets as any).openai;
@@ -72,8 +83,9 @@ describe('providers', () => {
     // Designer should have 'agent-browser'
     expect(agents.designer.skills).toContain('agent-browser');
 
-    // Fixer should have no skills by default (empty recommended list)
-    expect(agents.fixer.skills).toEqual([]);
+    // Quick and deep should have no skills by default
+    expect(agents.quick.skills).toEqual([]);
+    expect(agents.deep.skills).toEqual([]);
   });
 
   test('generateLiteConfig includes mcps field', () => {
@@ -81,6 +93,7 @@ describe('providers', () => {
       hasTmux: false,
       installSkills: false,
       installCustomSkills: false,
+      reset: false,
     });
 
     const agents = (config.presets as any).openai;
@@ -95,13 +108,51 @@ describe('providers', () => {
       hasTmux: false,
       installSkills: false,
       installCustomSkills: false,
+      reset: false,
     });
 
     const agents = (config.presets as any).openai;
-    expect(agents.orchestrator.mcps).toContain('websearch');
+    expect(agents.orchestrator.mcps).toEqual(['thoth_mem']);
     expect(agents.librarian.mcps).toContain('websearch');
     expect(agents.librarian.mcps).toContain('context7');
     expect(agents.librarian.mcps).toContain('grep_app');
     expect(agents.designer.mcps).toEqual([]);
+    expect(agents.quick.mcps).toEqual([]);
+    expect(agents.deep.mcps).toEqual([]);
+  });
+
+  test('generateLiteConfig includes the seven-agent roster', () => {
+    const config = generateLiteConfig({
+      hasTmux: false,
+      installSkills: false,
+      installCustomSkills: false,
+      reset: false,
+    });
+
+    const agents = Object.keys((config.presets as any).openai).sort();
+    expect(agents).toEqual([
+      'deep',
+      'designer',
+      'explorer',
+      'librarian',
+      'oracle',
+      'orchestrator',
+      'quick',
+    ]);
+  });
+
+  test('quick and deep presets remain sync write-capable without background-only extras', () => {
+    const config = generateLiteConfig({
+      hasTmux: false,
+      installSkills: true,
+      installCustomSkills: false,
+      reset: false,
+    });
+
+    const agents = (config.presets as any).openai;
+    expect(agents.quick.skills).toEqual([]);
+    expect(agents.deep.skills).toEqual([]);
+    expect(agents.quick.mcps).toEqual([]);
+    expect(agents.deep.mcps).toEqual([]);
   });
 });

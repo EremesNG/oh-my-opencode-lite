@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { CUSTOM_SKILLS } from './custom-skills';
 import { getSkillPermissionsForAgent } from './skills';
 
 describe('skills permissions', () => {
@@ -22,6 +23,38 @@ describe('skills permissions', () => {
     expect(orchPerms.simplify).toBe('allow');
   });
 
+  it('should auto-allow SDD skills only for orchestrator by default', () => {
+    const orchestratorPerms = getSkillPermissionsForAgent('orchestrator');
+    const designerPerms = getSkillPermissionsForAgent('designer');
+
+    expect(orchestratorPerms['sdd-propose']).toBe('allow');
+    expect(orchestratorPerms['sdd-spec']).toBe('allow');
+    expect(orchestratorPerms['sdd-design']).toBe('allow');
+    expect(orchestratorPerms['sdd-tasks']).toBe('allow');
+    expect(orchestratorPerms['sdd-apply']).toBe('allow');
+    expect(orchestratorPerms['sdd-verify']).toBe('allow');
+    expect(orchestratorPerms['sdd-archive']).toBe('allow');
+
+    expect(designerPerms['sdd-propose']).toBe('deny');
+    expect(designerPerms['sdd-spec']).toBe('deny');
+    expect(designerPerms['sdd-design']).toBe('deny');
+    expect(designerPerms['sdd-tasks']).toBe('deny');
+    expect(designerPerms['sdd-apply']).toBe('deny');
+    expect(designerPerms['sdd-verify']).toBe('deny');
+    expect(designerPerms['sdd-archive']).toBe('deny');
+  });
+
+  it('bundled SDD skills are orchestrator-only in the custom skill registry', () => {
+    const sddSkills = CUSTOM_SKILLS.filter((skill) =>
+      skill.name.startsWith('sdd-'),
+    );
+
+    expect(sddSkills.length).toBeGreaterThan(0);
+    for (const skill of sddSkills) {
+      expect(skill.allowedAgents).toEqual(['orchestrator']);
+    }
+  });
+
   it('should honor explicit skill list overrides', () => {
     // Override with empty list
     const emptyPerms = getSkillPermissionsForAgent('orchestrator', []);
@@ -41,5 +74,12 @@ describe('skills permissions', () => {
   it('should honor wildcard in explicit list', () => {
     const wildcardPerms = getSkillPermissionsForAgent('designer', ['*']);
     expect(wildcardPerms['*']).toBe('allow');
+  });
+
+  it('should allow SDD skills for other agents when explicitly overridden', () => {
+    const permissions = getSkillPermissionsForAgent('designer', ['sdd-spec']);
+
+    expect(permissions['*']).toBe('deny');
+    expect(permissions['sdd-spec']).toBe('allow');
   });
 });
