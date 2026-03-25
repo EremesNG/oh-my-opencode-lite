@@ -4,7 +4,6 @@ import type { Event, Model } from '@opencode-ai/sdk';
 import { createAgents, getAgentConfigs } from './agents';
 import { BackgroundTaskManager, TmuxSessionManager } from './background';
 import { loadPluginConfig, type TmuxConfig } from './config';
-import { parseList } from './config/agent-mcps';
 import { DelegationManager } from './delegation';
 import {
   createAutoUpdateCheckerHook,
@@ -323,47 +322,6 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
         opencodeConfig.mcp = { ...mcps };
       } else {
         Object.assign(configMcp, mcps);
-      }
-
-      // Get all MCP names from our config
-      const allMcpNames = Object.keys(mcps);
-
-      // For each agent, create permission rules based on their mcps list
-      for (const [agentName, agentConfig] of Object.entries(agents)) {
-        const agentMcps = (agentConfig as { mcps?: string[] })?.mcps;
-        if (!agentMcps) continue;
-
-        // Get or create agent permission config
-        if (!configAgent[agentName]) {
-          configAgent[agentName] = { ...agentConfig };
-        }
-        const agentConfigEntry = configAgent[agentName] as Record<
-          string,
-          unknown
-        >;
-        const agentPermission = (agentConfigEntry.permission ?? {}) as Record<
-          string,
-          unknown
-        >;
-
-        // Parse mcps list with wildcard and exclusion support
-        const allowedMcps = parseList(agentMcps, allMcpNames);
-
-        // Create permission rules for each MCP
-        // MCP tools are named as <server>_<tool>, so we use <server>_*
-        for (const mcpName of allMcpNames) {
-          const sanitizedMcpName = mcpName.replace(/[^a-zA-Z0-9_-]/g, '_');
-          const permissionKey = `${sanitizedMcpName}_*`;
-          const action = allowedMcps.includes(mcpName) ? 'allow' : 'deny';
-
-          // Only set if not already defined by user
-          if (!(permissionKey in agentPermission)) {
-            agentPermission[permissionKey] = action;
-          }
-        }
-
-        // Update agent config with permissions
-        agentConfigEntry.permission = agentPermission;
       }
     },
 
