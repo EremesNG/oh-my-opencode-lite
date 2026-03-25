@@ -1,5 +1,3 @@
-import { DEFAULT_AGENT_MCPS } from '../config/agent-mcps';
-import { RECOMMENDED_SKILLS } from './skills';
 import type { InstallConfig } from './types';
 
 // Model mappings by provider - only 4 supported providers
@@ -53,30 +51,13 @@ export function generateLiteConfig(
     presets: {},
   };
 
-  const createAgentConfig = (
-    agentName: string,
-    modelInfo: { model: string; variant?: string },
-  ) => {
-    const isOrchestrator = agentName === 'orchestrator';
-
-    const skills = isOrchestrator
-      ? ['*']
-      : RECOMMENDED_SKILLS.filter(
-          (s) =>
-            s.allowedAgents.includes('*') ||
-            s.allowedAgents.includes(agentName),
-        ).map((s) => s.skillName);
-
-    if (agentName === 'designer' && !skills.includes('agent-browser')) {
-      skills.push('agent-browser');
-    }
-
+  const createAgentConfig = (modelInfo: {
+    model: string;
+    variant?: string;
+  }) => {
     return {
       model: modelInfo.model,
       variant: modelInfo.variant,
-      skills,
-      mcps:
-        DEFAULT_AGENT_MCPS[agentName as keyof typeof DEFAULT_AGENT_MCPS] ?? [],
     };
   };
 
@@ -85,7 +66,7 @@ export function generateLiteConfig(
     return Object.fromEntries(
       Object.entries(mapping).map(([agentName, modelInfo]) => [
         agentName,
-        createAgentConfig(agentName, modelInfo),
+        createAgentConfig(modelInfo),
       ]),
     );
   };

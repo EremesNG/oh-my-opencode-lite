@@ -26,7 +26,6 @@ describe('providers', () => {
     expect(agents.quick.variant).toBe('low');
     expect(agents.deep.model).toBe('openai/gpt-5.4');
     expect(agents.deep.variant).toBe('high');
-    expect(agents.orchestrator.skills).toEqual(['*']);
   });
 
   test('generateLiteConfig uses correct OpenAI models', () => {
@@ -68,7 +67,7 @@ describe('providers', () => {
     expect((config.tmux as any).layout).toBe('main-vertical');
   });
 
-  test('generateLiteConfig includes default skills', () => {
+  test('generateLiteConfig omits per-agent skills and mcps fields', () => {
     const config = generateLiteConfig({
       hasTmux: false,
       installSkills: true,
@@ -77,48 +76,10 @@ describe('providers', () => {
     });
 
     const agents = (config.presets as any).openai;
-    // Orchestrator should always have '*'
-    expect(agents.orchestrator.skills).toEqual(['*']);
-
-    // Designer should have 'agent-browser'
-    expect(agents.designer.skills).toContain('agent-browser');
-
-    // Quick and deep should have no skills by default
-    expect(agents.quick.skills).toEqual([]);
-    expect(agents.deep.skills).toEqual([]);
-  });
-
-  test('generateLiteConfig includes mcps field', () => {
-    const config = generateLiteConfig({
-      hasTmux: false,
-      installSkills: false,
-      installCustomSkills: false,
-      reset: false,
-    });
-
-    const agents = (config.presets as any).openai;
-    expect(agents.orchestrator.mcps).toBeDefined();
-    expect(Array.isArray(agents.orchestrator.mcps)).toBe(true);
-    expect(agents.librarian.mcps).toBeDefined();
-    expect(Array.isArray(agents.librarian.mcps)).toBe(true);
-  });
-
-  test('generateLiteConfig openai includes correct mcps', () => {
-    const config = generateLiteConfig({
-      hasTmux: false,
-      installSkills: false,
-      installCustomSkills: false,
-      reset: false,
-    });
-
-    const agents = (config.presets as any).openai;
-    expect(agents.orchestrator.mcps).toEqual(['thoth_mem']);
-    expect(agents.librarian.mcps).toContain('websearch');
-    expect(agents.librarian.mcps).toContain('context7');
-    expect(agents.librarian.mcps).toContain('grep_app');
-    expect(agents.designer.mcps).toEqual([]);
-    expect(agents.quick.mcps).toEqual([]);
-    expect(agents.deep.mcps).toEqual([]);
+    expect(agents.orchestrator.skills).toBeUndefined();
+    expect(agents.designer.skills).toBeUndefined();
+    expect(agents.orchestrator.mcps).toBeUndefined();
+    expect(agents.librarian.mcps).toBeUndefined();
   });
 
   test('generateLiteConfig includes the seven-agent roster', () => {
@@ -141,7 +102,7 @@ describe('providers', () => {
     ]);
   });
 
-  test('quick and deep presets remain sync write-capable without background-only extras', () => {
+  test('quick and deep presets remain lean model-only configs', () => {
     const config = generateLiteConfig({
       hasTmux: false,
       installSkills: true,
@@ -150,9 +111,7 @@ describe('providers', () => {
     });
 
     const agents = (config.presets as any).openai;
-    expect(agents.quick.skills).toEqual([]);
-    expect(agents.deep.skills).toEqual([]);
-    expect(agents.quick.mcps).toEqual([]);
-    expect(agents.deep.mcps).toEqual([]);
+    expect(Object.keys(agents.quick).sort()).toEqual(['model', 'variant']);
+    expect(Object.keys(agents.deep).sort()).toEqual(['model', 'variant']);
   });
 });
