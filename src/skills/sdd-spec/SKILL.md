@@ -14,6 +14,17 @@ Write or update the change specifications for one or more affected domains.
 - `../_shared/persistence-contract.md`
 - `../_shared/thoth-mem-convention.md`
 
+## Persistence Mode
+
+The orchestrator passes the artifact store mode (`thoth-mem`, `openspec`, or
+`hybrid`). Follow `../_shared/persistence-contract.md` for read/write rules per
+mode.
+
+- `thoth-mem`: persist to thoth-mem only — do NOT create or modify
+  `openspec/` files.
+- `openspec`: write files only — do NOT call thoth-mem save tools.
+- `hybrid`: persist to both (default).
+
 ## When to Use
 
 - A proposal is approved and must be converted into testable requirements
@@ -28,15 +39,15 @@ Write or update the change specifications for one or more affected domains.
 ## Workflow
 
 1. Read the shared conventions.
-2. Recover the proposal with the required two-step flow:
-   `thoth_mem_mem_search("sdd/{change-name}/proposal")` →
-   `thoth_mem_mem_get_observation(id)`.
-3. If the change already has spec work, recover
-   `sdd/{change-name}/spec` the same way before editing.
+2. Recover the proposal using the retrieval protocol in
+   `../_shared/persistence-contract.md`.
+3. If the change already has spec work, recover `sdd/{change-name}/spec` with
+   the same mode-aware retrieval rules before editing.
 4. Read `openspec/specs/{domain}/spec.md` for each affected domain to determine
    whether you are writing a delta spec or a brand-new spec.
-5. Write canonical change artifacts under
-   `openspec/changes/{change-name}/specs/{domain}/spec.md`.
+5. If the selected mode includes OpenSpec, write canonical change artifacts
+   under `openspec/changes/{change-name}/specs/{domain}/spec.md`. In
+   `thoth-mem` mode, produce the same canonical content without creating files.
 6. Use this structure in every spec file:
 
    ```md
@@ -57,7 +68,8 @@ Write or update the change specifications for one or more affected domains.
 
    For a brand-new domain, write a full spec instead of a delta.
 
-7. Persist the complete spec payload with:
+7. If the selected mode includes thoth-mem, persist the complete spec payload
+   with:
 
    ```text
    thoth_mem_mem_save(
@@ -86,6 +98,6 @@ Return:
 - Every requirement must have at least one Given/When/Then scenario.
 - Specs describe behavior, not implementation details.
 - Keep domain boundaries explicit.
-- Use `thoth_mem_mem_search` → `thoth_mem_mem_get_observation` for every SDD
-  dependency retrieval.
+- Use the retrieval protocol from `../_shared/persistence-contract.md` for
+  every SDD dependency.
 - Never reference engram.

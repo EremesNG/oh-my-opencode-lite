@@ -14,6 +14,17 @@ Create the technical design that explains how the approved spec will be built.
 - `../_shared/persistence-contract.md`
 - `../_shared/thoth-mem-convention.md`
 
+## Persistence Mode
+
+The orchestrator passes the artifact store mode (`thoth-mem`, `openspec`, or
+`hybrid`). Follow `../_shared/persistence-contract.md` for read/write rules per
+mode.
+
+- `thoth-mem`: persist to thoth-mem only — do NOT create or modify
+  `openspec/` files.
+- `openspec`: write files only — do NOT call thoth-mem save tools.
+- `hybrid`: persist to both (default).
+
 ## When to Use
 
 - Proposal and specs exist and implementation planning needs technical depth
@@ -29,12 +40,15 @@ Create the technical design that explains how the approved spec will be built.
 ## Workflow
 
 1. Read the shared conventions.
-2. Recover `sdd/{change-name}/proposal` and `sdd/{change-name}/spec` through
-   `thoth_mem_mem_search` → `thoth_mem_mem_get_observation`.
-3. If revising work, recover `sdd/{change-name}/design` the same way.
+2. Recover `sdd/{change-name}/proposal` and `sdd/{change-name}/spec` using the
+   retrieval protocol in `../_shared/persistence-contract.md`.
+3. If revising work, recover `sdd/{change-name}/design` with the same
+   mode-aware retrieval rules.
 4. Read the actual code paths affected by the change before deciding on an
    approach.
-5. Write `openspec/changes/{change-name}/design.md` using this structure:
+5. If the selected mode includes OpenSpec, write
+   `openspec/changes/{change-name}/design.md` using this structure. In
+   `thoth-mem` mode, produce the same content without creating the file:
 
    ```md
    # Design: {Change Title}
@@ -53,7 +67,7 @@ Create the technical design that explains how the approved spec will be built.
    ## Open Questions
    ```
 
-6. Persist the design with:
+6. If the selected mode includes thoth-mem, persist the design with:
 
    ```text
    thoth_mem_mem_save(
@@ -83,6 +97,6 @@ Return:
 - Every architecture decision must include rationale.
 - Use concrete file paths and interfaces.
 - Keep implementation details aligned with the spec and repository patterns.
-- Retrieve full dependencies with `thoth_mem_mem_search` →
-  `thoth_mem_mem_get_observation`.
+- Retrieve full dependencies with the protocol in
+  `../_shared/persistence-contract.md`.
 - Never reference engram.

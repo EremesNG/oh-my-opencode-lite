@@ -15,6 +15,17 @@ verification report.
 - `../_shared/persistence-contract.md`
 - `../_shared/thoth-mem-convention.md`
 
+## Persistence Mode
+
+The orchestrator passes the artifact store mode (`thoth-mem`, `openspec`, or
+`hybrid`). Follow `../_shared/persistence-contract.md` for read/write rules per
+mode.
+
+- `thoth-mem`: persist to thoth-mem only — do NOT create or modify
+  `openspec/` files.
+- `openspec`: write files only — do NOT call thoth-mem save tools.
+- `hybrid`: persist to both (default).
+
 ## When to Use
 
 - Implementation work is complete enough to validate
@@ -31,12 +42,16 @@ verification report.
 ## Workflow
 
 1. Read the shared conventions.
-2. Recover `spec`, `design`, and `tasks` with
-   `thoth_mem_mem_search` → `thoth_mem_mem_get_observation`.
-3. Optionally recover `apply-progress` if it exists and helps explain task
-   coverage.
+2. Recover `spec`, `design`, and `tasks` with the retrieval protocol in
+   `../_shared/persistence-contract.md`.
+3. Optionally recover `apply-progress` with the same mode-aware rules if it
+   exists and helps explain task coverage.
 4. Read the changed code and run the required verification commands.
-5. Create `openspec/changes/{change-name}/verify-report.md` with at least:
+5. If the selected mode includes OpenSpec, create
+   `openspec/changes/{change-name}/verify-report.md` with at least:
+
+   In `thoth-mem` mode, produce the same report content without creating the
+   file:
 
    ```md
    # Verification Report: {Change Title}
@@ -51,7 +66,7 @@ verification report.
 
 6. Build a compliance matrix that maps each Given/When/Then scenario to the test
    or execution evidence that proved it.
-7. Persist the report with:
+7. If the selected mode includes thoth-mem, persist the report with:
 
    ```text
    thoth_mem_mem_save(
@@ -81,5 +96,6 @@ Return:
 - Every spec scenario must appear in the compliance matrix.
 - Distinguish blockers from warnings clearly.
 - Do not fix issues inside this phase; report them.
-- Recover full artifacts with the thoth-mem two-step flow.
+- Recover full artifacts with the protocol in
+  `../_shared/persistence-contract.md`.
 - Never reference engram.

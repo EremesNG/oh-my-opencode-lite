@@ -14,6 +14,17 @@ Create the proposal artifact for a change and persist it with thoth-mem.
 - `../_shared/persistence-contract.md`
 - `../_shared/thoth-mem-convention.md`
 
+## Persistence Mode
+
+The orchestrator passes the artifact store mode (`thoth-mem`, `openspec`, or
+`hybrid`). Follow `../_shared/persistence-contract.md` for read/write rules per
+mode.
+
+- `thoth-mem`: persist to thoth-mem only — do NOT create or modify
+  `openspec/` files.
+- `openspec`: write files only — do NOT call thoth-mem save tools.
+- `hybrid`: persist to both (default).
+
 ## When to Use
 
 - A change needs its first `proposal.md`
@@ -28,12 +39,13 @@ Create the proposal artifact for a change and persist it with thoth-mem.
 ## Workflow
 
 1. Read the shared conventions before drafting.
-2. If the change already exists, recover the latest proposal with
-   `thoth_mem_mem_search` → `thoth_mem_mem_get_observation` and read the current
-   `openspec/changes/{change-name}/proposal.md` when filesystem artifacts exist.
+2. If the change already exists, recover the latest proposal using the
+   retrieval protocol in `../_shared/persistence-contract.md`.
 3. Review relevant main specs under `openspec/specs/` to avoid proposing
    contradictions.
-4. Write `openspec/changes/{change-name}/proposal.md` using this shape:
+4. If the selected mode includes OpenSpec, write
+   `openspec/changes/{change-name}/proposal.md` using this shape. In
+   `thoth-mem` mode, produce the same content without creating the file:
 
    ```md
    # Proposal: {Change Title}
@@ -49,7 +61,7 @@ Create the proposal artifact for a change and persist it with thoth-mem.
    ## Success Criteria
    ```
 
-5. Persist the full proposal with:
+5. If the selected mode includes thoth-mem, persist the full proposal with:
 
    ```text
    thoth_mem_mem_save(
@@ -82,4 +94,4 @@ Return a short report with:
 - Always include rollback guidance and explicit out-of-scope items.
 - Never reference engram.
 - Never rely on a `thoth_mem_mem_search` preview without calling
-  `thoth_mem_mem_get_observation` when continuing existing work.
+  `thoth_mem_mem_get_observation` when the selected mode uses thoth-mem.
