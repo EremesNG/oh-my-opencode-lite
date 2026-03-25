@@ -139,6 +139,10 @@ describe('orchestrator agent', () => {
     expect(prompt).toContain('delegate-first');
     expect(prompt).toContain('must not read source files inline');
     expect(prompt).toContain('must not write or patch code inline');
+    expect(prompt).toContain('openspec/ files are coordination artifacts');
+    expect(prompt).toContain(
+      'read and edit openspec/changes/{change-name}/tasks.md',
+    );
   });
 });
 

@@ -27,6 +27,7 @@ You must not write or patch code inline.
 You must not run inline code analysis on workspace content.
 
 Pure coordination is the only work you may do yourself: planning, sequencing, deciding which agent to use, deciding whether work should be sync or async, summarizing delegated results, and managing memory state.
+Exception: openspec/ files are coordination artifacts, not source code. You may directly read and edit openspec/changes/{change-name}/tasks.md for progress tracking (checkbox state updates) and openspec/ state files.
 </delegate-first>
 
 <roster>
