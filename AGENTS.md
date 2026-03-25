@@ -4,8 +4,8 @@
 
 **oh-my-opencode-lite** is an OpenCode plugin for delegate-first agent
 orchestration. It provides a seven-agent roster, async background delegation,
-disk-persisted delegation results, thoth-mem integration, and bundled SDD
-skills.
+disk-persisted delegation results, thoth-mem integration, bundled SDD
+skills, and a brainstorming clarification gate for ambiguous work.
 
 ## Commands
 
@@ -131,10 +131,51 @@ State management:
 - SDD artifacts persist through **thoth-mem** with deterministic
   `topic_key`s.
 - Format: `sdd/{change-name}/{artifact}`
-- Common keys: `proposal`, `spec`, `design`, `tasks`, `apply-progress`,
+- Common keys: `proposal`, `spec`, `design`, `design-brief`, `tasks`, `apply-progress`,
   `verify-report`, `archive-report`
 - Search exact topic keys first; use filesystem OpenSpec artifacts as fallback
   only when the mode includes repo files.
+
+## Brainstorming / Clarification Gate
+
+Ambiguous or substantial work starts with the bundled `brainstorming` skill.
+The clarification gate hook detects ambiguity via keyword matching and scope
+signal heuristics, nudging the orchestrator to explore before implementing.
+
+Brainstorming produces an approved direction and routes into:
+- direct implementation for trivial work (1-2 files)
+- accelerated SDD (`propose -> tasks`) for medium work (3-7 files)
+- full SDD (`propose -> spec -> design -> tasks`) for complex work (8+ files)
+
+### Artifact Store Policy
+
+Before starting SDD, the user chooses a persistence mode:
+
+| Mode | Write targets | Token cost | Use when |
+| --- | --- | --- | --- |
+| `thoth-mem` | Memory only | Low | Quick iterations, no repo files |
+| `openspec` | Files only | Medium | Visible, reviewable artifacts |
+| `hybrid` | Both | High | Maximum durability (default) |
+
+### Oracle Plan Review Loop
+
+After SDD tasks are generated, the orchestrator offers a plan review:
+- Dispatch oracle with `plan-reviewer` skill
+- If `[REJECT]`: fix max 3 blocking issues, re-dispatch
+- Repeat until `[OKAY]`
+- Then proceed to execution
+
+### Task Progress Tracking
+
+During execution, the orchestrator owns progress tracking via the
+`executing-plans` skill. The orchestrator updates task state in real time:
+- `- [ ]` Pending
+- `- [~]` In progress
+- `- [x]` Completed
+- `- [-]` Skipped (with reason)
+
+Execution sub-agents report structured results back to the orchestrator. They do
+not update task checkboxes themselves.
 
 ## Thoth Persistent Memory Protocol
 
@@ -204,10 +245,14 @@ oh-my-opencode-lite/
 │   ├── config/
 │   ├── delegation/
 │   ├── hooks/
+│   │   └── clarification-gate/
 │   ├── mcp/
 │   ├── skills/
 │   │   ├── _shared/
+│   │   ├── brainstorming/
 │   │   ├── cartography/
+│   │   ├── executing-plans/
+│   │   ├── plan-reviewer/
 │   │   ├── sdd-propose/
 │   │   ├── sdd-spec/
 │   │   ├── sdd-design/
