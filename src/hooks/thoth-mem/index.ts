@@ -166,7 +166,7 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
 
       output.context.push(FIRST_ACTION_INSTRUCTION);
 
-      const memoryContext = await thoth.memContext();
+      const memoryContext = await thoth.memContext(input.sessionID);
       if (memoryContext) {
         output.context.push(memoryContext);
       }

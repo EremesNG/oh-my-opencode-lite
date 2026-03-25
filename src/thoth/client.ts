@@ -35,7 +35,7 @@ export interface CreateThothClientOptions {
 
 export interface ThothClient {
   readonly enabled: boolean;
-  memContext(limit?: number): Promise<string | null>;
+  memContext(sessionId?: string, limit?: number): Promise<string | null>;
   memSessionStart(sessionId: string): Promise<boolean>;
   memSessionSummary(sessionId: string, content: string): Promise<boolean>;
   memSavePrompt(sessionId: string, content: string): Promise<boolean>;
@@ -87,12 +87,16 @@ class StoreBackedThothClient implements ThothClient {
     this.timeoutMs = options.timeoutMs ?? DEFAULT_THOTH_TIMEOUT_MS;
   }
 
-  async memContext(limit = 10): Promise<string | null> {
-    const result = await this.callTool('mem_context', {
+  async memContext(sessionId?: string, limit = 10): Promise<string | null> {
+    const args: Record<string, unknown> = {
       project: this.options.project,
       scope: 'project',
       limit,
-    });
+    };
+    if (sessionId) {
+      args.session_id = sessionId;
+    }
+    const result = await this.callTool('mem_context', args);
 
     return normalizeStringResult(result);
   }

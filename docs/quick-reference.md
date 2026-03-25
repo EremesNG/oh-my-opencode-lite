@@ -1,82 +1,73 @@
 # Quick Reference Guide
 
-Complete reference for oh-my-opencode-lite configuration and capabilities.
+Fast reference for oh-my-opencode-lite configuration, workflow, skills, and MCP
+integration.
 
 ## Table of Contents
 
+- [Agent Roster](#agent-roster)
 - [Presets](#presets)
-- [Skills](#skills)
-  - [Cartography](#cartography)
+- [Bundled Skills](#bundled-skills)
+- [Recommended External Skills](#recommended-external-skills)
+- [Clarification Gate](#clarification-gate)
+- [SDD Pipeline](#sdd-pipeline)
+- [Artifact Store Policy](#artifact-store-policy)
 - [MCP Servers](#mcp-servers)
-- [Tools & Capabilities](#tools--capabilities)
-- [Configuration](#configuration)
+- [Background Tasks](#background-tasks)
+- [Tmux Integration](#tmux-integration)
+- [Prompt Overriding](#prompt-overriding)
+- [Key Configuration Fields](#key-configuration-fields)
 
 ---
 
+## Agent Roster
+
+| Agent | Role | Mode | Dispatch |
+| --- | --- | --- | --- |
+| `orchestrator` | Root coordinator and memory owner | primary, non-mutating | sync coordinator |
+| `explorer` | Local repository discovery | read-only | async via `background_task` |
+| `librarian` | External docs and example lookup | read-only | async via `background_task` |
+| `oracle` | Diagnosis, review, architecture, plan review | read-only | sync via `task` |
+| `designer` | UX/UI implementation and browser verification | write-capable | sync via `task` |
+| `quick` | Narrow implementation work | write-capable | sync via `task` |
+| `deep` | Thorough multi-file implementation and verification | write-capable | sync via `task` |
+
+The project is delegate-first: discovery and research go to specialists, while
+the `orchestrator` keeps root-session state and durable memory.
+
 ## Presets
 
-The default installer generates an OpenAI preset. To use alternative providers (Kimi, GitHub Copilot, ZAI Coding Plan), see **[Provider Configurations](provider-configurations.md)** for step-by-step instructions and full config examples.
-
-### Switching Presets
-
-**Method 1: Edit Config File**
-
-Edit `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc`) and change the `preset` field:
-
-```json
-{
-  "preset": "openai"
-}
-```
-
-**Method 2: Environment Variable**
-
-Set the environment variable before running OpenCode:
-
-```bash
-export OH_MY_OPENCODE_LITE_PRESET=openai
-opencode
-```
-
-The environment variable takes precedence over the config file.
-
-### OpenAI Preset (Default)
-
-Uses OpenAI models exclusively:
+The installer generates an OpenAI preset by default. Presets map models and
+variants to agents.
 
 ```json
 {
   "preset": "openai",
   "presets": {
     "openai": {
-      "orchestrator": { "model": "openai/gpt-5.4", "skills": ["*"], "mcps": ["websearch"] },
-      "oracle": { "model": "openai/gpt-5.4", "variant": "high", "skills": [], "mcps": [] },
-      "librarian": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
-      "explorer": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [] },
-      "designer": { "model": "openai/gpt-5.4-mini", "variant": "medium", "skills": ["agent-browser"], "mcps": [] },
-      "fixer": { "model": "openai/gpt-5.4-mini", "variant": "low", "skills": [], "mcps": [] }
+      "orchestrator": { "model": "openai/gpt-5.4" },
+      "oracle": { "model": "openai/gpt-5.4", "variant": "high" },
+      "librarian": { "model": "openai/gpt-5.4-mini", "variant": "low" },
+      "explorer": { "model": "openai/gpt-5.4-mini", "variant": "low" },
+      "designer": { "model": "openai/gpt-5.4-mini", "variant": "medium" },
+      "quick": { "model": "openai/gpt-5.4-mini", "variant": "low" },
+      "deep": { "model": "openai/gpt-5.4", "variant": "high" }
     }
   }
 }
 ```
 
-### Other Providers
+Switch presets with either:
 
-For Kimi, GitHub Copilot, and ZAI Coding Plan presets, see **[Provider Configurations](provider-configurations.md)**.
+- the `preset` field in config
+- `OH_MY_OPENCODE_LITE_PRESET` in the environment
+
+For provider-specific examples, see
+[Provider Configurations](provider-configurations.md).
 
 ### Fallback / Failover
 
-The plugin can fail over from one model to the next when a prompt times out or errors. This is the runtime fallback path used by the background task manager; it is separate from your preset selection.
-
-**How it works:**
-
-- Each agent can have a fallback chain under `fallback.chains.<agent>`
-- The active prompt uses the agent's configured model first
-- If that model fails, the manager aborts the session, waits briefly, and tries the next model in the chain
-- Duplicate model IDs are ignored, so the same model is not retried twice
-- If fallback is disabled, the task runs with no failover timeout
-
-**Minimal example:**
+Runtime failover is configured separately from presets:
 
 ```jsonc
 {
@@ -89,383 +80,273 @@ The plugin can fail over from one model to the next when a prompt times out or e
         "openai/gpt-5.4",
         "anthropic/claude-sonnet-4-6",
         "google/gemini-3.1-pro"
+      ],
+      "deep": [
+        "openai/gpt-5.4",
+        "github-copilot/claude-opus-4.6"
       ]
     }
   }
 }
 ```
 
-**Important notes:**
+Available chain keys are:
 
-- Fallback models must use the `provider/model` format
-- Chains are per agent (`orchestrator`, `oracle`, `designer`, `explorer`, `librarian`, `fixer`)
-- If an agent has no configured chain, only its primary model is used
-- This is documented here because it is easy to miss in the config file
+- `orchestrator`
+- `oracle`
+- `designer`
+- `explorer`
+- `librarian`
+- `quick`
+- `deep`
 
----
+## Bundled Skills
 
-## Skills
+Bundled skills are copied from `src/skills/` into the OpenCode skills directory
+when skills are installed.
 
-Skills are specialized capabilities provided by external agents and tools. Unlike MCPs which are servers, skills are prompt-based tool configurations installed via `npx skills add` during installation.
+### Brainstorming
 
-### Recommended Skills (via npx)
+`brainstorming` clarifies ambiguous work before implementation.
 
-| Skill | Description | Assigned To |
-|-------|-------------|-------------|
-| [`simplify`](#simplify) | YAGNI code simplification expert | `orchestrator` |
-| [`agent-browser`](#agent-browser) | High-performance browser automation | `designer` |
+Core phases:
 
-### Custom Skills (bundled in repo)
+1. Context gathering
+2. Interview
+3. Scope assessment
+4. Approach proposal
+5. User approval
+6. Handoff
 
-| Skill | Description | Assigned To |
-|-------|-------------|-------------|
-| [`cartography`](#cartography) | Repository understanding and hierarchical codemap generation | `orchestrator` |
+Use it when the work is open-ended, spans multiple parts of the system, or needs
+scope calibration before coding.
 
-### Simplify
+### SDD Pipeline Skills
 
-**The Minimalist's sacred truth: every line of code is a liability.**
+| Skill | Purpose |
+| --- | --- |
+| `sdd-propose` | Create or update `proposal.md` |
+| `sdd-spec` | Write OpenSpec delta specs with RFC 2119 requirements |
+| `sdd-design` | Produce `design.md` with technical decisions |
+| `sdd-tasks` | Generate phased `tasks.md` checklists |
+| `sdd-apply` | Execute assigned checklist items and report progress |
+| `sdd-verify` | Build verification and compliance reports |
+| `sdd-archive` | Merge verified deltas into main specs and archive the change |
 
-`simplify` is a specialized skill for complexity analysis and YAGNI enforcement. It identifies unnecessary abstractions and suggests minimal implementations.
+### Plan Reviewer
 
-### Agent Browser
+`plan-reviewer` is used after `sdd-tasks` to validate whether a task plan is
+actually executable.
 
-**External browser automation for visual verification and testing.**
+- Returns `[OKAY]` when the plan is executable
+- Returns `[REJECT]` only for real blockers
+- Limits rejections to at most 3 blocking issues
 
-`agent-browser` provides full high-performance browser automation capabilities. It allows agents to browse the web, interact with elements, and capture screenshots for visual state verification.
+### Executing-Plans
+
+`executing-plans` owns progress tracking during task execution.
+
+Recognized task states:
+
+- `- [ ]` pending
+- `- [~]` in progress
+- `- [x]` completed
+- `- [-]` skipped with reason
+
+The `orchestrator` updates task state; execution sub-agents report structured
+results back but do not edit checkboxes themselves.
 
 ### Cartography
 
-**Automated repository mapping through hierarchical codemaps.**
+`cartography` generates and updates hierarchical codemaps so agents can work
+from architectural summaries instead of re-reading everything.
 
-A dedicated guide (with screenshots) lives at: **[docs/cartography.md](cartography.md)**.
+See [Cartography](cartography.md).
 
-`cartography` empowers the Orchestrator to build and maintain a deep architectural understanding of any codebase. Instead of reading thousands of lines of code every time, agents refer to hierarchical `codemap.md` files that describe the *why* and *how* of each directory.
+## Recommended External Skills
 
-**How to use:**
+These are not bundled in `src/skills/`, but they pair well with the workflow.
 
-Just ask the **Orchestrator** to `run cartography`. It will automatically detect if it needs to initialize a new map or update an existing one.
+| Skill | Status | Typical use |
+| --- | --- | --- |
+| `simplify` | Installed by `--skills=yes` | Keep implementations lean |
+| `agent-browser` | Installed by `--skills=yes` | Browser automation for `designer` |
+| `test-driven-development` | Optional | Useful before `deep` implements fixes or features |
+| `systematic-debugging` | Optional | Useful for `oracle` and `deep` bug diagnosis |
 
-**Why it's useful:**
+## Clarification Gate
 
-- **Instant Onboarding:** Help agents (and humans) understand unfamiliar codebases in seconds.
-- **Efficient Context:** Agents only read architectural summaries, saving tokens and improving accuracy.
-- **Change Detection:** Only modified folders are re-analyzed, making updates fast and efficient.
-- **Timeless Documentation:** Focuses on high-level design patterns that don't get stale.
+The clarification gate is a hook at `src/hooks/clarification-gate/index.ts` that
+can inject a reminder for the `orchestrator` to run `brainstorming` before
+implementation.
 
-<details>
-<summary><b>Technical Details & Manual Control</b></summary>
+### Modes
 
-The skill uses a background Python engine (`cartographer.py`) to manage state and detect changes.
+| Mode | Behavior |
+| --- | --- |
+| `off` | Never inject |
+| `explicit-only` | Inject only when explicit planning keywords match |
+| `auto` | Inject on explicit keywords or enough scope signals |
+| `auto-for-planning` | Inject for explicit keywords, planning keywords plus scope, or hard-complexity threshold |
 
-**How it works under the hood:**
-
-1. **Initialize** - Orchestrator analyzes repo structure and runs `init` to create `.lite/cartography.json` (hashes) and empty templates.
-2. **Map** - Orchestrator spawns specialized **Explorer** sub-agents to fill codemaps with timeless architectural details (Responsibility, Design, Flow, Integration).
-3. **Update** - On subsequent runs, the engine detects changed files and only refreshes codemaps for affected folders.
-
-**Manual Commands:**
-
-```bash
-# Initialize mapping manually
-python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py init \
-  --root . \
-  --include "src/**/*.ts" \
-  --exclude "**/*.test.ts"
-
-# Check for changes since last map
-python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py changes --root .
-
-# Sync hashes after manual map updates
-python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py update --root .
-```
-</details>
-
-### Skills Assignment
-
-You can customize which skills each agent is allowed to use in `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc`).
-
-**Syntax:**
-
-| Syntax | Description | Example |
-|--------|-------------|---------|
-| `"*"` | All installed skills | `["*"]` |
-| `"!item"` | Exclude specific skill | `["*", "!agent-browser"]` |
-| Explicit list | Only listed skills | `["simplify"]` |
-| `"!*"` | Deny all skills | `["!*"]` |
-
-**Rules:**
-- `*` expands to all available skills
-- `!item` excludes specific skills
-- Conflicts (e.g., `["a", "!a"]`) → deny wins (principle of least privilege)
-- Empty list `[]` → no skills allowed
-
-**Example Configuration:**
-
-```json
-{
-  "presets": {
-    "my-preset": {
-      "orchestrator": {
-        "skills": ["*", "!agent-browser"]
-      },
-      "designer": {
-        "skills": ["agent-browser", "simplify"]
-      }
-    }
-  }
-}
-```
-
----
-
-## MCP Servers
-
-Built-in Model Context Protocol servers (enabled by default):
-
-| MCP | Purpose | URL |
-|-----|---------|-----|
-| `websearch` | Real-time web search via Exa AI | `https://mcp.exa.ai/mcp` |
-| `context7` | Official library documentation | `https://mcp.context7.com/mcp` |
-| `grep_app` | GitHub code search via grep.app | `https://mcp.grep.app` |
-
-### MCP Permissions
-
-Control which agents can access which MCP servers using per-agent allowlists:
-
-| Agent | Default MCPs |
-|-------|--------------|
-| `orchestrator` | `websearch` |
-| `designer` | none |
-| `oracle` | none |
-| `librarian` | `websearch`, `context7`, `grep_app` |
-| `explorer` | none |
-| `fixer` | none |
-
-### Configuration & Syntax
-
-You can configure MCP access in your plugin configuration file: `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc`).
-
-**Per-Agent Permissions**
-
-Control which agents can access which MCP servers using the `mcps` array in your preset. The syntax is the same as for skills:
-
-| Syntax | Description | Example |
-|--------|-------------|---------|
-| `"*"` | All MCPs | `["*"]` |
-| `"!item"` | Exclude specific MCP | `["*", "!context7"]` |
-| Explicit list | Only listed MCPs | `["websearch", "context7"]` |
-| `"!*"` | Deny all MCPs | `["!*"]` |
-
-**Rules:**
-- `*` expands to all available MCPs
-- `!item` excludes specific MCPs
-- Conflicts (e.g., `["a", "!a"]`) → deny wins
-- Empty list `[]` → no MCPs allowed
-
-**Example Configuration:**
-
-```json
-{
-  "presets": {
-    "my-preset": {
-      "orchestrator": {
-        "mcps": ["websearch"]
-      },
-      "librarian": {
-        "mcps": ["websearch", "context7", "grep_app"]
-      },
-      "oracle": {
-        "mcps": ["*", "!websearch"]
-      }
-    }
-  }
-}
-```
-
-**Global Disabling**
-
-You can disable specific MCP servers globally by adding them to the `disabled_mcps` array at the root of your config object.
-
----
-
-## Tools & Capabilities
-
-### Tmux Integration
-
-**Watch your agents work in real-time.** When the Orchestrator launches sub-agents or initiates background tasks, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
-
-#### Quick Setup
-
-1. **Enable tmux integration** in `oh-my-opencode-lite.json` (or `.jsonc`):
-
-   ```json
-   {
-     "tmux": {
-       "enabled": true,
-       "layout": "main-vertical",
-       "main_pane_size": 60
-     }
-   }
-   ```
-
-2. **Run OpenCode inside tmux**:
-    ```bash
-    tmux
-    opencode
-    ```
-
-#### Layout Options
-
-| Layout | Description |
-|--------|-------------|
-| `main-vertical` | Your session on the left (60%), agents stacked on the right |
-| `main-horizontal` | Your session on top (60%), agents stacked below |
-| `tiled` | All panes in equal-sized grid |
-| `even-horizontal` | All panes side by side |
-| `even-vertical` | All panes stacked vertically |
-
-> **Detailed Guide:** For complete tmux integration documentation, troubleshooting, and advanced usage, see [Tmux Integration](tmux-integration.md)
-
-### Background Tasks
-
-The plugin provides tools to manage asynchronous work:
-
-| Tool | Description |
-|------|-------------|
-| `background_task` | Launch an agent in a new session (`sync=true` blocks, `sync=false` runs in background) |
-| `background_output` | Fetch the result of a background task by ID |
-| `background_cancel` | Abort running tasks |
-
-### LSP Tools
-
-Language Server Protocol integration for code intelligence:
-
-| Tool | Description |
-|------|-------------|
-| `lsp_goto_definition` | Jump to symbol definition |
-| `lsp_find_references` | Find all usages of a symbol across the workspace |
-| `lsp_diagnostics` | Get errors/warnings from the language server |
-| `lsp_rename` | Rename a symbol across all files |
-
-> **Built-in LSP Servers:** OpenCode includes pre-configured LSP servers for 30+ languages (TypeScript, Python, Rust, Go, etc.). See the [official documentation](https://opencode.ai/docs/lsp/#built-in) for the full list and requirements.
-
-### Code Search Tools
-
-Fast code search and refactoring:
-
-| Tool | Description |
-|------|-------------|
-| `grep` | Fast content search using ripgrep |
-| `ast_grep_search` | AST-aware code pattern matching (25 languages) |
-| `ast_grep_replace` | AST-aware code refactoring with dry-run support |
-
-### Formatters
-
-OpenCode automatically formats files after they're written or edited using language-specific formatters.
-
-> **Built-in Formatters:** Includes support for Prettier, Biome, gofmt, rustfmt, ruff, and 20+ others. See the [official documentation](https://opencode.ai/docs/formatters/#built-in) for the complete list.
-
----
-
-## Configuration
-
-### Files You Edit
-
-| File | Purpose |
-|------|---------|
-| `~/.config/opencode/opencode.json` | OpenCode core settings |
-| `~/.config/opencode/oh-my-opencode-lite.json` or `.jsonc` | Plugin settings (agents, tmux, MCPs) |
-| `.opencode/oh-my-opencode-lite.json` or `.jsonc` | Project-local plugin overrides (optional) |
-
-> **💡 JSONC Support:** Configuration files support JSONC format (JSON with Comments). Use `.jsonc` extension to enable comments and trailing commas. If both `.jsonc` and `.json` exist, `.jsonc` takes precedence.
-
-### Prompt Overriding
-
-You can customize agent prompts by creating markdown files in `~/.config/opencode/oh-my-opencode-lite/`:
-
-- With no preset, prompt files are loaded directly from this directory.
-- With `preset` set (for example `test`), the plugin first checks `~/.config/opencode/oh-my-opencode-lite/{preset}/`, then falls back to the root prompt directory.
-
-| File | Purpose |
-|------|---------|
-| `{agent}.md` | Replaces the default prompt entirely |
-| `{agent}_append.md` | Appends to the default prompt |
-
-**Example:**
-
-```
-~/.config/opencode/oh-my-opencode-lite/
-  ├── test/
-  │   ├── orchestrator.md      # Preset-specific override (preferred)
-  │   └── explorer_append.md
-  ├── orchestrator.md          # Custom orchestrator prompt
-  ├── orchestrator_append.md   # Append to default orchestrator prompt
-  ├── explorer.md
-  ├── explorer_append.md
-  └── ...
-```
-
-**Usage:**
-
-- Create `{agent}.md` to completely replace an agent's default prompt
-- Create `{agent}_append.md` to add custom instructions to the default prompt
-- Both files can exist simultaneously - the replacement takes precedence
-- When `preset` is set, `{preset}/{agent}.md` and `{preset}/{agent}_append.md` are checked first
-- If neither file exists, the default prompt is used
-
-This allows you to fine-tune agent behavior without modifying the source code.
-
-### JSONC Format (JSON with Comments)
-
-The plugin supports **JSONC** format for configuration files, allowing you to:
-
-- Add single-line comments (`//`)
-- Add multi-line comments (`/* */`)
-- Use trailing commas in arrays and objects
-
-**File Priority:**
-1. `oh-my-opencode-lite.jsonc` (preferred if exists)
-2. `oh-my-opencode-lite.json` (fallback)
-
-**Example JSONC Configuration:**
+### Config Example
 
 ```jsonc
 {
-  // Use preset for development
-  "preset": "openai",
-
-  /* Presets definition - customize agent models here */
-  "presets": {
-    "openai": {
-      // Fast models for quick iteration
-      "oracle": { "model": "openai/gpt-5.4" },
-      "explorer": { "model": "openai/gpt-5.4-mini" },
-    },
-  },
-
-  "tmux": {
-    "enabled": true,  // Enable for monitoring
-    "layout": "main-vertical",
-  },
+  "clarificationGate": {
+    "mode": "auto",
+    "min_scope_signals": 2,
+    "hard_complex_signal_threshold": 3,
+    "explicit_keywords": ["brainstorm", "plan this", "architecture"],
+    "planning_keywords": ["feature", "implement", "refactor"]
+  }
 }
 ```
 
-### Plugin Config (`oh-my-opencode-lite.json` or `oh-my-opencode-lite.jsonc`)
+## SDD Pipeline
 
-The installer generates this file with the OpenAI preset by default. You can manually customize it to mix and match models from any provider. See [Provider Configurations](provider-configurations.md) for examples.
+Primary flow:
 
-#### Option Reference
+```text
+propose -> [spec || design] -> tasks -> apply -> verify -> archive
+```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `preset` | string | - | Name of the preset to use (e.g., `"openai"`, `"kimi"`) |
-| `presets` | object | - | Named preset configurations containing agent mappings |
-| `presets.<name>.<agent>.model` | string | - | Model ID for the agent (e.g., `"openai/gpt-5.4"`) |
-| `presets.<name>.<agent>.temperature` | number | - | Temperature setting (0-2) for the agent |
-| `presets.<name>.<agent>.variant` | string | - | Agent variant for reasoning effort (e.g., `"low"`, `"medium"`, `"high"`) |
-| `presets.<name>.<agent>.skills` | string[] | - | Array of skill names the agent can use (`"*"` for all, `"!item"` to exclude) |
-| `presets.<name>.<agent>.mcps` | string[] | - | Array of MCP names the agent can use (`"*"` for all, `"!item"` to exclude) |
-| `tmux.enabled` | boolean | `false` | Enable tmux pane spawning for sub-agents |
-| `tmux.layout` | string | `"main-vertical"` | Layout preset: `main-vertical`, `main-horizontal`, `tiled`, `even-horizontal`, `even-vertical` |
-| `tmux.main_pane_size` | number | `60` | Main pane size as percentage (20-80) |
-| `disabled_mcps` | string[] | `[]` | MCP server IDs to disable globally (e.g., `"websearch"`) |
+Common routing:
+
+- trivial work: direct implementation
+- medium work: accelerated SDD, typically `propose -> tasks`
+- complex work: full SDD pipeline
+
+Plan review happens after `sdd-tasks` and before execution. Progress tracking is
+handled through `executing-plans`.
+
+See [SDD Pipeline](sdd-pipeline.md) for the full workflow.
+
+## Artifact Store Policy
+
+Use `artifactStore.mode` to control where SDD artifacts persist.
+
+| Mode | Writes to | Best for |
+| --- | --- | --- |
+| `thoth-mem` | thoth memory only | Fast planning with no repo artifact files |
+| `openspec` | `openspec/` only | Reviewable spec files in the repository |
+| `hybrid` | both | Maximum durability and recovery |
+
+```json
+{
+  "artifactStore": {
+    "mode": "hybrid"
+  }
+}
+```
+
+Default mode is `hybrid`.
+
+## MCP Servers
+
+Built-in MCPs:
+
+| MCP | Purpose | Auth / runtime |
+| --- | --- | --- |
+| `websearch` | Exa-backed web search | Optional `EXA_API_KEY` |
+| `context7` | Official library documentation lookup | Optional `CONTEXT7_API_KEY` |
+| `grep_app` | Public GitHub code search | No auth required |
+| `thoth_mem` | Local persistent memory and SDD artifact storage | Local `npx -y thoth-mem@latest` |
+
+Disable any built-in MCP globally with `disabled_mcps`:
+
+```json
+{
+  "disabled_mcps": ["websearch"]
+}
+```
+
+## Background Tasks
+
+oh-my-opencode-lite uses OpenCode background task primitives for async
+specialists such as `explorer` and `librarian`.
+
+| Tool | Purpose |
+| --- | --- |
+| `background_task` | Launch a read-only specialist asynchronously |
+| `background_output` | Fetch or wait for a background result |
+| `background_cancel` | Cancel pending or running background work |
+
+Background delegation results are also persisted to disk so they can survive
+compaction and in-memory loss.
+
+## Tmux Integration
+
+Enable live pane spawning for delegated work:
+
+```json
+{
+  "tmux": {
+    "enabled": true,
+    "layout": "main-vertical",
+    "main_pane_size": 60
+  }
+}
+```
+
+Run OpenCode with a matching port:
+
+```bash
+tmux
+export OPENCODE_PORT=4096
+opencode --port 4096
+```
+
+See [Tmux Integration](tmux-integration.md).
+
+## Prompt Overriding
+
+Override or extend agent prompts from:
+
+```text
+~/.config/opencode/oh-my-opencode-lite/
+```
+
+Supported files:
+
+| File | Effect |
+| --- | --- |
+| `{agent}.md` | Replace the default prompt |
+| `{agent}_append.md` | Append to the default prompt |
+
+If `preset` is set, the loader checks the preset subdirectory first:
+
+```text
+~/.config/opencode/oh-my-opencode-lite/{preset}/
+```
+
+## Key Configuration Fields
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `preset` | string | unset | Selects a preset under `presets` |
+| `presets` | object | unset | Named agent model maps |
+| `presets.<name>.<agent>.model` | string or array | unset | Model ID or priority model array |
+| `presets.<name>.<agent>.variant` | string | unset | Reasoning effort hint |
+| `tmux.enabled` | boolean | `false` | Enables pane spawning |
+| `tmux.layout` | string | `main-vertical` | `main-horizontal`, `main-vertical`, `tiled`, `even-horizontal`, `even-vertical` |
+| `tmux.main_pane_size` | number | `60` | Main pane size percent |
+| `background.maxConcurrentStarts` | number | `10` | Parallel background launch limit |
+| `background.timeoutMs` | number | `300000` | Background task timeout |
+| `fallback.enabled` | boolean | `true` | Runtime model failover |
+| `fallback.timeoutMs` | number | `15000` | Timeout before trying next fallback |
+| `fallback.retryDelayMs` | number | `500` | Delay between failover attempts |
+| `delegation.storage_dir` | string | platform default | Delegation artifact location |
+| `delegation.timeout` | number | `900000` | Delegation timeout |
+| `thoth.command` | string[] | `['npx', '-y', 'thoth-mem@latest']` | Local thoth MCP command |
+| `thoth.data_dir` | string | unset | Custom thoth data directory |
+| `clarificationGate.mode` | string | `auto` | Clarification-gate strategy |
+| `artifactStore.mode` | string | `hybrid` | SDD artifact persistence target |
+| `disabled_mcps` | string[] | `[]` | Globally disable built-in MCPs |
+
+## Related Docs
+
+- [Installation Guide](installation.md)
+- [Provider Configurations](provider-configurations.md)
+- [SDD Pipeline](sdd-pipeline.md)
+- [Skills and MCPs](skills-and-mcps.md)

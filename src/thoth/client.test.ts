@@ -38,7 +38,7 @@ describe('createThothClient', () => {
     });
 
     await thoth.memSessionStart('root-session');
-    const context = await thoth.memContext(7);
+    const context = await thoth.memContext(undefined, 7);
 
     expect(context).toBe('memory block');
     expect(call.mock.calls[0]?.[0]).toMatchObject({
@@ -84,6 +84,34 @@ describe('createThothClient', () => {
         limit: 10,
       },
     });
+  });
+
+  test('passes session_id to memContext when provided', async () => {
+    const { client, call } = createStoreClient(() => ({
+      result: 'session context',
+    }));
+    const thoth = createThothClient({
+      client,
+      project: 'oh-my-opencode-lite',
+    });
+
+    const context = await thoth.memContext('test-session-123');
+
+    expect(context).toBe('session context');
+    expect(call).toHaveBeenCalledTimes(1);
+    expect(call.mock.calls[0]?.[0]).toMatchObject({
+      tool: 'thoth_mem_mem_context',
+      args: {
+        project: 'oh-my-opencode-lite',
+        scope: 'project',
+        limit: 10,
+        session_id: 'test-session-123',
+      },
+    });
+    expect(
+      (call.mock.calls[0]?.[0] as { sessionID?: string } | undefined)
+        ?.sessionID,
+    ).toBe('test-session-123');
   });
 
   test('surfaces unavailable thoth integration as disabled operations', async () => {
