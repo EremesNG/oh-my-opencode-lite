@@ -3,11 +3,7 @@ import type { PluginConfig } from '../config';
 import { SUBAGENT_NAMES } from '../config';
 import { createAgents, getAgentConfigs, isSubagent } from './index';
 
-type PermissionAction = 'allow' | 'ask' | 'deny';
-type PermissionRecord = Record<
-  string,
-  PermissionAction | Record<string, PermissionAction>
->;
+type PermissionRecord = Record<string, unknown>;
 
 function getAgentByName(
   name: string,
@@ -23,16 +19,6 @@ function getPermissionRecord(
   const permission = getAgentByName(name, config)?.config.permission;
   expect(permission).toBeDefined();
   return permission as PermissionRecord;
-}
-
-function getSkillPermissionRecord(
-  name: string,
-  config?: PluginConfig,
-): Record<string, PermissionAction> {
-  const skillPermission = getPermissionRecord(name, config).skill;
-  expect(skillPermission).toBeDefined();
-  expect(typeof skillPermission).toBe('object');
-  return skillPermission as Record<string, PermissionAction>;
 }
 
 describe('agent alias backward compatibility', () => {
@@ -197,72 +183,10 @@ describe('per-model variant in array config', () => {
   });
 });
 
-describe('skill permissions', () => {
-  test('orchestrator gets wildcard and cartography skills allowed by default', () => {
-    const skillPerm = getSkillPermissionRecord('orchestrator');
-    expect(skillPerm['*']).toBe('allow');
-    expect(skillPerm.cartography).toBe('allow');
-  });
-
-  test('explorer gets cartography skill allowed by default', () => {
-    expect(getSkillPermissionRecord('explorer').cartography).toBe('allow');
-  });
-
-  test('oracle gets requesting-code-review skill allowed by default', () => {
-    expect(getSkillPermissionRecord('oracle')['requesting-code-review']).toBe(
-      'allow',
-    );
-  });
-
-  test('designer gets agent-browser skill allowed by default', () => {
-    expect(getSkillPermissionRecord('designer')['agent-browser']).toBe('allow');
-  });
-});
-
-describe('tool restriction defaults', () => {
-  test('orchestrator can delegate but cannot use workspace tools inline', () => {
-    const permission = getPermissionRecord('orchestrator');
-    expect(permission.task).toBe('allow');
-    expect(permission.background_task).toBe('allow');
-    expect(permission.read).toBe('deny');
-    expect(permission.write).toBe('deny');
-    expect(permission.edit).toBe('deny');
-    expect(permission.bash).toBe('deny');
-    expect(permission.ast_grep_search).toBe('deny');
-    expect(permission.lsp_diagnostics).toBe('deny');
-  });
-
-  test('explorer is background-only and read-only by default', () => {
-    const permission = getPermissionRecord('explorer');
-    expect(permission.task).toBe('deny');
-    expect(permission.background_task).toBe('deny');
-    expect(permission.read).toBe('allow');
-    expect(permission.glob).toBe('allow');
-    expect(permission.grep).toBe('allow');
-    expect(permission.ast_grep_search).toBe('allow');
-    expect(permission.write).toBe('deny');
-    expect(permission.edit).toBe('deny');
-  });
-
-  test('oracle is synchronous and read-only by default', () => {
-    const permission = getPermissionRecord('oracle');
-    expect(permission.task).toBe('deny');
-    expect(permission.background_task).toBe('deny');
-    expect(permission.read).toBe('allow');
-    expect(permission.lsp_goto_definition).toBe('allow');
-    expect(permission.write).toBe('deny');
-    expect(permission.edit).toBe('deny');
-  });
-
-  test('designer, quick, and deep are write-capable leaf agents by default', () => {
-    for (const agentName of ['designer', 'quick', 'deep']) {
-      const permission = getPermissionRecord(agentName);
-      expect(permission.task).toBe('deny');
-      expect(permission.background_task).toBe('deny');
-      expect(permission.read).toBe('allow');
-      expect(permission.write).toBe('allow');
-      expect(permission.edit).toBe('allow');
-      expect(permission.bash).toBe('allow');
+describe('question permission defaults', () => {
+  test('all agents set question permission to allow', () => {
+    for (const agent of createAgents()) {
+      expect(getPermissionRecord(agent.name).question).toBe('allow');
     }
   });
 });
@@ -371,15 +295,11 @@ describe('getAgentConfigs', () => {
     expect(configs.deep.description).toBeDefined();
   });
 
-  test('uses updated default MCP assignments', () => {
+  test('does not include per-agent MCP assignments', () => {
     const configs = getAgentConfigs();
-    expect(configs.orchestrator.mcps).toEqual(['thoth_mem']);
-    expect(configs.librarian.mcps).toEqual([
-      'websearch',
-      'context7',
-      'grep_app',
-    ]);
-    expect(configs.quick.mcps).toEqual([]);
-    expect(configs.deep.mcps).toEqual([]);
+    expect('mcps' in configs.orchestrator).toBe(false);
+    expect('mcps' in configs.librarian).toBe(false);
+    expect('mcps' in configs.quick).toBe(false);
+    expect('mcps' in configs.deep).toBe(false);
   });
 });

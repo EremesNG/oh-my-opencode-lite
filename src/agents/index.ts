@@ -1,5 +1,4 @@
 import type { AgentConfig as SDKAgentConfig } from '@opencode-ai/sdk/v2';
-import { getSkillPermissionsForAgent } from '../cli/skills';
 import {
   type AgentOverrideConfig,
   DEFAULT_MODELS,
@@ -8,7 +7,6 @@ import {
   type PluginConfig,
   SUBAGENT_NAMES,
 } from '../config';
-import { getAgentMcpList } from '../config/agent-mcps';
 
 import { createDeepAgent } from './deep';
 import { createDesignerAgent } from './designer';
@@ -25,113 +23,6 @@ type AgentFactory = (
   customPrompt?: string,
   customAppendPrompt?: string,
 ) => AgentDefinition;
-
-type PermissionAction = 'ask' | 'allow' | 'deny';
-type SkillPermissionMap = Record<string, PermissionAction>;
-type PermissionMap = Record<
-  string,
-  PermissionAction | SkillPermissionMap | undefined
->;
-
-const ORCHESTRATOR_TOOL_PERMISSIONS: PermissionMap = {
-  task: 'allow',
-  background_task: 'allow',
-  read: 'deny',
-  write: 'deny',
-  edit: 'deny',
-  bash: 'deny',
-  glob: 'deny',
-  grep: 'deny',
-  apply_patch: 'deny',
-  ast_grep_search: 'deny',
-  ast_grep_replace: 'deny',
-  lsp_goto_definition: 'deny',
-  lsp_find_references: 'deny',
-  lsp_diagnostics: 'deny',
-  lsp_rename: 'deny',
-};
-
-const EXPLORER_TOOL_PERMISSIONS: PermissionMap = {
-  task: 'deny',
-  background_task: 'deny',
-  read: 'allow',
-  glob: 'allow',
-  grep: 'allow',
-  ast_grep_search: 'allow',
-  ast_grep_replace: 'deny',
-  lsp_goto_definition: 'allow',
-  lsp_find_references: 'allow',
-  lsp_diagnostics: 'allow',
-  lsp_rename: 'deny',
-  write: 'deny',
-  edit: 'deny',
-  bash: 'deny',
-  apply_patch: 'deny',
-};
-
-const LIBRARIAN_TOOL_PERMISSIONS: PermissionMap = {
-  task: 'deny',
-  background_task: 'deny',
-  read: 'allow',
-  glob: 'allow',
-  grep: 'allow',
-  write: 'deny',
-  edit: 'deny',
-  bash: 'deny',
-  apply_patch: 'deny',
-  ast_grep_search: 'deny',
-  ast_grep_replace: 'deny',
-  lsp_goto_definition: 'deny',
-  lsp_find_references: 'deny',
-  lsp_diagnostics: 'deny',
-  lsp_rename: 'deny',
-};
-
-const ORACLE_TOOL_PERMISSIONS: PermissionMap = {
-  task: 'deny',
-  background_task: 'deny',
-  read: 'allow',
-  glob: 'allow',
-  grep: 'allow',
-  ast_grep_search: 'allow',
-  ast_grep_replace: 'deny',
-  lsp_goto_definition: 'allow',
-  lsp_find_references: 'allow',
-  lsp_diagnostics: 'allow',
-  lsp_rename: 'deny',
-  write: 'deny',
-  edit: 'deny',
-  bash: 'deny',
-  apply_patch: 'deny',
-};
-
-const WRITE_AGENT_TOOL_PERMISSIONS: PermissionMap = {
-  task: 'deny',
-  background_task: 'deny',
-  read: 'allow',
-  glob: 'allow',
-  grep: 'allow',
-  write: 'allow',
-  edit: 'allow',
-  bash: 'allow',
-  apply_patch: 'allow',
-  ast_grep_search: 'allow',
-  ast_grep_replace: 'allow',
-  lsp_goto_definition: 'allow',
-  lsp_find_references: 'allow',
-  lsp_diagnostics: 'allow',
-  lsp_rename: 'allow',
-};
-
-const DEFAULT_TOOL_PERMISSIONS: Record<string, PermissionMap> = {
-  orchestrator: ORCHESTRATOR_TOOL_PERMISSIONS,
-  explorer: EXPLORER_TOOL_PERMISSIONS,
-  librarian: LIBRARIAN_TOOL_PERMISSIONS,
-  oracle: ORACLE_TOOL_PERMISSIONS,
-  designer: WRITE_AGENT_TOOL_PERMISSIONS,
-  quick: WRITE_AGENT_TOOL_PERMISSIONS,
-  deep: WRITE_AGENT_TOOL_PERMISSIONS,
-};
 
 function normalizeModelArray(
   model: Array<string | { id: string; variant?: string }>,
@@ -163,29 +54,10 @@ function applyOverrides(
   }
 }
 
-function applyDefaultPermissions(
-  agent: AgentDefinition,
-  configuredSkills?: string[],
-): void {
-  const existing = (agent.config.permission ?? {}) as PermissionMap;
-  const skillPermissions = getSkillPermissionsForAgent(
-    agent.name,
-    configuredSkills,
-  );
-  const toolPermissions = DEFAULT_TOOL_PERMISSIONS[agent.name] ?? {};
-  const existingSkillPermissions =
-    typeof existing.skill === 'object' && existing.skill
-      ? (existing.skill as SkillPermissionMap)
-      : {};
-
+function applyQuestionPermission(agent: AgentDefinition): void {
   agent.config.permission = {
-    ...toolPermissions,
-    ...existing,
+    ...((agent.config.permission ?? {}) as Record<string, unknown>),
     question: 'allow',
-    skill: {
-      ...existingSkillPermissions,
-      ...skillPermissions,
-    },
   } as SDKAgentConfig['permission'];
 }
 
@@ -221,7 +93,7 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
     if (override) {
       applyOverrides(agent, override);
     }
-    applyDefaultPermissions(agent, override?.skills);
+    applyQuestionPermission(agent);
     return agent;
   });
 
@@ -233,25 +105,24 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
     orchestratorPrompts.appendPrompt,
   );
 
-  applyDefaultPermissions(orchestrator, orchestratorOverride?.skills);
   if (orchestratorOverride) {
     applyOverrides(orchestrator, orchestratorOverride);
   }
+  applyQuestionPermission(orchestrator);
 
   return [orchestrator, ...allSubAgents];
 }
 
 export function getAgentConfigs(
   config?: PluginConfig,
-): Record<string, SDKAgentConfig & { mcps?: string[] }> {
+): Record<string, SDKAgentConfig> {
   const agents = createAgents(config);
 
   return Object.fromEntries(
     agents.map((agent) => {
-      const sdkConfig: SDKAgentConfig & { mcps?: string[] } = {
+      const sdkConfig: SDKAgentConfig = {
         ...agent.config,
         description: agent.description,
-        mcps: getAgentMcpList(agent.name, config),
       };
 
       if (isSubagent(agent.name)) {
