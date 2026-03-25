@@ -8,6 +8,7 @@ import { DelegationManager } from './delegation';
 import {
   createAutoUpdateCheckerHook,
   createChatHeadersHook,
+  createClarificationGateHook,
   createDelegateTaskRetryHook,
   createJsonErrorRecoveryHook,
   createPhaseReminderHook,
@@ -134,6 +135,11 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
 
   // Initialize phase reminder hook for workflow compliance
   const phaseReminderHook = createPhaseReminderHook();
+
+  // Initialize clarification gate hook for ambiguous planning requests
+  const clarificationGateHook = createClarificationGateHook({
+    clarificationGate: config.clarificationGate,
+  });
 
   // Initialize post-read nudge hook
   const postReadNudgeHook = createPostReadNudgeHook();
@@ -388,8 +394,35 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
       }
     },
 
-    'experimental.chat.messages.transform':
-      phaseReminderHook['experimental.chat.messages.transform'],
+    'experimental.chat.messages.transform': async (input, output) => {
+      await phaseReminderHook['experimental.chat.messages.transform'](
+        input as Record<string, never>,
+        output as {
+          messages: Array<{
+            info: { role: string; agent?: string; sessionID?: string };
+            parts: Array<{
+              type: string;
+              text?: string;
+              [key: string]: unknown;
+            }>;
+          }>;
+        },
+      );
+
+      await clarificationGateHook['experimental.chat.messages.transform'](
+        input as Record<string, never>,
+        output as {
+          messages: Array<{
+            info: { role: string; agent?: string; sessionID?: string };
+            parts: Array<{
+              type: string;
+              text?: string;
+              [key: string]: unknown;
+            }>;
+          }>;
+        },
+      );
+    },
 
     'experimental.session.compacting': async (input, output) => {
       if (thothMemHook['experimental.session.compacting']) {

@@ -115,8 +115,9 @@ function deepMerge<T extends Record<string, unknown>>(
  *
  * JSONC format is preferred over JSON (allows comments and trailing commas).
  * Project config takes precedence over user config. Nested objects (agents,
- * tmux, background, fallback, thoth, delegation) are deep-merged, while
- * top-level arrays are replaced entirely by project config.
+ * tmux, background, fallback, thoth, delegation, clarificationGate,
+ * artifactStore) are deep-merged, while top-level arrays are replaced entirely
+ * by project config.
  *
  * @param directory - Project directory to search for .opencode config
  * @returns Merged plugin configuration (empty object if no configs found)
@@ -151,6 +152,14 @@ export function loadPluginConfig(directory: string): PluginConfig {
       fallback: deepMerge(config.fallback, projectConfig.fallback),
       thoth: deepMerge(config.thoth, projectConfig.thoth),
       delegation: deepMerge(config.delegation, projectConfig.delegation),
+      clarificationGate: deepMerge(
+        config.clarificationGate,
+        projectConfig.clarificationGate,
+      ),
+      artifactStore: deepMerge(
+        config.artifactStore,
+        projectConfig.artifactStore,
+      ),
     };
   }
 

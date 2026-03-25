@@ -1,6 +1,7 @@
 export type { AutoUpdateCheckerOptions } from './auto-update-checker';
 export { createAutoUpdateCheckerHook } from './auto-update-checker';
 export { createChatHeadersHook } from './chat-headers';
+export { createClarificationGateHook } from './clarification-gate';
 export { createDelegateTaskRetryHook } from './delegate-task-retry';
 export {
   ForegroundFallbackManager,
