@@ -22,13 +22,13 @@ From a repo root (or with an explicit `--root`):
 
 ```bash
 # Initialize mapping
-python3 cartographer.py init --root /repo --include "src/**/*.ts" --exclude "node_modules/**"
+python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py init --root /repo --include "src/**/*.ts" --exclude "node_modules/**"
 
 # Check what changed
-python3 cartographer.py changes --root /repo
+python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py changes --root /repo
 
 # Update hashes
-python3 cartographer.py update --root /repo
+python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py update --root /repo
 ```
 
 ## Outputs
