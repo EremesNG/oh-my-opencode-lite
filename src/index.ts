@@ -15,6 +15,7 @@ import {
   createPostReadNudgeHook,
   createThothMemHook,
   ForegroundFallbackManager,
+  syncSkillsOnStartup,
 } from './hooks';
 import { createBuiltinMcps } from './mcp';
 import { createThothClient } from './thoth';
@@ -86,6 +87,13 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     rawTmuxConfig: config.tmux,
     directory: ctx.directory,
   });
+
+  try {
+    syncSkillsOnStartup();
+  } catch (error) {
+    console.error('[plugin] Failed to sync bundled skills on startup');
+    log('[plugin] Skill sync failed during initialization', error);
+  }
 
   // Start background tmux check if enabled
   if (tmuxConfig.enabled) {
