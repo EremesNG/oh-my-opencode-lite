@@ -122,7 +122,7 @@ safety, and verification remain straightforward.
       <br>
       <b>Recommended:</b>
       <br>
-      <code>google/gemini-3-flash-preview</code> · <code>openai/gpt-5-codex-mini</code> · <code>anthropic/claude-haiku-4-5</code>
+      <code>Grok Code Fast</code> · <code>openai/gpt-5.4-nano</code> · <code>anthropic/claude-haiku-4-5</code>
     </td>
     <td width="33%" valign="top">
       <img src="img/librarian.png" width="100%" alt="Librarian">
@@ -139,7 +139,7 @@ safety, and verification remain straightforward.
       <br>
       <b>Recommended:</b>
       <br>
-      <code>openai/gpt-5.4-mini</code> · <code>anthropic/claude-sonnet-4-6</code> · <code>google/gemini-3-flash-preview</code>
+      <code>openai/gpt-5.4</code> · <code>anthropic/claude-sonnet-4-6</code> · <code>google/gemini-3.1-pro-preview</code>
     </td>
     <td width="33%" valign="top">
       <img src="img/oracle.png" width="100%" alt="Oracle">
@@ -156,7 +156,7 @@ safety, and verification remain straightforward.
       <br>
       <b>Recommended:</b>
       <br>
-      <code>openai/gpt-5.4</code> · <code>anthropic/claude-opus-4-6</code> · <code>kimi-for-coding/k2p5</code>
+      <code>openai/gpt-5.4</code> · <code>anthropic/claude-opus-4-6</code> · <code>opencode-go/glm-5</code>
     </td>
   </tr>
   <tr>
@@ -175,7 +175,7 @@ safety, and verification remain straightforward.
       <br>
       <b>Recommended:</b>
       <br>
-      <code>google/gemini-3.1-pro-preview</code> · <code>anthropic/claude-sonnet-4-6</code> · <code>openai/gpt-5.2-codex</code>
+      <code>google/gemini-3.1-pro-preview</code> · <code>opencode-go/glm-5</code> · <code>kimi-for-coding/k2p5</code>
     </td>
     <td width="33%" valign="top">
       <img src="img/quick.png" width="100%" alt="Quick">
@@ -192,7 +192,7 @@ safety, and verification remain straightforward.
       <br>
       <b>Recommended:</b>
       <br>
-      <code>kimi-for-coding/k2p5</code> · <code>openai/gpt-5-codex-mini</code> · <code>anthropic/claude-haiku-4-5</code>
+      <code>openai/gpt-5.4-mini</code> · <code>anthropic/claude-haiku-4-5</code> · <code>google/gemini-3-flash-preview</code>
     </td>
     <td width="33%" valign="top">
       <img src="img/deep.png" width="100%" alt="Deep">
@@ -209,7 +209,7 @@ safety, and verification remain straightforward.
       <br>
       <b>Recommended:</b>
       <br>
-      <code>openai/gpt-5.4</code> · <code>anthropic/claude-opus-4-6</code> · <code>openai/gpt-5.3-codex</code>
+      <code>openai/gpt-5.4</code> · <code>anthropic/claude-opus-4-6</code> · <code>google/gemini-3.1-pro-preview</code>
     </td>
   </tr>
 </table>
