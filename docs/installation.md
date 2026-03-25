@@ -13,6 +13,11 @@ Complete installation instructions for oh-my-opencode-lite.
 
 ## For Humans
 
+### Prerequisites
+
+- [OpenCode](https://opencode.ai/docs)
+- [Bun](https://bun.sh)
+
 ### Quick Install
 
 Run the interactive installer:
@@ -27,55 +32,85 @@ Or use non-interactive mode:
 bunx oh-my-opencode-lite@latest install --no-tui --tmux=no --skills=yes
 ```
 
+### What the Installer Sets Up
+
+The installer generates an OpenAI-based config by default and prepares the
+delegate-first seven-agent roster for OpenCode.
+
+When skills are enabled, it also installs or copies:
+
+- Bundled `brainstorming`
+- Bundled `cartography`
+- Bundled `plan-reviewer`
+- Bundled `executing-plans`
+- Bundled SDD pipeline skills:
+  `sdd-propose`, `sdd-spec`, `sdd-design`, `sdd-tasks`, `sdd-apply`,
+  `sdd-verify`, `sdd-archive`
+- Recommended external skills such as `simplify` and `agent-browser`
+
+In other words, brainstorming and the SDD pipeline are included as part of the
+standard oh-my-opencode-lite workflow rather than something you assemble by
+hand later.
+
 ### Configuration Options
 
-The installer supports the following options:
-
 | Option | Description |
-|--------|-------------|
-| `--tmux=yes|no` | Enable tmux integration (yes/no) |
-| `--skills=yes|no` | Install recommended skills (yes/no) |
-| `--no-tui` | Non-interactive mode |
+| --- | --- |
+| `--tmux=yes|no` | Enable tmux integration |
+| `--skills=yes|no` | Install recommended external skills and bundled repo skills |
+| `--no-tui` | Run without the interactive installer UI |
 | `--dry-run` | Simulate install without writing files |
-| `--reset` | Force overwrite of existing configuration |
+| `--reset` | Overwrite an existing generated configuration |
 
 ### Non-Destructive Behavior
 
-By default, the installer is non-destructive. If an `oh-my-opencode-lite.json` configuration file already exists, the installer will **not** overwrite it. Instead, it will display a message:
+By default, the installer is non-destructive. If an
+`oh-my-opencode-lite.json` configuration file already exists, the installer does
+not overwrite it.
 
-```
-ℹ Configuration already exists at ~/.config/opencode/oh-my-opencode-lite.json. Use --reset to overwrite.
-```
-
-To force overwrite of your existing configuration, use the `--reset` flag:
+To force overwrite of your existing configuration, use `--reset`:
 
 ```bash
 bunx oh-my-opencode-lite@latest install --reset
 ```
 
-**Note:** When using `--reset`, the installer creates a `.bak` backup file before overwriting, so your previous configuration is preserved.
+The installer creates a `.bak` backup before overwriting.
 
 ### After Installation
-
-The installer generates an OpenAI configuration by default (using `gpt-5.4` and `gpt-5-codex` models). To use alternative providers like Kimi, GitHub Copilot, or ZAI Coding Plan, see **[Provider Configurations](provider-configurations.md)** for step-by-step instructions.
 
 Authenticate with your provider:
 
 ```bash
 opencode auth login
-# Select your provider → Complete OAuth flow
 ```
 
-Once authenticated, run OpenCode and `ping all agents` to verify all agents respond.
+Then start OpenCode and verify the roster:
 
-> **💡 Tip: Models are fully customizable.** The installer sets sensible defaults, but you can assign *any* model to *any* agent. Edit `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc` for comments support) to override models, adjust reasoning effort, or disable agents entirely.
+```bash
+opencode
+```
+
+Inside OpenCode:
+
+```text
+ping all agents
+```
+
+The generated config uses sensible defaults, but you can assign different models
+to different agents by editing:
+
+- `~/.config/opencode/oh-my-opencode-lite.json`
+- or `~/.config/opencode/oh-my-opencode-lite.jsonc`
+
+For alternative providers and mixed-model presets, see
+[Provider Configurations](provider-configurations.md).
 
 ### Alternative: Ask Any Coding Agent
 
-Paste this into Claude Code, AmpCode, Cursor, or any coding agent:
+Paste this into Claude Code, Cursor, AmpCode, or any coding agent:
 
-```
-Install and configure by following the instructions here:
+```text
+Install and configure oh-my-opencode-lite by following the instructions here:
 https://raw.githubusercontent.com/EremesNG/oh-my-opencode-lite/refs/heads/master/README.md
 ```
 
@@ -83,7 +118,7 @@ https://raw.githubusercontent.com/EremesNG/oh-my-opencode-lite/refs/heads/master
 
 ## For LLM Agents
 
-If you're an LLM Agent helping set up oh-my-opencode-lite, follow these steps.
+If you are helping a user set up oh-my-opencode-lite, use this sequence.
 
 ### Step 1: Check OpenCode Installation
 
@@ -91,19 +126,18 @@ If you're an LLM Agent helping set up oh-my-opencode-lite, follow these steps.
 opencode --version
 ```
 
-If not installed, direct the user to https://opencode.ai/docs first.
+If OpenCode is not installed, direct the user to https://opencode.ai/docs.
 
 ### Step 2: Run the Installer
-
-The installer generates an OpenAI configuration by default:
 
 ```bash
 bunx oh-my-opencode-lite@latest install --no-tui --tmux=no --skills=yes
 ```
 
-**Examples:**
+Examples:
+
 ```bash
-# Interactive install (asks about tmux and skills)
+# Interactive install
 bunx oh-my-opencode-lite@latest install
 
 # Non-interactive with tmux and skills
@@ -116,33 +150,31 @@ bunx oh-my-opencode-lite@latest install --no-tui --tmux=no --skills=no
 bunx oh-my-opencode-lite@latest install --reset
 ```
 
-The installer automatically:
-- Adds the plugin to `~/.config/opencode/opencode.json`
-- Disables default OpenCode agents
-- Generates agent model mappings in `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc`)
+With skills enabled, the install includes the brainstorming skill, the bundled
+SDD pipeline, `plan-reviewer`, `executing-plans`, and cartography in addition to
+recommended external skills.
 
-### Step 3: Authenticate with Providers
+### Step 3: Ask the User to Authenticate
 
-Ask user to run the following command. Don't run it yourself, it requires user interaction.
+Do not run this yourself if user interaction is required:
 
 ```bash
 opencode auth login
-# Select your provider and complete OAuth flow
 ```
 
-### Step 4: Verify Installation
-
-Ask the user to:
+### Step 4: Ask the User to Verify Installation
 
 1. Start OpenCode: `opencode`
 2. Run: `ping all agents`
 
-Verify all agents respond successfully.
+All seven agents should respond.
 
-**Crucial Advice for the User:**
-- They can easily assign **different models to different agents** by editing `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc`).
-- If they want to add a different provider later (Kimi, GitHub Copilot, ZAI), they can update this file manually. See **[Provider Configurations](provider-configurations.md)** for examples.
-- Read the generated `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc`) file to understand the current configuration.
+### Step 5: Point the User to Follow-Up Docs
+
+- [Provider Configurations](provider-configurations.md)
+- [Quick Reference](quick-reference.md)
+- [SDD Pipeline](sdd-pipeline.md)
+- [Skills and MCPs](skills-and-mcps.md)
 
 ---
 
@@ -150,75 +182,49 @@ Verify all agents respond successfully.
 
 ### Installer Fails
 
-Check the expected config format:
+Check the installer options:
+
 ```bash
 bunx oh-my-opencode-lite@latest install --help
 ```
 
-Then manually create the config files at:
-- `~/.config/opencode/oh-my-opencode-lite.json` (or `.jsonc`)
-
 ### Configuration Already Exists
 
-If the installer reports that the configuration already exists, you have two options:
+If the installer reports that a config already exists, either keep it or reset
+it:
 
-1. **Keep existing config**: The installer will skip the configuration step and continue with other operations (like adding the plugin or installing skills).
-
-2. **Reset configuration**: Use `--reset` to overwrite:
-   ```bash
-   bunx oh-my-opencode-lite@latest install --reset
-   ```
-   A `.bak` backup file will be created automatically.
+```bash
+bunx oh-my-opencode-lite@latest install --reset
+```
 
 ### Agents Not Responding
 
-1. Check your authentication:
+1. Check auth status:
+
    ```bash
    opencode auth status
    ```
 
-2. Verify your config file exists and is valid:
-   ```bash
-   cat ~/.config/opencode/oh-my-opencode-lite.json
-   ```
+2. Verify the plugin config exists:
 
-3. Check that your provider is configured in `~/.config/opencode/opencode.json`
+   - `~/.config/opencode/oh-my-opencode-lite.json`
+   - `~/.config/opencode/oh-my-opencode-lite.jsonc`
 
-### Authentication Issues
-
-If providers are not working:
-
-1. Check your authentication status:
-   ```bash
-   opencode auth status
-   ```
-
-2. Re-authenticate if needed:
-   ```bash
-   opencode auth login
-   ```
-
-3. Verify your config file has the correct provider configuration:
-   ```bash
-   cat ~/.config/opencode/oh-my-opencode-lite.json
-   ```
+3. Confirm the provider is configured in OpenCode.
 
 ### Editor Validation
 
-Add a `$schema` reference to your config for autocomplete and inline validation:
+Add a `$schema` reference for autocomplete and inline validation:
 
 ```jsonc
 {
-  "$schema": "https://unpkg.com/oh-my-opencode-lite@latest/oh-my-opencode-lite.schema.json",
-  // your config...
+  "$schema": "https://unpkg.com/oh-my-opencode-lite@latest/oh-my-opencode-lite.schema.json"
 }
 ```
 
-Works in VS Code, Neovim (with `jsonls`), and any editor that supports JSON Schema. Catches typos and wrong nesting immediately.
-
 ### Tmux Integration Not Working
 
-Make sure you're running OpenCode with the `--port` flag and the port matches your `OPENCODE_PORT` environment variable:
+Run OpenCode with a port that matches `OPENCODE_PORT`:
 
 ```bash
 tmux
@@ -226,23 +232,24 @@ export OPENCODE_PORT=4096
 opencode --port 4096
 ```
 
-See the [Tmux Integration Guide](tmux-integration.md) for more details.
+See the [Tmux Integration Guide](tmux-integration.md) for more detail.
 
 ---
 
 ## Uninstallation
 
-1. **Remove the plugin from your OpenCode config**:
+1. Remove `"oh-my-opencode-lite"` from the `plugin` array in
+   `~/.config/opencode/opencode.json` (or `opencode.jsonc`)
+2. Optionally remove generated config files:
 
-   Edit `~/.config/opencode/opencode.json` and remove `"oh-my-opencode-lite"` from the `plugin` array.
-
-2. **Remove configuration files (optional)**:
    ```bash
    rm -f ~/.config/opencode/oh-my-opencode-lite.json
+   rm -f ~/.config/opencode/oh-my-opencode-lite.jsonc
    rm -f ~/.config/opencode/oh-my-opencode-lite.json.bak
    ```
 
-3. **Remove skills (optional)**:
+3. Optionally remove recommended external skills:
+
    ```bash
    npx skills remove simplify
    npx skills remove agent-browser
