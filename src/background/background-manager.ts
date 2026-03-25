@@ -16,7 +16,7 @@
 import type { PluginInput } from '@opencode-ai/plugin';
 import type { BackgroundTaskConfig, PluginConfig } from '../config';
 import {
-  FALLBACK_FAILOVER_TIMEOUT_MS,
+  BACKGROUND_TASK_TIMEOUT_MS,
   SUBAGENT_DELEGATION_RULES,
 } from '../config';
 import type { TmuxConfig } from '../config/schema';
@@ -126,6 +126,7 @@ export interface BackgroundTask {
   startedAt: Date; // Task creation timestamp
   completedAt?: Date; // Task completion/failure timestamp
   prompt: string; // Initial prompt
+  _abortingForTimeout?: boolean; // Internal flag to suppress timeout-abort idle races
 }
 
 /**
@@ -172,8 +173,9 @@ export class BackgroundTaskManager {
     this.tmuxEnabled = tmuxConfig?.enabled ?? false;
     this.config = config;
     this.delegationManager = delegationManager;
-    this.backgroundConfig = config?.background ?? {
-      maxConcurrentStarts: 10,
+    this.backgroundConfig = {
+      maxConcurrentStarts: config?.background?.maxConcurrentStarts ?? 10,
+      timeoutMs: config?.background?.timeoutMs ?? BACKGROUND_TASK_TIMEOUT_MS,
     };
     this.maxConcurrentStarts = this.backgroundConfig.maxConcurrentStarts;
   }
@@ -336,6 +338,7 @@ export class BackgroundTaskManager {
       startedAt: new Date(),
       config: {
         maxConcurrentStarts: this.maxConcurrentStarts,
+        timeoutMs: this.backgroundConfig.timeoutMs,
       },
       parentSessionId: opts.parentSessionId,
       prompt: opts.prompt,
@@ -443,6 +446,7 @@ export class BackgroundTaskManager {
   private async promptWithTimeout(
     args: Parameters<OpencodeClient['session']['prompt']>[0],
     timeoutMs: number,
+    onTimeout?: () => void,
   ): Promise<void> {
     // No timeout when fallback disabled (timeoutMs = 0)
     if (timeoutMs <= 0) {
@@ -465,6 +469,7 @@ export class BackgroundTaskManager {
         promptPromise,
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => {
+            onTimeout?.();
             // Abort the running prompt so the session is no longer busy.
             // Without this, session.prompt() continues running server-side
             // and blocks subsequent fallback attempts on the same session.
@@ -557,9 +562,9 @@ export class BackgroundTaskManager {
       } as PromptBody) as unknown as PromptBody;
 
       const fallbackEnabled = this.config?.fallback?.enabled ?? true;
-      const timeoutMs = fallbackEnabled
-        ? (this.config?.fallback?.timeoutMs ?? FALLBACK_FAILOVER_TIMEOUT_MS)
-        : 0; // 0 = no timeout when fallback disabled
+      const backgroundTimeoutMs =
+        this.backgroundConfig.timeoutMs ?? BACKGROUND_TASK_TIMEOUT_MS;
+      const timeoutMs = fallbackEnabled ? backgroundTimeoutMs : 0;
       const retryDelayMs = this.config?.fallback?.retryDelayMs ?? 500;
       const chain = fallbackEnabled
         ? this.resolveFallbackChain(task.agent)
@@ -594,6 +599,7 @@ export class BackgroundTaskManager {
             );
           }
 
+          task._abortingForTimeout = false;
           await this.promptWithTimeout(
             {
               path: { id: sessionId },
@@ -601,12 +607,22 @@ export class BackgroundTaskManager {
               query: promptQuery,
             },
             timeoutMs,
+            () => {
+              task._abortingForTimeout = true;
+            },
           );
+          task._abortingForTimeout = false;
 
           succeeded = true;
           break;
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
+          const timedOut = msg.includes('Prompt timed out after');
+
+          if (!timedOut) {
+            task._abortingForTimeout = false;
+          }
+
           errors.push(`${modelLabel}: ${msg}`);
           log(`[background-manager] model failed: ${modelLabel} — ${msg}`, {
             taskId: task.id,
@@ -666,6 +682,7 @@ export class BackgroundTaskManager {
 
     const task = this.tasks.get(taskId);
     if (!task || task.status !== 'running') return;
+    if (task._abortingForTimeout) return;
 
     // Check if session is idle (completed)
     if (event.properties?.status?.type === 'idle') {
@@ -781,6 +798,7 @@ export class BackgroundTaskManager {
 
     task.status = status;
     task.completedAt = new Date();
+    task._abortingForTimeout = false;
 
     if (status === 'completed') {
       task.result = resultOrError;
