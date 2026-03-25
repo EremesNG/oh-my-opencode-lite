@@ -31,8 +31,8 @@ describe('createThothClient', () => {
     }));
     const thoth = createThothClient({
       client,
-      project: 'omolite',
-      directory: '/workspace/omolite',
+      project: 'oh-my-opencode-lite',
+      directory: '/workspace/oh-my-opencode-lite',
       timeoutMs: 23456,
       enabled: true,
     });
@@ -45,8 +45,8 @@ describe('createThothClient', () => {
       tool: 'thoth_mem_mem_session_start',
       args: {
         id: 'root-session',
-        project: 'omolite',
-        directory: '/workspace/omolite',
+        project: 'oh-my-opencode-lite',
+        directory: '/workspace/oh-my-opencode-lite',
       },
     });
     expect(
@@ -56,7 +56,7 @@ describe('createThothClient', () => {
     expect(call.mock.calls[1]?.[0]).toMatchObject({
       tool: 'thoth_mem_mem_context',
       args: {
-        project: 'omolite',
+        project: 'oh-my-opencode-lite',
         scope: 'project',
         limit: 7,
       },
@@ -69,7 +69,7 @@ describe('createThothClient', () => {
     }));
     const thoth = createThothClient({
       client,
-      project: 'omolite',
+      project: 'oh-my-opencode-lite',
     });
 
     const context = await thoth.memContext();
@@ -79,7 +79,7 @@ describe('createThothClient', () => {
     expect(call.mock.calls[0]?.[0]).toMatchObject({
       tool: 'thoth_mem_mem_context',
       args: {
-        project: 'omolite',
+        project: 'oh-my-opencode-lite',
         scope: 'project',
         limit: 10,
       },
@@ -89,7 +89,7 @@ describe('createThothClient', () => {
   test('surfaces unavailable thoth integration as disabled operations', async () => {
     const thothWithoutStore = createThothClient({
       client: {},
-      project: 'omolite',
+      project: 'oh-my-opencode-lite',
     });
     const thothThrowing = createThothClient({
       client: {
@@ -99,7 +99,7 @@ describe('createThothClient', () => {
           },
         },
       },
-      project: 'omolite',
+      project: 'oh-my-opencode-lite',
     });
 
     expect(await thothWithoutStore.memContext()).toBeNull();

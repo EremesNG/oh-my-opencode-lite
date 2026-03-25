@@ -118,7 +118,7 @@ describe('loadPluginConfig', () => {
       path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
       JSON.stringify({
         delegation: {
-          storage_dir: '/tmp/omolite-delegations',
+          storage_dir: '/tmp/oh-my-opencode-lite-delegations',
           timeout: 30000,
         },
       }),
@@ -126,7 +126,7 @@ describe('loadPluginConfig', () => {
 
     const config = loadPluginConfig(projectDir);
     expect(config.delegation).toEqual({
-      storage_dir: '/tmp/omolite-delegations',
+      storage_dir: '/tmp/oh-my-opencode-lite-delegations',
       timeout: 30000,
     });
   });
@@ -633,7 +633,7 @@ describe('deepMerge behavior', () => {
       path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
       JSON.stringify({
         delegation: {
-          storage_dir: '/tmp/omolite-delegations',
+          storage_dir: '/tmp/oh-my-opencode-lite-delegations',
         },
       }),
     );
@@ -641,7 +641,7 @@ describe('deepMerge behavior', () => {
     const config = loadPluginConfig(projectDir);
 
     expect((config as PluginConfig).delegation).toEqual({
-      storage_dir: '/tmp/omolite-delegations',
+      storage_dir: '/tmp/oh-my-opencode-lite-delegations',
       timeout: 900000,
     });
   });

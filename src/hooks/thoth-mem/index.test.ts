@@ -51,7 +51,7 @@ describe('createThothMemHook', () => {
     const client = createClient();
     const hook = createThothMemHook({
       client: client as never,
-      project: 'omolite',
+      project: 'oh-my-opencode-lite',
       enabled: true,
     });
 
@@ -78,7 +78,7 @@ describe('createThothMemHook', () => {
     const client = createClient();
     const hook = createThothMemHook({
       client: client as never,
-      project: 'omolite',
+      project: 'oh-my-opencode-lite',
       enabled: true,
     });
 
@@ -105,7 +105,7 @@ describe('createThothMemHook', () => {
     const client = createClient();
     const hook = createThothMemHook({
       client: client as never,
-      project: 'omolite',
+      project: 'oh-my-opencode-lite',
       enabled: true,
     });
 
@@ -141,7 +141,7 @@ describe('createThothMemHook', () => {
     const client = createClient();
     const hook = createThothMemHook({
       client: client as never,
-      project: 'omolite',
+      project: 'oh-my-opencode-lite',
       enabled: true,
     });
 
@@ -159,7 +159,7 @@ describe('createThothMemHook', () => {
     const client = createClient();
     const hook = createThothMemHook({
       client: client as never,
-      project: 'omolite',
+      project: 'oh-my-opencode-lite',
       enabled: true,
     });
 
