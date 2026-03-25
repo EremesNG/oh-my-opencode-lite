@@ -3,11 +3,20 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  rmSync,
   statSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getConfigDir } from './paths';
+import {
+  checkSkillsNeedUpdate,
+  computeSkillHash,
+  type SkillManifest,
+  type SkillUpdateEntry,
+  type SkillUpdateReason,
+  writeManifest,
+} from './skill-manifest';
 
 /**
  * A custom skill bundled in this repository.
@@ -102,6 +111,24 @@ export const CUSTOM_SKILLS: CustomSkill[] = [
   },
 ];
 
+export interface UpdatedCustomSkill {
+  skill: CustomSkill;
+  reasons: SkillUpdateReason[];
+}
+
+export interface FailedCustomSkill {
+  skill: CustomSkill;
+  reasons: SkillUpdateReason[];
+}
+
+export interface InstallCustomSkillsReport {
+  success: boolean;
+  updatedSkills: UpdatedCustomSkill[];
+  skippedSkills: CustomSkill[];
+  failedSkills: FailedCustomSkill[];
+  removedSkills: string[];
+}
+
 /**
  * Get the target directory for custom skills installation.
  */
@@ -148,6 +175,216 @@ function installSharedSkillAssets(packageRoot: string): boolean {
   return true;
 }
 
+function resolvePackageRoot(packageRoot?: string): string {
+  if (packageRoot) {
+    return packageRoot;
+  }
+
+  return fileURLToPath(new URL('../..', import.meta.url));
+}
+
+function installCustomSkillFiles(
+  skill: CustomSkill,
+  packageRoot: string,
+): boolean {
+  const sourcePath = join(packageRoot, skill.sourcePath);
+  const targetPath = join(getCustomSkillsDir(), skill.name);
+
+  if (!existsSync(sourcePath)) {
+    console.error(`Custom skill source not found: ${sourcePath}`);
+    return false;
+  }
+
+  copyDirRecursive(sourcePath, targetPath);
+  return true;
+}
+
+export function removeObsoleteSkills(removedSkillNames: string[]): string[] {
+  const removedSkills: string[] = [];
+
+  for (const skillName of removedSkillNames) {
+    const targetPath = join(getCustomSkillsDir(), skillName);
+
+    try {
+      console.log(`Removing obsolete bundled skill: ${skillName}`);
+      rmSync(targetPath, { recursive: true, force: true });
+      removedSkills.push(skillName);
+    } catch (error) {
+      console.warn(`Failed to remove obsolete bundled skill: ${skillName}`);
+      console.warn(error);
+    }
+  }
+
+  return removedSkills;
+}
+
+function buildManifest(
+  packageRoot: string,
+  updatedSkills: UpdatedCustomSkill[],
+  previousManifest: SkillManifest | null,
+  pluginVersion: string,
+  sharedHash: string,
+): SkillManifest {
+  const installedAt = new Date().toISOString();
+  const updatedSkillNames = new Set(
+    updatedSkills.map(({ skill }) => skill.name),
+  );
+  const skills = Object.fromEntries(
+    CUSTOM_SKILLS.map((skill) => {
+      const previousEntry = previousManifest?.skills[skill.name];
+      const nextInstalledAt = updatedSkillNames.has(skill.name)
+        ? installedAt
+        : (previousEntry?.installedAt ?? installedAt);
+
+      return [
+        skill.name,
+        {
+          hash: computeSkillHash(join(packageRoot, skill.sourcePath)),
+          installedAt: nextInstalledAt,
+        },
+      ];
+    }),
+  );
+
+  return {
+    pluginVersion,
+    sharedHash,
+    skills,
+  };
+}
+
+function pruneRemovedSkillsFromManifest(
+  manifest: SkillManifest,
+  removedSkills: string[],
+): SkillManifest {
+  const removedSkillNames = new Set(removedSkills);
+
+  return {
+    ...manifest,
+    skills: Object.fromEntries(
+      Object.entries(manifest.skills).filter(
+        ([skillName]) => !removedSkillNames.has(skillName),
+      ),
+    ),
+  };
+}
+
+export function installCustomSkills(
+  packageRoot = resolvePackageRoot(),
+): InstallCustomSkillsReport {
+  const updateCheck = checkSkillsNeedUpdate(packageRoot);
+
+  if (!updateCheck.needsUpdate) {
+    return {
+      success: true,
+      updatedSkills: [],
+      skippedSkills: [...CUSTOM_SKILLS],
+      failedSkills: [],
+      removedSkills: [],
+    };
+  }
+
+  const removedSkills = removeObsoleteSkills(updateCheck.removedSkills);
+
+  if (removedSkills.length > 0 && updateCheck.manifest) {
+    writeManifest(
+      pruneRemovedSkillsFromManifest(updateCheck.manifest, removedSkills),
+    );
+  }
+
+  if (updateCheck.skillsNeedingUpdate.length === 0) {
+    writeManifest(
+      buildManifest(
+        packageRoot,
+        [],
+        updateCheck.manifest,
+        updateCheck.pluginVersion,
+        updateCheck.sharedHash,
+      ),
+    );
+
+    return {
+      success: true,
+      updatedSkills: [],
+      skippedSkills: [...CUSTOM_SKILLS],
+      failedSkills: [],
+      removedSkills,
+    };
+  }
+
+  if (!installSharedSkillAssets(packageRoot)) {
+    return {
+      success: false,
+      updatedSkills: [],
+      skippedSkills: [],
+      failedSkills: updateCheck.skillsNeedingUpdate.map(
+        ({ skill, reasons }) => ({
+          skill,
+          reasons,
+        }),
+      ),
+      removedSkills,
+    };
+  }
+
+  const updatesBySkillName = new Map<string, SkillUpdateEntry>(
+    updateCheck.skillsNeedingUpdate.map((entry) => [entry.skill.name, entry]),
+  );
+  const updatedSkills: UpdatedCustomSkill[] = [];
+  const skippedSkills: CustomSkill[] = [];
+  const failedSkills: FailedCustomSkill[] = [];
+
+  for (const skill of CUSTOM_SKILLS) {
+    const pendingUpdate = updatesBySkillName.get(skill.name);
+
+    if (!pendingUpdate) {
+      skippedSkills.push(skill);
+      continue;
+    }
+
+    if (installCustomSkillFiles(skill, packageRoot)) {
+      updatedSkills.push({
+        skill,
+        reasons: pendingUpdate.reasons,
+      });
+      continue;
+    }
+
+    failedSkills.push({
+      skill,
+      reasons: pendingUpdate.reasons,
+    });
+  }
+
+  if (failedSkills.length > 0) {
+    return {
+      success: false,
+      updatedSkills,
+      skippedSkills,
+      failedSkills,
+      removedSkills,
+    };
+  }
+
+  writeManifest(
+    buildManifest(
+      packageRoot,
+      updatedSkills,
+      updateCheck.manifest,
+      updateCheck.pluginVersion,
+      updateCheck.sharedHash,
+    ),
+  );
+
+  return {
+    success: true,
+    updatedSkills,
+    skippedSkills,
+    failedSkills,
+    removedSkills,
+  };
+}
+
 /**
  * Install a custom skill by copying from src/skills/ to the OpenCode skills directory
  * @param skill - The custom skill to install
@@ -156,24 +393,13 @@ function installSharedSkillAssets(packageRoot: string): boolean {
  */
 export function installCustomSkill(skill: CustomSkill): boolean {
   try {
-    const packageRoot = fileURLToPath(new URL('../..', import.meta.url));
-    const sourcePath = join(packageRoot, skill.sourcePath);
-    const targetPath = join(getCustomSkillsDir(), skill.name);
+    const packageRoot = resolvePackageRoot();
 
     if (!installSharedSkillAssets(packageRoot)) {
       return false;
     }
 
-    // Validate source exists
-    if (!existsSync(sourcePath)) {
-      console.error(`Custom skill source not found: ${sourcePath}`);
-      return false;
-    }
-
-    // Copy skill directory
-    copyDirRecursive(sourcePath, targetPath);
-
-    return true;
+    return installCustomSkillFiles(skill, packageRoot);
   } catch (error) {
     console.error(`Failed to install custom skill: ${skill.name}`, error);
     return false;

@@ -9,7 +9,11 @@ import {
   isOpenCodeInstalled,
   writeLiteConfig,
 } from './config-manager';
-import { CUSTOM_SKILLS, installCustomSkill } from './custom-skills';
+import {
+  CUSTOM_SKILLS,
+  type InstallCustomSkillsReport,
+  installCustomSkills,
+} from './custom-skills';
 import { getExistingLiteConfigPath } from './paths';
 import { installSkill, RECOMMENDED_SKILLS } from './skills';
 import type { ConfigMergeResult, InstallArgs, InstallConfig } from './types';
@@ -56,6 +60,18 @@ function printError(message: string): void {
 
 function printInfo(message: string): void {
   console.log(`${SYMBOLS.info} ${message}`);
+}
+
+function formatCustomSkillReasons(report: InstallCustomSkillsReport): string {
+  if (report.updatedSkills.length === 0 && report.removedSkills.length === 0) {
+    return 'all bundled skills already up to date';
+  }
+
+  return `${report.updatedSkills.length} updated, ${report.removedSkills.length} removed, ${report.skippedSkills.length} unchanged`;
+}
+
+function formatSkillReasons(reasons: string[]): string {
+  return reasons.join(', ');
 }
 
 async function checkOpenCodeInstalled(): Promise<{
@@ -203,7 +219,7 @@ async function runInstall(config: InstallConfig): Promise<number> {
     }
   }
 
-  // Install custom skills if requested
+  // Install bundled custom skills
   if (config.installCustomSkills) {
     printStep(
       step++,
@@ -216,19 +232,34 @@ async function runInstall(config: InstallConfig): Promise<number> {
         printInfo(`  - ${skill.name}`);
       }
     } else {
-      let customSkillsInstalled = 0;
-      for (const skill of CUSTOM_SKILLS) {
-        printInfo(`Installing ${skill.name}...`);
-        if (installCustomSkill(skill)) {
-          printSuccess(`Installed: ${skill.name}`);
-          customSkillsInstalled++;
-        } else {
-          printInfo(`Skipped: ${skill.name} (already installed)`);
-        }
+      const report = installCustomSkills();
+
+      for (const updatedSkill of report.updatedSkills) {
+        printSuccess(
+          `Installed: ${updatedSkill.skill.name} (${formatSkillReasons(updatedSkill.reasons)})`,
+        );
       }
-      const totalCustom = CUSTOM_SKILLS.length;
+
+      for (const skippedSkill of report.skippedSkills) {
+        printInfo(`Up to date: ${skippedSkill.name}`);
+      }
+
+      for (const removedSkill of report.removedSkills) {
+        printInfo(`Removed obsolete skill: ${removedSkill}`);
+      }
+
+      for (const failedSkill of report.failedSkills) {
+        printError(
+          `Failed: ${failedSkill.skill.name} (${formatSkillReasons(failedSkill.reasons)})`,
+        );
+      }
+
+      if (!report.success) {
+        return 1;
+      }
+
       printSuccess(
-        `${customSkillsInstalled}/${totalCustom} custom skills processed`,
+        `Bundled skills processed: ${formatCustomSkillReasons(report)}`,
       );
     }
   }
@@ -270,14 +301,16 @@ async function runInstall(config: InstallConfig): Promise<number> {
   return 0;
 }
 
-export async function install(args: InstallArgs): Promise<number> {
-  const config: InstallConfig = {
+export function createInstallConfig(args: InstallArgs): InstallConfig {
+  return {
     hasTmux: args.tmux === 'yes',
     installSkills: args.skills === 'yes',
-    installCustomSkills: args.skills === 'yes',
+    installCustomSkills: true,
     dryRun: args.dryRun,
     reset: args.reset ?? false,
   };
+}
 
-  return runInstall(config);
+export async function install(args: InstallArgs): Promise<number> {
+  return runInstall(createInstallConfig(args));
 }

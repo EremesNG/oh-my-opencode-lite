@@ -35,7 +35,7 @@ Usage: bunx oh-my-opencode-lite install [OPTIONS]
 
 Options:
   --tmux=yes|no          Enable tmux integration (yes/no)
-  --skills=yes|no        Install recommended + bundled skills
+  --skills=yes|no        Install recommended external skills
   --no-tui               Non-interactive mode
   --dry-run              Simulate install without writing files
   --reset                Force overwrite of existing configuration
@@ -43,6 +43,9 @@ Options:
 
 oh-my-opencode-lite installs the seven-agent roster, thoth-mem defaults,
 delegation persistence, and bundled SDD skills for OpenCode.
+
+Bundled oh-my-opencode-lite skills are always installed.
+Use --skills=no to skip only recommended external skills.
 
 The generated config uses OpenAI by default.
 For alternative providers, see docs/provider-configurations.md.
