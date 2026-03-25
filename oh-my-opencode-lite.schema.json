@@ -274,18 +274,6 @@
             },
             "variant": {
               "type": "string"
-            },
-            "skills": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "mcps": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
             }
           }
         }
@@ -337,18 +325,6 @@
           },
           "variant": {
             "type": "string"
-          },
-          "skills": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "mcps": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         }
       }
