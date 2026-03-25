@@ -1,14 +1,20 @@
-import * as fs from 'node:fs';
-import * as os from 'node:os';
-import * as path from 'node:path';
+import { createRequire } from 'node:module';
 
-const logFile = path.join(os.tmpdir(), 'oh-my-opencode-lite.log');
+const require = createRequire(import.meta.url);
+
+function getLogFile(): string {
+  const os = require('node:os') as typeof import('node:os');
+  const path = require('node:path') as typeof import('node:path');
+
+  return path.join(os.tmpdir(), 'oh-my-opencode-lite.log');
+}
 
 export function log(message: string, data?: unknown): void {
   try {
+    const fs = require('node:fs') as typeof import('node:fs');
     const timestamp = new Date().toISOString();
     const logEntry = `[${timestamp}] ${message} ${data ? JSON.stringify(data) : ''}\n`;
-    fs.appendFileSync(logFile, logEntry);
+    fs.appendFileSync(getLogFile(), logEntry);
   } catch {
     // Silently ignore logging errors
   }
