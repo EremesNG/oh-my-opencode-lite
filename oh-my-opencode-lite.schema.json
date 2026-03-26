@@ -10,11 +10,7 @@
     },
     "scoringEngineVersion": {
       "type": "string",
-      "enum": [
-        "v1",
-        "v2-shadow",
-        "v2"
-      ]
+      "enum": ["v1", "v2-shadow", "v2"]
     },
     "balanceProviderUsage": {
       "type": "boolean"
@@ -42,12 +38,7 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": [
-            "primary",
-            "fallback1",
-            "fallback2",
-            "fallback3"
-          ]
+          "required": ["primary", "fallback1", "fallback2", "fallback3"]
         },
         "oracle": {
           "type": "object",
@@ -69,12 +60,7 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": [
-            "primary",
-            "fallback1",
-            "fallback2",
-            "fallback3"
-          ]
+          "required": ["primary", "fallback1", "fallback2", "fallback3"]
         },
         "designer": {
           "type": "object",
@@ -96,12 +82,7 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": [
-            "primary",
-            "fallback1",
-            "fallback2",
-            "fallback3"
-          ]
+          "required": ["primary", "fallback1", "fallback2", "fallback3"]
         },
         "explorer": {
           "type": "object",
@@ -123,12 +104,7 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": [
-            "primary",
-            "fallback1",
-            "fallback2",
-            "fallback3"
-          ]
+          "required": ["primary", "fallback1", "fallback2", "fallback3"]
         },
         "librarian": {
           "type": "object",
@@ -150,12 +126,7 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": [
-            "primary",
-            "fallback1",
-            "fallback2",
-            "fallback3"
-          ]
+          "required": ["primary", "fallback1", "fallback2", "fallback3"]
         },
         "quick": {
           "type": "object",
@@ -177,12 +148,7 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": [
-            "primary",
-            "fallback1",
-            "fallback2",
-            "fallback3"
-          ]
+          "required": ["primary", "fallback1", "fallback2", "fallback3"]
         },
         "deep": {
           "type": "object",
@@ -204,12 +170,7 @@
               "pattern": "^[^/\\s]+\\/[^\\s]+$"
             }
           },
-          "required": [
-            "primary",
-            "fallback1",
-            "fallback2",
-            "fallback3"
-          ]
+          "required": ["primary", "fallback1", "fallback2", "fallback3"]
         }
       },
       "required": [
@@ -258,9 +219,7 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "id"
-                        ]
+                        "required": ["id"]
                       }
                     ]
                   }
@@ -309,9 +268,7 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "id"
-                      ]
+                      "required": ["id"]
                     }
                   ]
                 }
@@ -502,12 +459,7 @@
         "mode": {
           "default": "auto",
           "type": "string",
-          "enum": [
-            "off",
-            "explicit-only",
-            "auto",
-            "auto-for-planning"
-          ]
+          "enum": ["off", "explicit-only", "auto", "auto-for-planning"]
         },
         "min_scope_signals": {
           "default": 2,
@@ -539,11 +491,7 @@
         "mode": {
           "default": "hybrid",
           "type": "string",
-          "enum": [
-            "thoth-mem",
-            "openspec",
-            "hybrid"
-          ]
+          "enum": ["thoth-mem", "openspec", "hybrid"]
         }
       }
     }
