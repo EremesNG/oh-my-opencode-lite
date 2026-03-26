@@ -1,4 +1,10 @@
-# oh-my-opencode-lite
+<div align="center">
+  <img src="img/team.png" alt="oh-my-opencode-lite agents" width="420">
+  <p><i>Seven specialized agents, one orchestrator — delegate any task to the right specialist and ship faster.</i></p>
+  <p><b>oh-my-opencode-lite</b> · Delegate-first orchestration · Thoth-mem persistence · Bundled SDD pipeline</p>
+</div>
+
+---
 
 Delegate-first OpenCode plugin with a seven-agent roster, root-session
 `thoth_mem` persistence, disk-backed delegation records, bundled brainstorming,
