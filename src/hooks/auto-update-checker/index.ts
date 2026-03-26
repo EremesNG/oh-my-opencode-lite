@@ -16,11 +16,13 @@ import type { AutoUpdateCheckerOptions } from './types';
  * Creates an OpenCode hook that checks for plugin updates when a new session is created.
  * @param ctx The plugin input context.
  * @param options Configuration options for the update checker.
+ * @param shell The BunShell instance for running commands.
  * @returns A hook object for the session.created event.
  */
 export function createAutoUpdateCheckerHook(
   ctx: PluginInput,
   options: AutoUpdateCheckerOptions = {},
+  shell: PluginInput['$'],
 ) {
   const { showStartupToast = true, autoUpdate = true } = options;
 
@@ -65,7 +67,7 @@ export function createAutoUpdateCheckerHook(
           );
         }
 
-        runBackgroundUpdateCheck(ctx, autoUpdate).catch((err) => {
+        runBackgroundUpdateCheck(ctx, shell, autoUpdate).catch((err) => {
           log('[auto-update-checker] Background update check failed:', err);
         });
       }, 0);
@@ -76,10 +78,12 @@ export function createAutoUpdateCheckerHook(
 /**
  * Orchestrates the version comparison and update process in the background.
  * @param ctx The plugin input context.
+ * @param shell The BunShell instance for running commands.
  * @param autoUpdate Whether to automatically install updates.
  */
 async function runBackgroundUpdateCheck(
   ctx: PluginInput,
+  shell: PluginInput['$'],
   autoUpdate: boolean,
 ): Promise<void> {
   const pluginInfo = findPluginEntry(ctx.directory);
@@ -153,7 +157,7 @@ async function runBackgroundUpdateCheck(
 
   invalidatePackage(PACKAGE_NAME);
 
-  const installSuccess = await runBunInstallSafe(ctx);
+  const installSuccess = await runBunInstallSafe(ctx, shell);
 
   if (installSuccess) {
     showToast(
@@ -179,35 +183,38 @@ async function runBackgroundUpdateCheck(
 }
 
 /**
- * Spawns a background process to run 'bun install'.
- * Includes a 60-second timeout to prevent stalling OpenCode.
+ * Runs 'bun install' using BunShell with a 60-second timeout.
+ * Includes a timeout to prevent stalling OpenCode.
  * @param ctx The plugin input context.
+ * @param shell The BunShell instance for running commands.
  * @returns True if the installation succeeded within the timeout.
  */
-async function runBunInstallSafe(ctx: PluginInput): Promise<boolean> {
+async function runBunInstallSafe(
+  ctx: PluginInput,
+  shell: PluginInput['$'],
+): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['bun', 'install'], {
-      cwd: ctx.directory,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
-
     const timeoutPromise = new Promise<'timeout'>((resolve) =>
       setTimeout(() => resolve('timeout'), 60_000),
     );
-    const exitPromise = proc.exited.then(() => 'completed' as const);
-    const result = await Promise.race([exitPromise, timeoutPromise]);
+
+    const installPromise = (async () => {
+      try {
+        await shell`cd ${ctx.directory} && bun install`;
+        return 'completed' as const;
+      } catch {
+        return 'failed' as const;
+      }
+    })();
+
+    const result = await Promise.race([installPromise, timeoutPromise]);
 
     if (result === 'timeout') {
-      try {
-        proc.kill();
-      } catch {
-        /* empty */
-      }
+      log('[auto-update-checker] bun install timed out after 60 seconds');
       return false;
     }
 
-    return proc.exitCode === 0;
+    return result === 'completed';
   } catch (err) {
     log('[auto-update-checker] bun install error:', err);
     return false;

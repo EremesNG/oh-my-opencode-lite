@@ -1,9 +1,90 @@
 import { describe, expect, test } from 'bun:test';
+import type { AgentConfig } from '@opencode-ai/sdk/v2';
 import type { PluginConfig } from '../config';
 import { SUBAGENT_NAMES } from '../config';
 import { createAgents, getAgentConfigs, isSubagent } from './index';
 
-type PermissionRecord = Record<string, unknown>;
+type PermissionRecord = Exclude<
+  NonNullable<AgentConfig['permission']>,
+  'allow' | 'ask' | 'deny'
+>;
+
+const EXPECTED_DEFAULT_PERMISSIONS: Record<
+  string,
+  NonNullable<AgentConfig['permission']>
+> = {
+  orchestrator: 'allow',
+  explorer: {
+    read: 'allow',
+    edit: 'deny',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    external_directory: 'allow',
+    question: 'allow',
+    skill: 'allow',
+    todowrite: 'deny',
+    task: 'deny',
+  },
+  librarian: {
+    read: 'allow',
+    edit: 'deny',
+    glob: 'allow',
+    grep: 'allow',
+    bash: 'allow',
+    external_directory: 'allow',
+    webfetch: 'allow',
+    websearch: 'allow',
+    codesearch: 'allow',
+    question: 'allow',
+    todowrite: 'deny',
+    task: 'deny',
+  },
+  oracle: {
+    read: 'allow',
+    edit: 'deny',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    external_directory: 'allow',
+    webfetch: 'allow',
+    websearch: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    question: 'allow',
+    skill: 'allow',
+    todowrite: 'deny',
+    task: 'deny',
+  },
+  designer: {
+    read: 'allow',
+    edit: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    question: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    skill: 'allow',
+  },
+  quick: {
+    read: 'allow',
+    edit: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    question: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+  },
+  deep: 'allow',
+};
 
 function getAgentByName(
   name: string,
@@ -12,12 +93,21 @@ function getAgentByName(
   return createAgents(config).find((agent) => agent.name === name);
 }
 
+function getPermission(
+  name: string,
+  config?: PluginConfig,
+): NonNullable<AgentConfig['permission']> {
+  const permission = getAgentConfigs(config)[name]?.permission;
+  expect(permission).toBeDefined();
+  return permission as NonNullable<AgentConfig['permission']>;
+}
+
 function getPermissionRecord(
   name: string,
   config?: PluginConfig,
 ): PermissionRecord {
-  const permission = getAgentByName(name, config)?.config.permission;
-  expect(permission).toBeDefined();
+  const permission = getPermission(name, config);
+  expect(typeof permission).toBe('object');
   return permission as PermissionRecord;
 }
 
@@ -83,8 +173,8 @@ describe('orchestrator agent', () => {
     expect(createAgents()[0]?.name).toBe('orchestrator');
   });
 
-  test('orchestrator has question permission set to allow', () => {
-    expect(getPermissionRecord('orchestrator').question).toBe('allow');
+  test('orchestrator has blanket allow permission', () => {
+    expect(getPermission('orchestrator')).toBe('allow');
   });
 
   test('orchestrator accepts overrides', () => {
@@ -190,8 +280,58 @@ describe('per-model variant in array config', () => {
 describe('question permission defaults', () => {
   test('all agents set question permission to allow', () => {
     for (const agent of createAgents()) {
-      expect(getPermissionRecord(agent.name).question).toBe('allow');
+      const permission = getPermission(agent.name);
+
+      if (permission === 'allow') {
+        expect(permission).toBe('allow');
+      } else if (typeof permission === 'object') {
+        expect(permission.question).toBe('allow');
+      } else {
+        throw new Error(
+          `Expected object or blanket allow permission for ${agent.name}`,
+        );
+      }
     }
+  });
+});
+
+describe('granular permission defaults', () => {
+  test('applies the built-in granular permission preset for each agent', () => {
+    for (const [agentName, expectedPermission] of Object.entries(
+      EXPECTED_DEFAULT_PERMISSIONS,
+    )) {
+      expect(getPermission(agentName)).toEqual(expectedPermission);
+    }
+  });
+
+  test('explicit permission overrides take precedence over built-in presets', () => {
+    const config = {
+      agents: {
+        explorer: {
+          permission: {
+            read: 'allow',
+            edit: 'allow',
+            question: 'deny',
+          },
+        },
+      },
+    } as unknown as PluginConfig;
+
+    expect(getAgentConfigs(config).explorer.permission).toEqual({
+      read: 'allow',
+      edit: 'allow',
+      question: 'deny',
+    });
+  });
+
+  test('read-only discovery agents allow external_directory access', () => {
+    expect(getPermissionRecord('explorer').external_directory).toBe('allow');
+    expect(getPermissionRecord('librarian').external_directory).toBe('allow');
+    expect(getPermissionRecord('oracle').external_directory).toBe('allow');
+  });
+
+  test('deep has blanket allow permission', () => {
+    expect(getPermission('deep')).toBe('allow');
   });
 });
 
@@ -255,6 +395,12 @@ describe('agent classification', () => {
       expect(configs[name].mode).toBe('subagent');
     }
   });
+
+  test('getAgentConfigs returns exactly the built-in seven-agent roster', () => {
+    expect(Object.keys(getAgentConfigs()).sort()).toEqual(
+      ['orchestrator', ...SUBAGENT_NAMES].sort(),
+    );
+  });
 });
 
 describe('createAgents', () => {
@@ -305,5 +451,89 @@ describe('getAgentConfigs', () => {
     expect('mcps' in configs.librarian).toBe(false);
     expect('mcps' in configs.quick).toBe(false);
     expect('mcps' in configs.deep).toBe(false);
+  });
+});
+
+describe('semantic color values', () => {
+  test('all agents have semantic color values', () => {
+    const agents = createAgents();
+    const colorMap: Record<string, string> = {
+      orchestrator: 'primary',
+      explorer: 'info',
+      librarian: 'info',
+      oracle: 'warning',
+      designer: 'accent',
+      quick: 'success',
+      deep: 'secondary',
+    };
+
+    for (const agent of agents) {
+      expect(agent.config.color).toBe(colorMap[agent.name]);
+    }
+  });
+
+  test('color values are valid semantic colors', () => {
+    const validColors = [
+      'primary',
+      'secondary',
+      'accent',
+      'success',
+      'warning',
+      'error',
+      'info',
+    ];
+    const agents = createAgents();
+
+    for (const agent of agents) {
+      const { color } = agent.config;
+      expect(color).toBeDefined();
+      if (!color) {
+        throw new Error(`Expected color for agent ${agent.name}`);
+      }
+      expect(validColors).toContain(color);
+    }
+  });
+});
+
+describe('steps field for bounded execution', () => {
+  test('write-capable agents have steps field', () => {
+    const designer = getAgentByName('designer');
+    const quick = getAgentByName('quick');
+    const deep = getAgentByName('deep');
+
+    expect(designer?.config.steps).toBeDefined();
+    expect(quick?.config.steps).toBeDefined();
+    expect(deep?.config.steps).toBeDefined();
+  });
+
+  test('orchestrator has steps field', () => {
+    const orchestrator = getAgentByName('orchestrator');
+    expect(orchestrator?.config.steps).toBeDefined();
+  });
+
+  test('steps values are reasonable bounds', () => {
+    const agents = createAgents();
+    const stepsMap: Record<string, number> = {
+      orchestrator: 100,
+      designer: 50,
+      quick: 30,
+      deep: 80,
+    };
+
+    for (const agent of agents) {
+      if (agent.name in stepsMap) {
+        expect(agent.config.steps).toBe(stepsMap[agent.name]);
+      }
+    }
+  });
+});
+
+describe('hidden field design decision', () => {
+  test('no agents are hidden from @ autocomplete', () => {
+    const agents = createAgents();
+
+    for (const agent of agents) {
+      expect(agent.config.hidden).toBeUndefined();
+    }
   });
 });

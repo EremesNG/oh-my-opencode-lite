@@ -14,6 +14,13 @@
  */
 
 import type { PluginInput } from '@opencode-ai/plugin';
+import type {
+  PermissionActionConfig,
+  PermissionConfig,
+  PermissionRuleConfig,
+  PermissionRuleset,
+  SessionCreateData,
+} from '@opencode-ai/sdk/v2';
 import type { BackgroundTaskConfig, PluginConfig } from '../config';
 import {
   BACKGROUND_TASK_TIMEOUT_MS,
@@ -31,15 +38,28 @@ import {
 } from '../utils';
 import { log } from '../utils/logger';
 
+type LegacyToolConfig = Record<string, boolean>;
+
 type PromptBody = {
   messageID?: string;
   model?: { providerID: string; modelID: string };
   agent?: string;
   noReply?: boolean;
   system?: string;
-  tools?: { [key: string]: boolean };
+  tools?: LegacyToolConfig;
   parts: Array<{ type: 'text'; text: string }>;
   variant?: string;
+  // The plugin client still exposes pre-v2 prompt typings, so we attach the
+  // v2 permission field locally and keep the legacy tools fallback below.
+  permission?: PermissionConfig;
+};
+
+type SessionCreateBody = NonNullable<SessionCreateData['body']>;
+
+type DelegationPermissionPayload = {
+  permission: PermissionConfig;
+  ruleset: PermissionRuleset;
+  legacyTools: LegacyToolConfig;
 };
 
 type OpencodeClient = PluginInput['client'];
@@ -55,6 +75,11 @@ export type BackgroundTaskStatus =
   | 'cancelled';
 
 const DEFAULT_DELEGATION_SUMMARY_LIMIT = 5;
+const ANY_PERMISSION_PATTERN = '*';
+const TASK_PERMISSION = 'task';
+const BACKGROUND_TASK_PERMISSION = 'background_task';
+const BACKGROUND_OUTPUT_PERMISSION = 'background_output';
+const BACKGROUND_CANCEL_PERMISSION = 'background_cancel';
 
 function generateFallbackTaskId(): string {
   return `bg_${Math.random().toString(36).substring(2, 10)}`;
@@ -146,6 +171,7 @@ export class BackgroundTaskManager {
   private agentBySessionId = new Map<string, string>();
   private client: OpencodeClient;
   private directory: string;
+  private worktreeDirectory: string;
   private tmuxEnabled: boolean;
   private config?: PluginConfig;
   private backgroundConfig: BackgroundTaskConfig;
@@ -167,9 +193,11 @@ export class BackgroundTaskManager {
     tmuxConfig?: TmuxConfig,
     config?: PluginConfig,
     delegationManager?: DelegationManager,
+    worktreeDirectory?: string,
   ) {
     this.client = ctx.client;
     this.directory = ctx.directory;
+    this.worktreeDirectory = worktreeDirectory ?? ctx.directory;
     this.tmuxEnabled = tmuxConfig?.enabled ?? false;
     this.config = config;
     this.delegationManager = delegationManager;
@@ -485,29 +513,108 @@ export class BackgroundTaskManager {
     }
   }
 
-  /**
-   * Calculate tool permissions for a spawned agent based on its own delegation rules.
-   * Agents that cannot delegate (leaf nodes) get delegation tools disabled entirely,
-   * preventing models from even seeing tools they can never use.
-   *
-   * @param agentName - The agent type being spawned
-   * @returns Tool permissions object with background_task and task enabled/disabled
-   */
-  private calculateToolPermissions(agentName: string): {
-    background_task: boolean;
-    task: boolean;
-  } {
-    const allowedSubagents = this.getSubagentRules(agentName);
-
-    // Leaf agents (no delegation rules) get tools hidden entirely
-    if (allowedSubagents.length === 0) {
-      return { background_task: false, task: false };
+  private createPatternPermission(
+    allowedPatterns: readonly string[],
+  ): PermissionRuleConfig {
+    if (allowedPatterns.length === 0) {
+      return 'deny';
     }
 
-    // Agent can delegate - enable the delegation tools
-    // The restriction of WHICH specific subagents are allowed is enforced
-    // by the background_task tool via isAgentAllowed()
-    return { background_task: true, task: true };
+    const permission: Record<string, PermissionActionConfig> =
+      Object.fromEntries(
+        allowedPatterns.map((pattern) => [pattern, 'allow' as const]),
+      );
+    permission[ANY_PERMISSION_PATTERN] = 'deny';
+    return permission;
+  }
+
+  private createPatternRuleset(
+    permission: string,
+    allowedPatterns: readonly string[],
+  ): PermissionRuleset {
+    if (allowedPatterns.length === 0) {
+      return [
+        {
+          permission,
+          pattern: ANY_PERMISSION_PATTERN,
+          action: 'deny',
+        },
+      ];
+    }
+
+    return [
+      ...allowedPatterns.map((pattern) => ({
+        permission,
+        pattern,
+        action: 'allow' as const,
+      })),
+      {
+        permission,
+        pattern: ANY_PERMISSION_PATTERN,
+        action: 'deny' as const,
+      },
+    ];
+  }
+
+  /**
+   * Calculate delegation permissions for a spawned agent based on its own
+   * delegation rules.
+   *
+   * The permission payload is the primary control for child sessions. Legacy
+   * `tools` flags remain as a backward-compatible fallback because the plugin
+   * client still exposes pre-v2 prompt typings.
+   *
+   * @param agentName - The agent type being spawned
+   * @returns Permission payload plus legacy tool toggles for compatibility
+   */
+  private calculateDelegationPermissions(
+    agentName: string,
+  ): DelegationPermissionPayload {
+    const allowedSubagents = this.getSubagentRules(agentName);
+    const allowedBackgroundSubagents = allowedSubagents.filter((subagent) =>
+      this.isBackgroundCapableAgent(subagent),
+    );
+    const canManageBackgroundTasks = allowedBackgroundSubagents.length > 0;
+
+    const permission = {
+      [TASK_PERMISSION]: this.createPatternPermission(allowedSubagents),
+      [BACKGROUND_TASK_PERMISSION]: this.createPatternPermission(
+        allowedBackgroundSubagents,
+      ),
+      [BACKGROUND_OUTPUT_PERMISSION]: canManageBackgroundTasks
+        ? 'allow'
+        : 'deny',
+      [BACKGROUND_CANCEL_PERMISSION]: canManageBackgroundTasks
+        ? 'allow'
+        : 'deny',
+    } satisfies Record<string, PermissionRuleConfig | PermissionActionConfig>;
+
+    return {
+      permission,
+      ruleset: [
+        ...this.createPatternRuleset(TASK_PERMISSION, allowedSubagents),
+        ...this.createPatternRuleset(
+          BACKGROUND_TASK_PERMISSION,
+          allowedBackgroundSubagents,
+        ),
+        {
+          permission: BACKGROUND_OUTPUT_PERMISSION,
+          pattern: ANY_PERMISSION_PATTERN,
+          action: canManageBackgroundTasks ? 'allow' : 'deny',
+        },
+        {
+          permission: BACKGROUND_CANCEL_PERMISSION,
+          pattern: ANY_PERMISSION_PATTERN,
+          action: canManageBackgroundTasks ? 'allow' : 'deny',
+        },
+      ],
+      legacyTools: {
+        [TASK_PERMISSION]: allowedSubagents.length > 0,
+        [BACKGROUND_TASK_PERMISSION]: canManageBackgroundTasks,
+        [BACKGROUND_OUTPUT_PERMISSION]: canManageBackgroundTasks,
+        [BACKGROUND_CANCEL_PERMISSION]: canManageBackgroundTasks,
+      },
+    };
   }
 
   /**
@@ -525,13 +632,18 @@ export class BackgroundTaskManager {
     }
 
     try {
+      const delegationPermissions = this.calculateDelegationPermissions(
+        task.agent,
+      );
+
       // Create session
       const session = await this.client.session.create({
         body: {
           parentID: task.parentSessionId,
           title: `Background: ${task.description}`,
-        },
-        query: { directory: this.directory },
+          permission: delegationPermissions.ruleset,
+        } as SessionCreateBody,
+        query: { directory: this.worktreeDirectory },
       });
 
       if (!session.data?.id) {
@@ -549,15 +661,15 @@ export class BackgroundTaskManager {
         await new Promise((r) => setTimeout(r, 500));
       }
 
-      // Calculate tool permissions based on the spawned agent's own delegation rules
-      const toolPermissions = this.calculateToolPermissions(task.agent);
-
       // Send prompt
-      const promptQuery: Record<string, string> = { directory: this.directory };
+      const promptQuery: Record<string, string> = {
+        directory: this.worktreeDirectory,
+      };
       const resolvedVariant = resolveAgentVariant(this.config, task.agent);
       const basePromptBody = applyAgentVariant(resolvedVariant, {
         agent: task.agent,
-        tools: toolPermissions,
+        permission: delegationPermissions.permission,
+        tools: delegationPermissions.legacyTools,
         parts: [{ type: 'text' as const, text: task.prompt }],
       } as PromptBody) as unknown as PromptBody;
 

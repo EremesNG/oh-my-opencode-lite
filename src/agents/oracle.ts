@@ -56,6 +56,7 @@ export function createOracleAgent(
       model,
       temperature: 0.1,
       prompt,
+      color: 'warning',
     },
   };
 }

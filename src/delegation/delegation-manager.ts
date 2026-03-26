@@ -1,5 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
+import type { PluginInput } from '@opencode-ai/plugin';
 import {
   adjectives,
   animals,
@@ -25,6 +26,9 @@ const MAX_ID_ATTEMPTS = 64;
 
 export interface DelegationManagerOptions {
   directory: string;
+  worktreeDirectory?: string;
+  projectName?: string;
+  shell?: PluginInput['$'];
   config?: DelegationConfig;
   getActiveTaskIds?: (rootSessionId: string) => Iterable<string>;
 }
@@ -202,20 +206,35 @@ function sortByCompletionDesc<T extends { completedAt: string | null }>(
 }
 
 export class DelegationManager {
-  private readonly directory: string;
+  private readonly worktreeDirectory: string;
+  private readonly projectName: string;
+  private readonly shell?: PluginInput['$'];
   private readonly config?: DelegationConfig;
   private readonly getActiveTaskIds?: (
     rootSessionId: string,
   ) => Iterable<string>;
 
   constructor(options: DelegationManagerOptions) {
-    this.directory = options.directory;
+    this.worktreeDirectory = options.worktreeDirectory ?? options.directory;
+    this.projectName =
+      options.projectName ||
+      path.basename(this.worktreeDirectory) ||
+      path.basename(options.directory) ||
+      'project';
+    this.shell = options.shell;
     this.config = options.config;
     this.getActiveTaskIds = options.getActiveTaskIds;
   }
 
-  async resolveProjectId(directory = this.directory): Promise<string | null> {
-    return getProjectId(directory, this.config?.timeout);
+  async resolveProjectId(
+    worktreeDirectory = this.worktreeDirectory,
+  ): Promise<string | null> {
+    return getProjectId(
+      worktreeDirectory,
+      this.config?.timeout,
+      this.projectName,
+      this.shell,
+    );
   }
 
   async createTaskId(rootSessionId: string): Promise<string> {

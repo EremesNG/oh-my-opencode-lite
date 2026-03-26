@@ -19,6 +19,7 @@ mock.module('../utils/tmux', () => ({
 // Mock the plugin context
 function createMockContext(overrides?: {
   sessionStatusResult?: { data?: Record<string, { type: string }> };
+  serverUrl?: URL;
 }) {
   const defaultPort = process.env.OPENCODE_PORT ?? '4096';
   return {
@@ -29,7 +30,21 @@ function createMockContext(overrides?: {
         ),
       },
     },
-    serverUrl: new URL(`http://localhost:${defaultPort}`),
+    directory: '/test/directory',
+    worktree: '/test/worktree',
+    worktreeDirectory: '/test/worktree',
+    project: { name: 'phase-2-project' },
+    $: {
+      nothrow: mock(() => ({
+        cwd: mock(() =>
+          mock(() => ({
+            quiet: mock(async () => ({ exitCode: 0, text: () => '' })),
+          })),
+        ),
+      })),
+    },
+    serverUrl:
+      overrides?.serverUrl ?? new URL(`http://localhost:${defaultPort}`),
   } as any;
 }
 
@@ -57,7 +72,9 @@ describe('TmuxSessionManager', () => {
 
   describe('onSessionCreated', () => {
     test('spawns pane for child sessions', async () => {
-      const ctx = createMockContext();
+      const ctx = createMockContext({
+        serverUrl: new URL('http://127.0.0.1:4317'),
+      });
       const manager = new TmuxSessionManager(ctx, defaultTmuxConfig);
 
       await manager.onSessionCreated({
@@ -71,7 +88,12 @@ describe('TmuxSessionManager', () => {
         },
       });
 
-      expect(mockSpawnTmuxPane).toHaveBeenCalled();
+      expect(mockSpawnTmuxPane).toHaveBeenCalledWith(
+        'child-123',
+        'Test Worker',
+        defaultTmuxConfig,
+        'http://127.0.0.1:4317/',
+      );
     });
 
     test('ignores sessions without parentID', async () => {

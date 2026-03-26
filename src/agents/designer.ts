@@ -62,6 +62,8 @@ export function createDesignerAgent(
       model,
       temperature: 0.4,
       prompt,
+      color: 'accent',
+      steps: 50,
     },
   };
 }

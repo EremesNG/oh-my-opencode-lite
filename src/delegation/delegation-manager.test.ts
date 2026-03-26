@@ -2,18 +2,62 @@ import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import type { PluginInput } from '@opencode-ai/plugin';
 
 let generatedNames: string[] = [];
 
 const uniqueNamesGeneratorMock = mock(
   () => generatedNames.shift() ?? 'steady-blue-otter',
 );
-const getProjectIdMock = mock(async (directory: string) => {
-  if (directory.includes('repo-b')) {
-    return 'project-b-123456789abc';
-  }
-  return 'project-a-123456789abc';
-});
+const getProjectIdMock = mock(
+  async (
+    worktreeDirectory: string,
+    _timeoutMs?: number,
+    _projectName?: string,
+    _shell?: unknown,
+  ) => {
+    if (worktreeDirectory.includes('repo-b')) {
+      return 'project-b-123456789abc';
+    }
+    return 'project-a-123456789abc';
+  },
+);
+
+function createMockShell() {
+  return {
+    nothrow: mock(() => ({
+      cwd: mock(() =>
+        mock(() => ({
+          quiet: mock(async () => ({ exitCode: 0, text: () => '' })),
+        })),
+      ),
+    })),
+  } as unknown as PluginInput['$'];
+}
+
+function createManagerOptions(
+  tempDir: string,
+  repoName: string,
+  overrides?: {
+    storageDir?: string;
+    timeout?: number;
+    projectName?: string;
+    shell?: PluginInput['$'];
+    getActiveTaskIds?: () => Iterable<string>;
+  },
+) {
+  return {
+    directory: path.join(tempDir, repoName),
+    worktreeDirectory: path.join(tempDir, `${repoName}-worktree`),
+    projectName: overrides?.projectName ?? `${repoName}-project`,
+    shell: overrides?.shell ?? createMockShell(),
+    config: {
+      storage_dir: overrides?.storageDir ?? path.join(tempDir, 'storage'),
+      timeout: overrides?.timeout ?? 1000,
+    },
+    getActiveTaskIds: overrides?.getActiveTaskIds,
+  };
+}
 
 mock.module('unique-names-generator', () => ({
   adjectives: [],
@@ -44,10 +88,9 @@ describe('DelegationManager', () => {
 
   test('writes and reads persisted delegation records with parsed metadata', async () => {
     const storageDir = path.join(tempDir, 'storage');
-    const manager = new DelegationManager({
-      directory: path.join(tempDir, 'repo-a'),
-      config: { storage_dir: storageDir, timeout: 1000 },
-    });
+    const manager = new DelegationManager(
+      createManagerOptions(tempDir, 'repo-a', { storageDir }),
+    );
 
     const persisted = await manager.persist({
       rootSessionId: 'root-session',
@@ -91,18 +134,15 @@ describe('DelegationManager', () => {
 
   test('reuses the same project directory for the same repository and isolates different repositories', async () => {
     const storageDir = path.join(tempDir, 'storage');
-    const managerA1 = new DelegationManager({
-      directory: path.join(tempDir, 'repo-a'),
-      config: { storage_dir: storageDir, timeout: 1000 },
-    });
-    const managerA2 = new DelegationManager({
-      directory: path.join(tempDir, 'repo-a'),
-      config: { storage_dir: storageDir, timeout: 1000 },
-    });
-    const managerB = new DelegationManager({
-      directory: path.join(tempDir, 'repo-b'),
-      config: { storage_dir: storageDir, timeout: 1000 },
-    });
+    const managerA1 = new DelegationManager(
+      createManagerOptions(tempDir, 'repo-a', { storageDir }),
+    );
+    const managerA2 = new DelegationManager(
+      createManagerOptions(tempDir, 'repo-a', { storageDir }),
+    );
+    const managerB = new DelegationManager(
+      createManagerOptions(tempDir, 'repo-b', { storageDir }),
+    );
 
     const persistedA1 = await managerA1.persist({
       rootSessionId: 'root-a-1',
@@ -157,25 +197,44 @@ describe('DelegationManager', () => {
       'steady-blue-otter',
     ];
 
-    const manager = new DelegationManager({
-      directory: path.join(tempDir, 'repo-a'),
-      config: { storage_dir: path.join(tempDir, 'storage'), timeout: 1000 },
-      getActiveTaskIds: () => ['bg_curious-red-panda'],
-    });
+    const manager = new DelegationManager(
+      createManagerOptions(tempDir, 'repo-a', {
+        getActiveTaskIds: () => ['bg_curious-red-panda'],
+      }),
+    );
 
     const taskId = await manager.createTaskId('root-session');
 
     expect(taskId).toBe('bg_steady-blue-otter');
   });
 
+  test('threads worktreeDirectory, shell, and projectName into project id resolution', async () => {
+    const shell = createMockShell();
+    const manager = new DelegationManager(
+      createManagerOptions(tempDir, 'repo-a', {
+        shell,
+        projectName: 'Phase 2 Project',
+        timeout: 4321,
+      }),
+    );
+
+    await manager.resolveProjectId();
+
+    expect(getProjectIdMock).toHaveBeenCalledWith(
+      path.join(tempDir, 'repo-a-worktree'),
+      4321,
+      'Phase 2 Project',
+      shell,
+    );
+  });
+
   test('returns null instead of throwing when persistence storage is unavailable', async () => {
     const blockedPath = path.join(tempDir, 'blocked-storage');
     writeFileSync(blockedPath, 'not-a-directory');
 
-    const manager = new DelegationManager({
-      directory: path.join(tempDir, 'repo-a'),
-      config: { storage_dir: blockedPath, timeout: 1000 },
-    });
+    const manager = new DelegationManager(
+      createManagerOptions(tempDir, 'repo-a', { storageDir: blockedPath }),
+    );
 
     const persisted = await manager.persist({
       rootSessionId: 'root-session',
@@ -196,10 +255,9 @@ describe('DelegationManager', () => {
 
   test('lists persisted records by parsing metadata from markdown headers', async () => {
     const storageDir = path.join(tempDir, 'storage');
-    const manager = new DelegationManager({
-      directory: path.join(tempDir, 'repo-a'),
-      config: { storage_dir: storageDir, timeout: 1000 },
-    });
+    const manager = new DelegationManager(
+      createManagerOptions(tempDir, 'repo-a', { storageDir }),
+    );
 
     await manager.persist({
       rootSessionId: 'root-session',

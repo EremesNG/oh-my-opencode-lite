@@ -58,6 +58,7 @@ export function createLibrarianAgent(
       model,
       temperature: 0.1,
       prompt,
+      color: 'info',
     },
   };
 }

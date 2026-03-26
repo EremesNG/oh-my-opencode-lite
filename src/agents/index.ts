@@ -24,6 +24,106 @@ type AgentFactory = (
   customAppendPrompt?: string,
 ) => AgentDefinition;
 
+type PermissionConfigObject = Exclude<
+  NonNullable<SDKAgentConfig['permission']>,
+  'allow' | 'ask' | 'deny'
+>;
+
+type BuiltinPermissionPreset = NonNullable<SDKAgentConfig['permission']>;
+
+type BuiltinPermissionPresetName =
+  | 'orchestrator'
+  | 'explorer'
+  | 'librarian'
+  | 'oracle'
+  | 'designer'
+  | 'quick'
+  | 'deep';
+
+type AgentOverrideWithPermission = AgentOverrideConfig & {
+  permission?: SDKAgentConfig['permission'];
+};
+
+const BUILTIN_PERMISSION_PRESETS = {
+  orchestrator: 'allow',
+  explorer: {
+    read: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    external_directory: 'allow',
+    bash: 'allow',
+    question: 'allow',
+    skill: 'allow',
+    edit: 'deny',
+    todowrite: 'deny',
+    task: 'deny',
+  },
+  librarian: {
+    read: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    external_directory: 'allow',
+    bash: 'allow',
+    webfetch: 'allow',
+    websearch: 'allow',
+    codesearch: 'allow',
+    question: 'allow',
+    skill: 'allow',
+    edit: 'deny',
+    todowrite: 'deny',
+    task: 'deny',
+  },
+  oracle: {
+    read: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    lsp: 'allow',
+    codesearch: 'allow',
+    webfetch: 'allow',
+    websearch: 'allow',
+    external_directory: 'allow',
+    bash: 'allow',
+    question: 'allow',
+    skill: 'allow',
+    edit: 'deny',
+    todowrite: 'deny',
+    task: 'deny',
+  },
+  designer: {
+    read: 'allow',
+    edit: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    skill: 'allow',
+    question: 'allow',
+    todowrite: 'allow',
+  },
+  quick: {
+    read: 'allow',
+    edit: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    question: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    todowrite: 'allow',
+  },
+  deep: 'allow',
+} as const satisfies Record<
+  BuiltinPermissionPresetName,
+  BuiltinPermissionPreset
+>;
+
 function normalizeModelArray(
   model: Array<string | { id: string; variant?: string }>,
 ): Array<{ id: string; variant?: string }> {
@@ -54,11 +154,33 @@ function applyOverrides(
   }
 }
 
-function applyQuestionPermission(agent: AgentDefinition): void {
-  agent.config.permission = {
-    ...((agent.config.permission ?? {}) as Record<string, unknown>),
-    question: 'allow',
-  } as SDKAgentConfig['permission'];
+function clonePermissionConfig(
+  permission: BuiltinPermissionPreset,
+): BuiltinPermissionPreset {
+  if (typeof permission === 'string') {
+    return permission;
+  }
+
+  return Object.fromEntries(
+    Object.entries(permission).map(([key, value]) => [
+      key,
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? { ...value }
+        : value,
+    ]),
+  ) as PermissionConfigObject;
+}
+
+function getBuiltinPermissionPreset(
+  name: BuiltinPermissionPresetName,
+): BuiltinPermissionPreset {
+  return clonePermissionConfig(BUILTIN_PERMISSION_PRESETS[name]);
+}
+
+function getExplicitPermissionOverride(
+  override?: AgentOverrideConfig,
+): SDKAgentConfig['permission'] | undefined {
+  return (override as AgentOverrideWithPermission | undefined)?.permission;
 }
 
 export type SubagentName = (typeof SUBAGENT_NAMES)[number];
@@ -93,7 +215,6 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
     if (override) {
       applyOverrides(agent, override);
     }
-    applyQuestionPermission(agent);
     return agent;
   });
 
@@ -108,7 +229,6 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
   if (orchestratorOverride) {
     applyOverrides(orchestrator, orchestratorOverride);
   }
-  applyQuestionPermission(orchestrator);
 
   return [orchestrator, ...allSubAgents];
 }
@@ -120,10 +240,24 @@ export function getAgentConfigs(
 
   return Object.fromEntries(
     agents.map((agent) => {
+      const override = getAgentOverride(config, agent.name);
       const sdkConfig: SDKAgentConfig = {
         ...agent.config,
         description: agent.description,
       };
+
+      const builtinPermission = isSubagent(agent.name)
+        ? getBuiltinPermissionPreset(agent.name as BuiltinPermissionPresetName)
+        : agent.name === 'orchestrator'
+          ? getBuiltinPermissionPreset('orchestrator')
+          : undefined;
+      const explicitPermissionOverride =
+        getExplicitPermissionOverride(override);
+
+      sdkConfig.permission =
+        explicitPermissionOverride ??
+        agent.config.permission ??
+        builtinPermission;
 
       if (isSubagent(agent.name)) {
         sdkConfig.mode = 'subagent';

@@ -53,6 +53,8 @@ export function createDeepAgent(
       model,
       temperature: 0.1,
       prompt,
+      color: 'secondary',
+      steps: 80,
     },
   };
 }
