@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   CUSTOM_SKILLS,
+  findPackageRoot,
   getCustomSkillsDir,
   installCustomSkills,
   removeObsoleteSkills,
@@ -82,6 +83,30 @@ describe('CUSTOM_SKILLS', () => {
     });
   });
 
+  test('findPackageRoot walks up from a bundled dist directory', () => {
+    expect(findPackageRoot(join(packageRoot, 'dist'))).toBe(packageRoot);
+  });
+
+  test('findPackageRoot walks up from a bundled CLI dist directory', () => {
+    expect(findPackageRoot(join(packageRoot, 'dist', 'cli'))).toBe(packageRoot);
+  });
+
+  test('findPackageRoot walks up from a source directory in development', () => {
+    expect(findPackageRoot(join(packageRoot, 'src', 'cli'))).toBe(packageRoot);
+  });
+
+  test('findPackageRoot returns null when no package root markers exist', () => {
+    const unrelatedDir = mkdtempSync(
+      join(tmpdir(), 'custom-skills-unrelated-'),
+    );
+
+    try {
+      expect(findPackageRoot(unrelatedDir)).toBeNull();
+    } finally {
+      rmSync(unrelatedDir, { recursive: true, force: true });
+    }
+  });
+
   test('installCustomSkills installs bundled skills and writes the manifest', () => {
     const report = installCustomSkills(packageRoot);
 
@@ -131,6 +156,43 @@ describe('CUSTOM_SKILLS', () => {
     expect(report.updatedSkills[0]?.skill.name).toBe(changedSkill.name);
     expect(report.updatedSkills[0]?.reasons).toContain('hash-mismatch');
     expect(report.skippedSkills).toHaveLength(CUSTOM_SKILLS.length - 1);
+  });
+
+  test('installCustomSkills removes stale files from reinstalled skill directories', () => {
+    const changedSkill = CUSTOM_SKILLS[0];
+    if (!changedSkill) {
+      throw new Error('Expected at least one custom skill');
+    }
+
+    const extraSourceFile = join(
+      packageRoot,
+      changedSkill.sourcePath,
+      'extra.md',
+    );
+    writeFileSync(extraSourceFile, 'temporary content\n');
+
+    const initialReport = installCustomSkills(packageRoot);
+    expect(initialReport.success).toBe(true);
+
+    const installedExtraFile = join(
+      getCustomSkillsDir(),
+      changedSkill.name,
+      'extra.md',
+    );
+    expect(existsSync(installedExtraFile)).toBe(true);
+
+    rmSync(extraSourceFile, { force: true });
+    writeFileSync(
+      join(packageRoot, changedSkill.sourcePath, 'SKILL.md'),
+      `# ${changedSkill.name}\n\nUpdated content after cleanup.\n`,
+    );
+
+    const report = installCustomSkills(packageRoot);
+
+    expect(report.success).toBe(true);
+    expect(report.updatedSkills).toHaveLength(1);
+    expect(report.updatedSkills[0]?.skill.name).toBe(changedSkill.name);
+    expect(existsSync(installedExtraFile)).toBe(false);
   });
 
   test('removeObsoleteSkills deletes obsolete installed skill directories', () => {

@@ -6,7 +6,7 @@ import {
   rmSync,
   statSync,
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, parse } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getConfigDir } from './paths';
 import {
@@ -171,8 +171,34 @@ function installSharedSkillAssets(packageRoot: string): boolean {
     return false;
   }
 
+  rmSync(sharedTargetPath, { recursive: true, force: true });
   copyDirRecursive(sharedSourcePath, sharedTargetPath);
   return true;
+}
+
+export function findPackageRoot(startDir: string): string | null {
+  let currentDir = startDir;
+  const filesystemRoot = parse(startDir).root;
+
+  while (true) {
+    if (
+      existsSync(join(currentDir, 'package.json')) &&
+      existsSync(join(currentDir, 'src', 'skills'))
+    ) {
+      return currentDir;
+    }
+
+    if (currentDir === filesystemRoot) {
+      return null;
+    }
+
+    const parentDir = dirname(currentDir);
+    if (parentDir === currentDir) {
+      return null;
+    }
+
+    currentDir = parentDir;
+  }
 }
 
 function resolvePackageRoot(packageRoot?: string): string {
@@ -180,7 +206,12 @@ function resolvePackageRoot(packageRoot?: string): string {
     return packageRoot;
   }
 
-  return fileURLToPath(new URL('../..', import.meta.url));
+  const moduleDir = fileURLToPath(new URL('.', import.meta.url));
+
+  return (
+    findPackageRoot(moduleDir) ??
+    fileURLToPath(new URL('../..', import.meta.url))
+  );
 }
 
 function installCustomSkillFiles(
@@ -195,6 +226,7 @@ function installCustomSkillFiles(
     return false;
   }
 
+  rmSync(targetPath, { recursive: true, force: true });
   copyDirRecursive(sourcePath, targetPath);
   return true;
 }
