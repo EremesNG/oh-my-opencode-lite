@@ -1,6 +1,7 @@
 import type { Event, Model, Part, Session } from '@opencode-ai/sdk';
 import type { ThothConfig } from '../../config';
 import { createThothClient } from '../../thoth';
+import { log } from '../../utils';
 import {
   buildCompactionReminder,
   buildCompactorInstruction,
@@ -106,8 +107,12 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
     }
 
     const pending = (async () => {
-      await thoth.memSessionStart(sessionId);
-      trackedRootSessions.add(sessionId);
+      const started = await thoth.memSessionStart(sessionId);
+      if (started) {
+        trackedRootSessions.add(sessionId);
+      } else {
+        log('[thoth] session start unavailable, skipping tracking:', sessionId);
+      }
     })().finally(() => {
       ensuredRootSessions.delete(sessionId);
     });
@@ -121,8 +126,12 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
       return;
     }
 
-    trackedRootSessions.add(session.id);
-    await thoth.memSessionStart(session.id);
+    const started = await thoth.memSessionStart(session.id);
+    if (started) {
+      trackedRootSessions.add(session.id);
+    } else {
+      log('[thoth] session start unavailable, skipping tracking:', session.id);
+    }
   }
 
   function handleSessionCompacted(session: RootSessionLike): void {
