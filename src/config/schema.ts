@@ -143,6 +143,7 @@ export const ThothConfigSchema = z.object({
   data_dir: z.string().optional(),
   environment: z.record(z.string(), z.string()).optional(),
   timeout: z.number().optional(),
+  http_port: z.number().optional(),
 });
 
 export type ThothConfig = z.infer<typeof ThothConfigSchema>;

@@ -33,6 +33,7 @@ describe('createBuiltinMcps', () => {
     const mcps = createBuiltinMcps([], {
       command: ['bun', 'x', 'thoth-mem'],
       data_dir: '/tmp/thoth-data',
+      http_port: 8123,
       environment: {
         THOTH_PROFILE: 'test',
       },
@@ -46,6 +47,7 @@ describe('createBuiltinMcps', () => {
       command: ['bun', 'x', 'thoth-mem'],
       environment: {
         THOTH_DATA_DIR: '/tmp/thoth-data',
+        THOTH_HTTP_PORT: '8123',
         THOTH_PROFILE: 'test',
       },
       timeout: 12345,

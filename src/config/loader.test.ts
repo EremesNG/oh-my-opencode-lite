@@ -95,6 +95,7 @@ describe('loadPluginConfig', () => {
             THOTH_PROFILE: 'test',
           },
           timeout: 25000,
+          http_port: 7439,
         },
       }),
     );
@@ -107,6 +108,7 @@ describe('loadPluginConfig', () => {
         THOTH_PROFILE: 'test',
       },
       timeout: 25000,
+      http_port: 7439,
     });
   });
 
@@ -274,7 +276,7 @@ describe('loadPluginConfig', () => {
       path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
       JSON.stringify({
         thoth: {
-          command: 'npx -y thoth-mem@latest',
+          command: 'npx -y thoth-mem@0.1.5',
         },
       }),
     );
@@ -578,11 +580,12 @@ describe('deepMerge behavior', () => {
       path.join(userOpencodeDir, 'oh-my-opencode-lite.json'),
       JSON.stringify({
         thoth: {
-          command: ['npx', '-y', 'thoth-mem@latest'],
+          command: ['npx', '-y', 'thoth-mem@0.1.5'],
           environment: {
             THOTH_PROFILE: 'user',
           },
           timeout: 15000,
+          http_port: 7438,
         },
         delegation: {
           storage_dir: '/user/delegations',
@@ -601,6 +604,7 @@ describe('deepMerge behavior', () => {
           environment: {
             THOTH_PROJECT: 'project',
           },
+          http_port: 8123,
         },
         delegation: {
           timeout: 12345,
@@ -611,13 +615,14 @@ describe('deepMerge behavior', () => {
     const config = loadPluginConfig(projectDir);
 
     expect((config as PluginConfig).thoth).toEqual({
-      command: ['npx', '-y', 'thoth-mem@latest'],
+      command: ['npx', '-y', 'thoth-mem@0.1.5'],
       data_dir: '/project/thoth',
       environment: {
         THOTH_PROFILE: 'user',
         THOTH_PROJECT: 'project',
       },
       timeout: 15000,
+      http_port: 8123,
     });
     expect((config as PluginConfig).delegation).toEqual({
       storage_dir: '/user/delegations',

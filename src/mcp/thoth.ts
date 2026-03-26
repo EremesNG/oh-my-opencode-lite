@@ -4,6 +4,9 @@ import type { LocalMcpConfig } from './types';
 export function createThothMcp(config?: ThothConfig): LocalMcpConfig {
   const environment = {
     ...(config?.data_dir ? { THOTH_DATA_DIR: config.data_dir } : {}),
+    ...(typeof config?.http_port === 'number'
+      ? { THOTH_HTTP_PORT: String(config.http_port) }
+      : {}),
     ...config?.environment,
   };
 
