@@ -115,7 +115,7 @@ describe('config-io', () => {
     expect(result.success).toBe(true);
 
     const saved = JSON.parse(readFileSync(configPath, 'utf-8'));
-    expect(saved.plugin).toContain('oh-my-opencode-lite');
+    expect(saved.plugin).toContain('oh-my-opencode-lite@latest');
     expect(saved.plugin).not.toContain('oh-my-opencode-lite@1.0.0');
     expect(saved.plugin.length).toBe(2);
   });

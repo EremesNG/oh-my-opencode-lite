@@ -123,7 +123,7 @@ export async function addPluginToOpenCodeConfig(): Promise<ConfigMergeResult> {
     );
 
     // Add fresh entry
-    filteredPlugins.push(PACKAGE_NAME);
+    filteredPlugins.push(`${PACKAGE_NAME}@latest`);
     config.plugin = filteredPlugins;
 
     writeConfig(configPath, config);

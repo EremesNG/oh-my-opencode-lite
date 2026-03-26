@@ -40,7 +40,7 @@ export function buildMemoryInstructions(
 Persistent memory is available through thoth-mem. Follow this protocol.
 
 IMPORTANT: Your current session_id is \`${sessionID}\` and project is \`${project}\`.
-Always pass these values when calling memory tools that accept them (mem_session_summary, mem_save, mem_save_prompt, mem_capture_passive, etc.).
+Always pass these values when calling memory tools that accept them (mem_session_summary, mem_save, mem_capture_passive, etc.).
 
 WHEN TO SAVE
 - Call \`mem_save\` IMMEDIATELY after bug fixes, architecture decisions, discoveries, config changes, reusable patterns, and user preferences.
