@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { Plugin } from '@opencode-ai/plugin';
-import type { Event, Model } from '@opencode-ai/sdk';
+import type { Event, Model, Part } from '@opencode-ai/sdk';
 import { createAgents, getAgentConfigs } from './agents';
 import { BackgroundTaskManager, TmuxSessionManager } from './background';
 import { loadPluginConfig, type TmuxConfig } from './config';
@@ -18,7 +18,6 @@ import {
   syncSkillsOnStartup,
 } from './hooks';
 import { createBuiltinMcps } from './mcp';
-import { createThothClient } from './thoth';
 import {
   ast_grep_replace,
   ast_grep_search,
@@ -101,13 +100,6 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
   }
 
   const projectName = path.basename(ctx.directory) || 'oh-my-opencode-lite';
-  const thothClient = createThothClient({
-    client: ctx.client,
-    project: projectName,
-    directory: ctx.directory,
-    timeoutMs: config.thoth?.timeout,
-    enabled: true,
-  });
 
   let backgroundManager: BackgroundTaskManager;
   const delegationManager = new DelegationManager({
@@ -153,11 +145,10 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
   const postReadNudgeHook = createPostReadNudgeHook();
 
   const thothMemHook = createThothMemHook({
-    client: ctx.client,
     project: projectName,
     directory: ctx.directory,
     thoth: config.thoth,
-    enabled: thothClient.enabled,
+    enabled: true,
   });
 
   const chatHeadersHook = createChatHeadersHook(ctx);
@@ -176,6 +167,11 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
   );
 
   type ThothEventInput = { event: Event };
+  type ThothChatMessageInput = { sessionID: string };
+  type ThothChatMessageOutput = {
+    parts: Part[];
+    message: { summary?: { title?: string; body?: string } };
+  };
   type ThothSystemTransformInput = { sessionID?: string; model: Model };
   type ThothSystemTransformOutput = { system: string[] };
   type ThothCompactingInput = { sessionID: string };
@@ -392,6 +388,15 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     },
 
     'chat.headers': chatHeadersHook['chat.headers'],
+
+    'chat.message': async (input, output) => {
+      if (thothMemHook['chat.message']) {
+        await thothMemHook['chat.message'](
+          input as ThothChatMessageInput,
+          output as ThothChatMessageOutput,
+        );
+      }
+    },
 
     'experimental.chat.system.transform': async (input, output) => {
       if (thothMemHook['experimental.chat.system.transform']) {
