@@ -1,17 +1,27 @@
-import type { PluginInput } from '@opencode-ai/plugin';
-import type { Event, Message, Model, Part, Session } from '@opencode-ai/sdk';
+import type { Event, Model, Part, Session } from '@opencode-ai/sdk';
 import type { ThothConfig } from '../../config';
 import { createThothClient } from '../../thoth';
-import { log } from '../../utils/logger';
-import { FIRST_ACTION_INSTRUCTION, MEMORY_INSTRUCTIONS } from './protocol';
+import {
+  buildCompactionReminder,
+  buildCompactorInstruction,
+  buildMemoryInstructions,
+  FIRST_ACTION_INSTRUCTION,
+} from './protocol';
 
-const PASSIVE_LEARNINGS_PATTERN =
-  /##\s*(Key Learnings|Aprendizajes Clave)\s*:/i;
+type RootSessionLike = Pick<Session, 'id' | 'parentID'>;
 
-type OpencodeClient = PluginInput['client'];
+function isRootSession(session: RootSessionLike): boolean {
+  return !session.parentID;
+}
+
+function getSessionInfo(event: Event): RootSessionLike | null {
+  const info = (event.properties as { info?: RootSessionLike } | undefined)
+    ?.info;
+
+  return info?.id ? info : null;
+}
 
 export interface CreateThothMemHookOptions {
-  client: OpencodeClient;
   project: string;
   directory?: string;
   thoth?: ThothConfig;
@@ -32,10 +42,6 @@ function extractPromptText(parts: Part[]): string | null {
   return text.length > 0 ? text : null;
 }
 
-function isRootSession(session: Session): boolean {
-  return !session.parentID;
-}
-
 function appendInstruction(target: string, instruction: string): string {
   if (target.includes(instruction)) {
     return target;
@@ -44,20 +50,73 @@ function appendInstruction(target: string, instruction: string): string {
   return `${target}\n\n${instruction}`;
 }
 
+function stripPrivateTags(str: string): string {
+  if (!str) {
+    return '';
+  }
+
+  return str.replace(/<private>[\s\S]*?<\/private>/gi, '[REDACTED]').trim();
+}
+
+function truncate(str: string, max: number): string {
+  if (!str) {
+    return '';
+  }
+
+  return str.length > max ? `${str.slice(0, max)}...` : str;
+}
+
+function sanitizePromptText(text: string): string {
+  return truncate(stripPrivateTags(text), 2000);
+}
+
+function isSessionSummaryTool(toolName: string): boolean {
+  const normalized = toolName.toLowerCase();
+
+  return (
+    normalized === 'mem_session_summary' ||
+    normalized.endsWith('.mem_session_summary') ||
+    normalized.endsWith('_mem_session_summary')
+  );
+}
+
 export function createThothMemHook(options: CreateThothMemHookOptions) {
   const enabled = options.enabled !== false;
   const thoth = createThothClient({
-    client: options.client,
     project: options.project,
     directory: options.directory,
+    httpPort: options.thoth?.http_port,
     timeoutMs: options.thoth?.timeout,
     enabled,
   });
 
   const trackedRootSessions = new Set<string>();
-  const capturedPromptIdsBySession = new Map<string, Set<string>>();
+  const needsCompactionFollowUp = new Set<string>();
+  const ensuredRootSessions = new Map<string, Promise<void>>();
 
-  async function handleSessionCreated(session: Session): Promise<void> {
+  async function ensureRootSession(sessionId: string): Promise<void> {
+    if (!enabled || trackedRootSessions.has(sessionId)) {
+      return;
+    }
+
+    const existing = ensuredRootSessions.get(sessionId);
+    if (existing) {
+      await existing;
+      return;
+    }
+
+    const pending = (async () => {
+      await thoth.memSessionStart(sessionId);
+      trackedRootSessions.add(sessionId);
+    })().finally(() => {
+      ensuredRootSessions.delete(sessionId);
+    });
+
+    ensuredRootSessions.set(sessionId, pending);
+    await pending;
+  }
+
+  async function handleSessionCreated(session: RootSessionLike): Promise<void> {
     if (!enabled || !isRootSession(session)) {
       return;
     }
@@ -66,66 +125,79 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
     await thoth.memSessionStart(session.id);
   }
 
-  function handleSessionDeleted(session: Session): void {
-    trackedRootSessions.delete(session.id);
-    capturedPromptIdsBySession.delete(session.id);
+  function handleSessionCompacted(session: RootSessionLike): void {
+    if (!enabled || !isRootSession(session) || !session.id) {
+      return;
+    }
+
+    needsCompactionFollowUp.add(session.id);
   }
 
-  async function handleMessageUpdated(message: Message): Promise<void> {
-    if (!enabled || message.role !== 'user') {
-      return;
-    }
-
-    if (!trackedRootSessions.has(message.sessionID)) {
-      return;
-    }
-
-    const existing = capturedPromptIdsBySession.get(message.sessionID);
-    if (existing?.has(message.id)) {
-      return;
-    }
-
-    try {
-      const response = await options.client.session.message({
-        path: {
-          id: message.sessionID,
-          messageID: message.id,
-        },
-      });
-      const promptText = response.data
-        ? extractPromptText(response.data.parts)
-        : null;
-
-      if (!promptText) {
-        return;
-      }
-
-      const ids = existing ?? new Set<string>();
-      ids.add(message.id);
-      capturedPromptIdsBySession.set(message.sessionID, ids);
-      await thoth.memSavePrompt(message.sessionID, promptText);
-    } catch (error) {
-      log('[thoth-hook] prompt capture unavailable', {
-        sessionID: message.sessionID,
-        messageID: message.id,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
+  function handleSessionDeleted(session: RootSessionLike): void {
+    trackedRootSessions.delete(session.id);
+    needsCompactionFollowUp.delete(session.id);
+    ensuredRootSessions.delete(session.id);
   }
 
   return {
     event: async ({ event }: { event: Event }): Promise<void> => {
       switch (event.type) {
-        case 'session.created':
-          await handleSessionCreated(event.properties.info);
+        case 'session.created': {
+          const session = getSessionInfo(event);
+          if (!session) {
+            break;
+          }
+
+          await handleSessionCreated(session);
           break;
-        case 'message.updated':
-          await handleMessageUpdated(event.properties.info);
+        }
+        case 'session.compacted': {
+          const session = getSessionInfo(event);
+          if (!session) {
+            break;
+          }
+
+          handleSessionCompacted(session);
           break;
-        case 'session.deleted':
-          handleSessionDeleted(event.properties.info);
+        }
+        case 'session.deleted': {
+          const session = getSessionInfo(event);
+          if (!session) {
+            break;
+          }
+
+          handleSessionDeleted(session);
           break;
+        }
       }
+    },
+
+    'chat.message': async (
+      input: { sessionID: string },
+      output: {
+        parts: Part[];
+        message: { summary?: { title?: string; body?: string } };
+      },
+    ): Promise<void> => {
+      void output.message;
+
+      if (!enabled) {
+        return;
+      }
+
+      await ensureRootSession(input.sessionID);
+
+      const promptText = extractPromptText(output.parts);
+      if (!promptText) {
+        return;
+      }
+
+      const sanitizedPromptText = sanitizePromptText(promptText);
+      if (!sanitizedPromptText) {
+        return;
+      }
+
+      await thoth.memSavePrompt(input.sessionID, sanitizedPromptText);
     },
 
     'experimental.chat.system.transform': async (
@@ -142,16 +214,36 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
         return;
       }
 
+      const memoryInstructions = buildMemoryInstructions(
+        input.sessionID,
+        options.project,
+      );
+      const compactionReminder = needsCompactionFollowUp.has(input.sessionID)
+        ? buildCompactionReminder(input.sessionID)
+        : null;
+
       if (output.system.length === 0) {
-        output.system.push(MEMORY_INSTRUCTIONS);
+        const systemPrompt = compactionReminder
+          ? appendInstruction(memoryInstructions, compactionReminder)
+          : memoryInstructions;
+        output.system.push(systemPrompt);
         return;
       }
 
       const lastIndex = output.system.length - 1;
-      output.system[lastIndex] = appendInstruction(
+      let updatedSystemPrompt = appendInstruction(
         output.system[lastIndex],
-        MEMORY_INSTRUCTIONS,
+        memoryInstructions,
       );
+
+      if (compactionReminder) {
+        updatedSystemPrompt = appendInstruction(
+          updatedSystemPrompt,
+          compactionReminder,
+        );
+      }
+
+      output.system[lastIndex] = updatedSystemPrompt;
     },
 
     'experimental.session.compacting': async (
@@ -160,10 +252,14 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
     ): Promise<void> => {
       void output.prompt;
 
-      if (!enabled || !trackedRootSessions.has(input.sessionID)) {
+      if (!enabled) {
         return;
       }
 
+      await ensureRootSession(input.sessionID);
+      needsCompactionFollowUp.add(input.sessionID);
+
+      output.context.push(buildCompactorInstruction(options.project));
       output.context.push(FIRST_ACTION_INSTRUCTION);
 
       const memoryContext = await thoth.memContext(input.sessionID);
@@ -188,29 +284,16 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
       void input.callID;
       void input.args;
       void output.title;
+      void output.output;
       void output.metadata;
 
       if (!enabled) {
         return;
       }
 
-      if (input.tool.toLowerCase() !== 'task') {
-        return;
+      if (isSessionSummaryTool(input.tool)) {
+        needsCompactionFollowUp.delete(input.sessionID);
       }
-
-      if (!trackedRootSessions.has(input.sessionID)) {
-        return;
-      }
-
-      if (!PASSIVE_LEARNINGS_PATTERN.test(output.output)) {
-        return;
-      }
-
-      await thoth.memCapturePassive(
-        input.sessionID,
-        output.output,
-        'task-tool',
-      );
     },
   };
 }

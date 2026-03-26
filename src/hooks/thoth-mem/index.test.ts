@@ -1,56 +1,60 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
-import { FIRST_ACTION_INSTRUCTION, MEMORY_INSTRUCTIONS } from './protocol';
+import { buildCompactionReminder, buildMemoryInstructions } from './protocol';
 
 const memContextMock = mock(async () => null as string | null);
 const memSessionStartMock = mock(async () => true);
-const memSessionSummaryMock = mock(async () => true);
 const memSavePromptMock = mock(async () => true);
-const memCapturePassiveMock = mock(async () => true);
+const createThothClientMock = mock(() => ({
+  enabled: true,
+  memContext: memContextMock,
+  memSessionStart: memSessionStartMock,
+  memSavePrompt: memSavePromptMock,
+}));
 
 mock.module('../../thoth', () => ({
-  createThothClient: () => ({
-    enabled: true,
-    memContext: memContextMock,
-    memSessionStart: memSessionStartMock,
-    memSessionSummary: memSessionSummaryMock,
-    memSavePrompt: memSavePromptMock,
-    memCapturePassive: memCapturePassiveMock,
-  }),
+  createThothClient: createThothClientMock,
 }));
 
 const { createThothMemHook } = await import('./index');
 
-function createClient() {
-  return {
-    session: {
-      message: mock(async () => ({
-        data: {
-          parts: [{ type: 'text', text: 'User prompt content' }],
-        },
-      })),
-    },
-  } as const;
-}
-
 describe('createThothMemHook', () => {
   beforeEach(() => {
+    createThothClientMock.mockReset();
+    createThothClientMock.mockImplementation(() => ({
+      enabled: true,
+      memContext: memContextMock,
+      memSessionStart: memSessionStartMock,
+      memSavePrompt: memSavePromptMock,
+    }));
+
     memContextMock.mockReset();
     memSessionStartMock.mockReset();
-    memSessionSummaryMock.mockReset();
     memSavePromptMock.mockReset();
-    memCapturePassiveMock.mockReset();
 
     memContextMock.mockResolvedValue(null);
     memSessionStartMock.mockResolvedValue(true);
-    memSessionSummaryMock.mockResolvedValue(true);
     memSavePromptMock.mockResolvedValue(true);
-    memCapturePassiveMock.mockResolvedValue(true);
+  });
+
+  test('creates the thoth client with HTTP settings', () => {
+    createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      directory: '/workspace/oh-my-opencode-lite',
+      thoth: { timeout: 25000, http_port: 8123 },
+      enabled: true,
+    });
+
+    expect(createThothClientMock).toHaveBeenCalledWith({
+      project: 'oh-my-opencode-lite',
+      directory: '/workspace/oh-my-opencode-lite',
+      httpPort: 8123,
+      timeoutMs: 25000,
+      enabled: true,
+    });
   });
 
   test('injects memory protocol guidance into tracked root session prompts', async () => {
-    const client = createClient();
     const hook = createThothMemHook({
-      client: client as never,
       project: 'oh-my-opencode-lite',
       enabled: true,
     });
@@ -68,25 +72,20 @@ describe('createThothMemHook', () => {
       output,
     );
 
+    const expectedInstructions = buildMemoryInstructions(
+      'root-session',
+      'oh-my-opencode-lite',
+    );
     expect(output.system[0]).toContain('Base system prompt');
-    expect(output.system[0]).toContain(MEMORY_INSTRUCTIONS);
+    expect(output.system[0]).toContain(expectedInstructions);
   });
 
-  test('injects compaction recovery instructions and retrieved memory context', async () => {
+  test('injects compaction instructions and retrieved memory context during compaction', async () => {
     memContextMock.mockResolvedValue('## Memory Context\n- Prior decision');
 
-    const client = createClient();
     const hook = createThothMemHook({
-      client: client as never,
       project: 'oh-my-opencode-lite',
       enabled: true,
-    });
-
-    await hook.event({
-      event: {
-        type: 'session.created',
-        properties: { info: { id: 'root-session' } },
-      } as never,
     });
 
     const output = { context: [] as string[] };
@@ -95,52 +94,14 @@ describe('createThothMemHook', () => {
       output,
     );
 
-    expect(output.context).toEqual([
-      FIRST_ACTION_INSTRUCTION,
-      '## Memory Context\n- Prior decision',
-    ]);
-  });
-
-  test('captures passive learnings only for tracked root task output', async () => {
-    const client = createClient();
-    const hook = createThothMemHook({
-      client: client as never,
-      project: 'oh-my-opencode-lite',
-      enabled: true,
-    });
-
-    await hook.event({
-      event: {
-        type: 'session.created',
-        properties: { info: { id: 'root-session' } },
-      } as never,
-    });
-
-    await hook['tool.execute.after']?.(
-      {
-        tool: 'task',
-        sessionID: 'root-session',
-        callID: 'call-1',
-        args: {},
-      },
-      {
-        title: 'Task output',
-        output: '## Key Learnings:\n- Capture this learning',
-        metadata: {},
-      },
-    );
-
-    expect(memCapturePassiveMock).toHaveBeenCalledWith(
-      'root-session',
-      '## Key Learnings:\n- Capture this learning',
-      'task-tool',
-    );
+    expect(memSessionStartMock).toHaveBeenCalledWith('root-session');
+    expect(output.context[0]).toContain('CRITICAL INSTRUCTION');
+    expect(output.context[0]).toContain("Use project: 'oh-my-opencode-lite'.");
+    expect(output.context).toContain('## Memory Context\n- Prior decision');
   });
 
   test('filters child sessions from root memory tracking', async () => {
-    const client = createClient();
     const hook = createThothMemHook({
-      client: client as never,
       project: 'oh-my-opencode-lite',
       enabled: true,
     });
@@ -155,10 +116,89 @@ describe('createThothMemHook', () => {
     expect(memSessionStartMock).not.toHaveBeenCalled();
   });
 
-  test('captures user prompts from message updates only once per tracked root session', async () => {
-    const client = createClient();
+  test('captures user prompts from chat.message', async () => {
     const hook = createThothMemHook({
-      client: client as never,
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    await hook['chat.message']?.(
+      { sessionID: 'root-session' },
+      {
+        parts: [{ type: 'text', text: 'User prompt content' } as never],
+        message: {},
+      },
+    );
+
+    expect(memSessionStartMock).toHaveBeenCalledWith('root-session');
+    expect(memSavePromptMock).toHaveBeenCalledWith(
+      'root-session',
+      'User prompt content',
+    );
+  });
+
+  test('strips private tags before saving prompts', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    await hook['chat.message']?.(
+      { sessionID: 'root-session' },
+      {
+        parts: [
+          {
+            type: 'text',
+            text: 'Please keep <private>secret</private> hidden in memory.',
+          } as never,
+        ],
+        message: {},
+      },
+    );
+
+    expect(memSavePromptMock).toHaveBeenCalledWith(
+      'root-session',
+      'Please keep [REDACTED] hidden in memory.',
+    );
+  });
+
+  test('truncates prompts longer than 2000 characters before saving', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    await hook['chat.message']?.(
+      { sessionID: 'root-session' },
+      {
+        parts: [{ type: 'text', text: 'a'.repeat(2005) } as never],
+        message: {},
+      },
+    );
+
+    expect(memSavePromptMock).toHaveBeenCalledTimes(1);
+    expect(memSavePromptMock.mock.calls[0]?.[1]).toBe(`${'a'.repeat(2000)}...`);
+  });
+
+  test('ignores chat.message events without text content', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    await hook['chat.message']?.(
+      { sessionID: 'root-session' },
+      {
+        parts: [{ type: 'tool-call', tool: 'read' } as never],
+        message: {},
+      },
+    );
+
+    expect(memSavePromptMock).not.toHaveBeenCalled();
+  });
+
+  test('clears compaction follow-up flag when mem_session_summary tool is called', async () => {
+    const hook = createThothMemHook({
       project: 'oh-my-opencode-lite',
       enabled: true,
     });
@@ -170,27 +210,52 @@ describe('createThothMemHook', () => {
       } as never,
     });
 
-    const event = {
+    await hook.event({
       event: {
-        type: 'message.updated',
-        properties: {
-          info: {
-            id: 'message-1',
-            sessionID: 'root-session',
-            role: 'user',
-          },
-        },
+        type: 'session.compacted',
+        properties: { info: { id: 'root-session' } },
       } as never,
-    };
+    });
 
-    await hook.event(event);
-    await hook.event(event);
-
-    expect(client.session.message).toHaveBeenCalledTimes(1);
-    expect(memSavePromptMock).toHaveBeenCalledTimes(1);
-    expect(memSavePromptMock).toHaveBeenCalledWith(
+    const expectedInstructions = buildMemoryInstructions(
       'root-session',
-      'User prompt content',
+      'oh-my-opencode-lite',
+    );
+
+    const withReminder = { system: ['Base system prompt'] };
+    await hook['experimental.chat.system.transform']?.(
+      { sessionID: 'root-session', model: {} as never },
+      withReminder,
+    );
+
+    expect(withReminder.system[0]).toContain(expectedInstructions);
+    expect(withReminder.system[0]).toContain(
+      buildCompactionReminder('root-session'),
+    );
+
+    await hook['tool.execute.after']?.(
+      {
+        tool: 'mcp_thoth_mem_mem_session_summary',
+        sessionID: 'root-session',
+        callID: 'call-1',
+        args: {},
+      },
+      {
+        title: 'Summary saved',
+        output: 'ok',
+        metadata: {},
+      },
+    );
+
+    const withoutReminder = { system: ['Base system prompt'] };
+    await hook['experimental.chat.system.transform']?.(
+      { sessionID: 'root-session', model: {} as never },
+      withoutReminder,
+    );
+
+    expect(withoutReminder.system[0]).toContain(expectedInstructions);
+    expect(withoutReminder.system[0]).not.toContain(
+      buildCompactionReminder('root-session'),
     );
   });
 });
