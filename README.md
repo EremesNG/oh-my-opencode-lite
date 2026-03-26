@@ -332,6 +332,13 @@ explicit approval before coding.
 | `grep_app` | Public GitHub code search | No auth required |
 | `thoth_mem` | Local persistent memory and artifact storage | Local command, default `npx -y thoth-mem@latest` |
 
+> **🧠 [Thoth-Mem](https://github.com/EremesNG/thoth-mem)** is a persistent
+> memory MCP server purpose-built for cross-session context. The orchestrator
+> uses it to save architectural decisions, bug-fix learnings, SDD artifacts,
+> and session summaries so the next session picks up where the last one left
+> off — even after context-window compaction. It is included by default and
+> runs locally via `npx`.
+
 Skill and MCP access in this project is prompt-driven. The generated plugin
 config focuses on model presets and runtime options rather than per-agent
 permission matrices.
