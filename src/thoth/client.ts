@@ -1,34 +1,42 @@
-import type { PluginInput } from '@opencode-ai/plugin';
 import { log } from '../utils/logger';
 
+const DEFAULT_THOTH_HTTP_PORT = 7438;
 const DEFAULT_THOTH_TIMEOUT_MS = 15_000;
-const THOTH_TOOL_PREFIX = 'thoth_mem_';
 
-type OpencodeClient = PluginInput['client'];
+type JsonRecord = Record<string, unknown>;
 
-type StoreCallArgs = {
-  tool: string;
-  sessionID?: string;
-  args?: Record<string, unknown>;
+type ContextSession = {
+  id?: string;
+  project?: string;
+  started_at?: string;
+  summary?: string;
 };
 
-type StoreCallResponse = {
-  output?: unknown;
-  result?: unknown;
+type ContextObservation = {
+  id?: number;
+  title?: string;
+  content?: string;
+  type?: string;
+  created_at?: string;
 };
 
-type RuntimeStore = {
-  call(args: StoreCallArgs): Promise<StoreCallResponse | unknown>;
+type ContextPrompt = {
+  id?: number;
+  content?: string;
+  created_at?: string;
 };
 
-type ClientWithStore = {
-  store: RuntimeStore;
+type ContextStats = {
+  sessions?: number;
+  observations?: number;
+  prompts?: number;
+  projects?: string[];
 };
 
 export interface CreateThothClientOptions {
-  client: OpencodeClient | unknown;
   project: string;
   directory?: string;
+  httpPort?: number;
   timeoutMs?: number;
   enabled?: boolean;
 }
@@ -37,149 +45,206 @@ export interface ThothClient {
   readonly enabled: boolean;
   memContext(sessionId?: string, limit?: number): Promise<string | null>;
   memSessionStart(sessionId: string): Promise<boolean>;
-  memSessionSummary(sessionId: string, content: string): Promise<boolean>;
   memSavePrompt(sessionId: string, content: string): Promise<boolean>;
-  memCapturePassive(
-    sessionId: string,
-    content: string,
-    source?: string,
-  ): Promise<boolean>;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null;
 }
 
-function hasRuntimeStore(client: unknown): client is ClientWithStore {
-  if (!isRecord(client)) {
-    return false;
-  }
-
-  const { store } = client;
-  return isRecord(store) && typeof store.call === 'function';
+function normalizeText(value: unknown): string | null {
+  return typeof value === 'string' ? value.trim() || null : null;
 }
 
-function normalizeStringResult(value: unknown): string | null {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (!isRecord(value)) {
+function previewText(value: unknown, max: number): string | null {
+  const text = normalizeText(value);
+  if (!text) {
     return null;
   }
 
-  const candidates = [value.output, value.result, value.content, value.text];
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string') {
-      return candidate;
-    }
-  }
-
-  return null;
+  return text.length > max ? `${text.slice(0, max)}...` : text;
 }
 
-class StoreBackedThothClient implements ThothClient {
-  readonly enabled: boolean;
-  private readonly timeoutMs: number;
+function formatMemoryContext(response: unknown): string | null {
+  if (!isRecord(response)) {
+    return null;
+  }
 
-  constructor(private readonly options: CreateThothClientOptions) {
+  const sessions = Array.isArray(response.sessions) ? response.sessions : [];
+  const observations = Array.isArray(response.observations)
+    ? response.observations
+    : [];
+  const prompts = Array.isArray(response.prompts) ? response.prompts : [];
+
+  if (
+    sessions.length === 0 &&
+    observations.length === 0 &&
+    prompts.length === 0
+  ) {
+    return null;
+  }
+
+  const lines = ['## Memory Context', ''];
+
+  if (sessions.length > 0) {
+    lines.push('### Recent Sessions');
+    for (const rawSession of sessions as ContextSession[]) {
+      const sessionId = normalizeText(rawSession.id) ?? 'unknown-session';
+      const project = normalizeText(rawSession.project) ?? 'unknown-project';
+      const startedAt = normalizeText(rawSession.started_at) ?? 'unknown';
+      lines.push(`- [${sessionId}] (${project}) — started ${startedAt}`);
+
+      const summary = previewText(rawSession.summary, 300);
+      if (summary) {
+        lines.push(`  Summary: ${summary}`);
+      }
+    }
+    lines.push('');
+  }
+
+  if (observations.length > 0) {
+    lines.push('### Recent Observations');
+    for (const rawObservation of observations as ContextObservation[]) {
+      const type = normalizeText(rawObservation.type) ?? 'manual';
+      const title = normalizeText(rawObservation.title) ?? 'Untitled';
+      const createdAt = normalizeText(rawObservation.created_at) ?? 'unknown';
+      lines.push(`- [${type}] ${title} (${createdAt})`);
+
+      const content = previewText(rawObservation.content, 300);
+      if (content) {
+        lines.push(`  ${content}`);
+      }
+    }
+    lines.push('');
+  }
+
+  if (prompts.length > 0) {
+    lines.push('### Recent Prompts');
+    for (const rawPrompt of prompts as ContextPrompt[]) {
+      const content = previewText(rawPrompt.content, 200);
+      if (!content) {
+        continue;
+      }
+
+      const createdAt = normalizeText(rawPrompt.created_at) ?? 'unknown';
+      lines.push(`- ${content} (${createdAt})`);
+    }
+    lines.push('');
+  }
+
+  const stats = isRecord(response.stats)
+    ? (response.stats as ContextStats)
+    : undefined;
+  if (stats) {
+    lines.push('### Stats');
+    lines.push(
+      `- Sessions: ${typeof stats.sessions === 'number' ? stats.sessions : 0}, ` +
+        `Observations: ${typeof stats.observations === 'number' ? stats.observations : 0}, ` +
+        `Prompts: ${typeof stats.prompts === 'number' ? stats.prompts : 0}`,
+    );
+  }
+
+  return lines.join('\n');
+}
+
+class HttpThothClient implements ThothClient {
+  readonly enabled: boolean;
+  private readonly baseUrl: string;
+  private readonly timeoutMs: number;
+  private readonly project: string;
+  private readonly directory?: string;
+
+  constructor(options: CreateThothClientOptions) {
     this.enabled = options.enabled !== false;
+    const port = options.httpPort ?? DEFAULT_THOTH_HTTP_PORT;
+    this.baseUrl = `http://127.0.0.1:${port}`;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_THOTH_TIMEOUT_MS;
+    this.project = options.project;
+    this.directory = options.directory;
   }
 
   async memContext(sessionId?: string, limit = 10): Promise<string | null> {
-    const args: Record<string, unknown> = {
-      project: this.options.project,
-      scope: 'project',
-      limit,
-    };
-    if (sessionId) {
-      args.session_id = sessionId;
-    }
-    const result = await this.callTool('mem_context', args);
+    const params = new URLSearchParams({
+      project: this.project,
+      limit: String(limit),
+    });
 
-    return normalizeStringResult(result);
+    if (sessionId) {
+      params.set('session_id', sessionId);
+    }
+
+    const response = await this.httpGet(`/context?${params.toString()}`);
+    return formatMemoryContext(response);
   }
 
   async memSessionStart(sessionId: string): Promise<boolean> {
-    const result = await this.callTool('mem_session_start', {
+    const response = await this.httpPost('/sessions', {
       id: sessionId,
-      project: this.options.project,
-      directory: this.options.directory,
+      project: this.project,
+      directory: this.directory,
     });
 
-    return result !== null;
-  }
-
-  async memSessionSummary(
-    sessionId: string,
-    content: string,
-  ): Promise<boolean> {
-    const result = await this.callTool('mem_session_summary', {
-      project: this.options.project,
-      session_id: sessionId,
-      content,
-    });
-
-    return result !== null;
+    return response !== null;
   }
 
   async memSavePrompt(sessionId: string, content: string): Promise<boolean> {
-    const result = await this.callTool('mem_save_prompt', {
-      project: this.options.project,
+    const response = await this.httpPost('/prompts', {
       session_id: sessionId,
       content,
+      project: this.project,
     });
 
-    return result !== null;
+    return response !== null;
   }
 
-  async memCapturePassive(
-    sessionId: string,
-    content: string,
-    source = 'task-tool',
-  ): Promise<boolean> {
-    const result = await this.callTool('mem_capture_passive', {
-      project: this.options.project,
-      session_id: sessionId,
-      source,
-      content,
-    });
-
-    return result !== null;
-  }
-
-  private async callTool(
-    toolName: string,
-    args: Record<string, unknown>,
-  ): Promise<StoreCallResponse | unknown | null> {
+  private async httpPost(
+    path: string,
+    body: JsonRecord,
+  ): Promise<unknown | null> {
     if (!this.enabled) {
       return null;
     }
 
-    const { client } = this.options;
-    if (!hasRuntimeStore(client)) {
-      log('[thoth] OpenCode Store unavailable', { toolName });
+    try {
+      const response = await fetch(`${this.baseUrl}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      log('[thoth] HTTP POST unavailable', {
+        path,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
+  private async httpGet(path: string): Promise<unknown | null> {
+    if (!this.enabled) {
       return null;
     }
 
-    const tool = `${THOTH_TOOL_PREFIX}${toolName}`;
-
     try {
-      return await Promise.race([
-        client.store.call({
-          tool,
-          args,
-          sessionID:
-            typeof args.session_id === 'string' ? args.session_id : undefined,
-        }),
-        new Promise<null>((resolve) => {
-          setTimeout(() => resolve(null), this.timeoutMs);
-        }),
-      ]);
+      const response = await fetch(`${this.baseUrl}${path}`, {
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      return await response.json();
     } catch (error) {
-      log('[thoth] tool call unavailable', {
-        tool,
+      log('[thoth] HTTP GET unavailable', {
+        path,
         error: error instanceof Error ? error.message : String(error),
       });
       return null;
@@ -190,5 +255,5 @@ class StoreBackedThothClient implements ThothClient {
 export function createThothClient(
   options: CreateThothClientOptions,
 ): ThothClient {
-  return new StoreBackedThothClient(options);
+  return new HttpThothClient(options);
 }
