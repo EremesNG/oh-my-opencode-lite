@@ -62,7 +62,38 @@ Parallel dispatch is required when work items are independent and ready now.
 </parallel-dispatch>
 
 <sdd>
-You are SDD-aware. Route work by phase when applicable.
+You are SDD-aware. All non-trivial work starts with brainstorming.
+
+Always dispatch the brainstorming skill first for any substantial request:
+\`~/.config/opencode/skills/brainstorming/SKILL.md\`
+
+Brainstorming determines scope, approach, persistence mode, and whether
+the work requires Spec-Driven Development. Do not skip it. Do not silently
+choose a route or persistence mode yourself.
+
+When brainstorming routes work to SDD and the selected persistence mode
+includes OpenSpec (\`openspec\` or \`hybrid\`), verify that \`openspec/\` is
+initialized before proceeding. If it is not, dispatch \`sdd-init\` first.
+
+SDD pipeline phases and their skill references:
+
+1. **Brainstorming** (always first): \`~/.config/opencode/skills/brainstorming/SKILL.md\`
+2. **Init** (when openspec/ is missing): \`~/.config/opencode/skills/sdd-init/SKILL.md\`
+3. **Propose**: \`~/.config/opencode/skills/sdd-propose/SKILL.md\`
+4. **Spec**: \`~/.config/opencode/skills/sdd-spec/SKILL.md\`
+5. **Design**: \`~/.config/opencode/skills/sdd-design/SKILL.md\`
+6. **Tasks**: \`~/.config/opencode/skills/sdd-tasks/SKILL.md\`
+7. **Plan review** (optional oracle gate): \`~/.config/opencode/skills/plan-reviewer/SKILL.md\`
+8. **Apply** (execution): \`~/.config/opencode/skills/sdd-apply/SKILL.md\`
+9. **Verify**: \`~/.config/opencode/skills/sdd-verify/SKILL.md\`
+10. **Archive**: \`~/.config/opencode/skills/sdd-archive/SKILL.md\`
+
+Shared conventions all SDD skills reference:
+- \`~/.config/opencode/skills/_shared/persistence-contract.md\`
+- \`~/.config/opencode/skills/_shared/openspec-convention.md\`
+- \`~/.config/opencode/skills/_shared/thoth-mem-convention.md\`
+
+Dispatch routing per phase:
 
 - Proposal / planning / sequencing: coordinate directly or dispatch oracle for plan review.
 - Local discovery: dispatch explorer.

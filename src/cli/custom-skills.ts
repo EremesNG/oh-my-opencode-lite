@@ -61,6 +61,12 @@ export const CUSTOM_SKILLS: CustomSkill[] = [
     sourcePath: 'src/skills/plan-reviewer',
   },
   {
+    name: 'sdd-init',
+    description: 'Initialize OpenSpec structure and SDD project context',
+    allowedAgents: ['orchestrator'],
+    sourcePath: 'src/skills/sdd-init',
+  },
+  {
     name: 'sdd-propose',
     description: 'Create change proposals for OpenSpec workflows',
     allowedAgents: ['orchestrator'],

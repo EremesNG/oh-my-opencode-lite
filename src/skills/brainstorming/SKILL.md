@@ -13,8 +13,9 @@ The goal is clarity, scope calibration, and a user-approved handoff.
 
 ## Shared Conventions
 
-- `~/.config/opencode/skills/_shared/thoth-mem-convention.md`
+- `~/.config/opencode/skills/_shared/openspec-convention.md`
 - `~/.config/opencode/skills/_shared/persistence-contract.md`
+- `~/.config/opencode/skills/_shared/thoth-mem-convention.md`
 
 ## HARD GATE
 
@@ -100,6 +101,19 @@ How would you like to persist planning artifacts?
 3. hybrid — Both. Maximum durability, higher token cost.
 Default: hybrid
 ```
+
+When the user selects a mode that includes OpenSpec (`openspec` or `hybrid`),
+verify that `openspec/` is initialized. If it is not, recommend running
+`sdd-init` before proceeding:
+`~/.config/opencode/skills/sdd-init/SKILL.md`
+
+Once route, persistence mode, and initialization are confirmed, hand off to the
+corresponding SDD pipeline phase:
+
+- **Propose**: `~/.config/opencode/skills/sdd-propose/SKILL.md`
+- **Spec** (full SDD only): `~/.config/opencode/skills/sdd-spec/SKILL.md`
+- **Design** (full SDD only): `~/.config/opencode/skills/sdd-design/SKILL.md`
+- **Tasks**: `~/.config/opencode/skills/sdd-tasks/SKILL.md`
 
 Do not silently choose the handoff route or artifact store mode. Recommend, ask,
 and wait.

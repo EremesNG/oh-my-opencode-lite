@@ -40,6 +40,7 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     websearch: 'allow',
     codesearch: 'allow',
     question: 'allow',
+    skill: 'allow',
     todowrite: 'deny',
     task: 'deny',
   },
@@ -71,6 +72,7 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     codesearch: 'allow',
     lsp: 'allow',
     skill: 'allow',
+    todowrite: 'allow',
   },
   quick: {
     read: 'allow',
@@ -82,6 +84,7 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     question: 'allow',
     codesearch: 'allow',
     lsp: 'allow',
+    todowrite: 'allow',
   },
   deep: 'allow',
 };

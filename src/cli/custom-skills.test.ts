@@ -83,6 +83,15 @@ describe('CUSTOM_SKILLS', () => {
     });
   });
 
+  test('registers the sdd-init skill for orchestrator use', () => {
+    expect(CUSTOM_SKILLS).toContainEqual({
+      name: 'sdd-init',
+      description: 'Initialize OpenSpec structure and SDD project context',
+      allowedAgents: ['orchestrator'],
+      sourcePath: 'src/skills/sdd-init',
+    });
+  });
+
   test('findPackageRoot walks up from a bundled dist directory', () => {
     expect(findPackageRoot(join(packageRoot, 'dist'))).toBe(packageRoot);
   });
