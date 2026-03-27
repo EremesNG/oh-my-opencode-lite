@@ -14,6 +14,7 @@ This convention applies only when the artifact store mode includes thoth-mem:
 Use the thoth-mem tool names exactly as exposed by the plugin:
 
 - `thoth_mem_mem_search`
+- `thoth_mem_mem_timeline`
 - `thoth_mem_mem_get_observation`
 - `thoth_mem_mem_save`
 - `thoth_mem_mem_update` (optional when you already have an observation ID)
@@ -40,25 +41,43 @@ Supported artifact names:
 Use the same value for `title` and `topic_key` unless there is a strong reason
 not to.
 
-## Two-Step Recovery
+## Three-Layer Recall Protocol
 
-1. Search by exact topic key:
+1. **Scan compact index** by exact topic key:
 
 ```text
 thoth_mem_mem_search(
-  query: "sdd/{change-name}/{artifact}",
-  project: "{project}"
+  query: "topic_key:sdd/{change-name}/{artifact}",
+  project: "{project}",
+  mode: "compact"
 )
 ```
 
-2. Retrieve the full artifact:
+Use `mode: "compact"` (the default) for token efficiency. Switch to `mode: "preview"`
+only when compact results are insufficient to disambiguate between multiple results.
+
+2. **Get chronological context** around the found observation:
+
+```text
+thoth_mem_mem_timeline(
+  observation_id: {id},
+  before: 5,
+  after: 5
+)
+```
+
+This shows related observations in the same session, helping you understand the
+artifact's evolution and dependencies.
+
+3. **Retrieve full artifact content**:
 
 ```text
 thoth_mem_mem_get_observation(id: {observation-id})
 ```
 
-`thoth_mem_mem_search` returns previews only. Full SDD dependencies require the
-second call.
+Search returns compact results (IDs + titles) by default. Neither compact nor
+preview mode returns the full artifact body. Always complete the 3-layer recall
+to get the actual content.
 
 ## Save Contract
 

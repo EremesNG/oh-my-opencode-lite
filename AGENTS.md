@@ -133,8 +133,9 @@ State management:
 - Format: `sdd/{change-name}/{artifact}`
 - Common keys: `proposal`, `spec`, `design`, `design-brief`, `tasks`, `apply-progress`,
   `verify-report`, `archive-report`
-- Search exact topic keys first; use filesystem OpenSpec artifacts as fallback
-  only when the mode includes repo files.
+- Search exact topic keys using the 3-layer recall protocol (see below); use
+  filesystem OpenSpec artifacts as fallback only when the mode includes repo
+  files.
 
 ## Brainstorming / Clarification Gate
 
@@ -183,6 +184,20 @@ The orchestrator owns thoth-mem for the root session.
 
 ### When to search
 
+Two retrieval patterns:
+
+**Broad recovery** (session start, after compaction):
+- Use `mem_context` for recent-session overview and quick context injection
+
+**Targeted 3-layer recall** (specific memory retrieval):
+1. `mem_search` with compact index (default) — scan IDs + titles to identify
+   promising observations
+2. `mem_timeline` — get chronological context around candidates to disambiguate
+3. `mem_get_observation` — retrieve full content only for records you need
+- Note: use `mode: "preview"` only when compact results are insufficient to
+  disambiguate
+
+Search proactively:
 - at session start for resumed or ambiguous work
 - before repeating prior investigation
 - before changing an area with likely historical decisions
@@ -210,8 +225,9 @@ Learned: edge cases or caveats
 
 ### After compaction protocol
 
-- First recover with `mem_context`.
-- Then inspect exact `topic_key` records if SDD artifacts are needed.
+- First recover with `mem_context` (broad overview).
+- Then use 3-layer recall for specific `topic_key` records if SDD artifacts are
+  needed.
 - Continue without inventing missing memory.
 
 ## Tmux Session Lifecycle

@@ -95,5 +95,6 @@ Return a short report with:
 - Keep the proposal focused on why, scope, and success criteria.
 - Always include rollback guidance and explicit out-of-scope items.
 - Never reference engram.
-- Never rely on a `thoth_mem_mem_search` preview without calling
-  `thoth_mem_mem_get_observation` when the selected mode uses thoth-mem.
+- Never rely on `thoth_mem_mem_search` output alone when the mode uses
+  thoth-mem. Follow the 3-layer recall protocol: `search(mode: "compact")` →
+  `timeline` → `get_observation` to retrieve the full artifact body.

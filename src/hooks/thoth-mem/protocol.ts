@@ -1,7 +1,7 @@
 export const SDD_TOPIC_KEY_FORMAT = 'sdd/{change}/{artifact}';
 
 export const FIRST_ACTION_INSTRUCTION =
-  'FIRST ACTION REQUIRED: Call mem_session_summary with the content of the compacted summary. This preserves what was accomplished before compaction. Do this BEFORE any other work. Then call mem_context to recover additional context from previous sessions.';
+  'FIRST ACTION REQUIRED: Call mem_session_summary with the content of the compacted summary. This preserves what was accomplished before compaction. Do this BEFORE any other work. Then call mem_context for a recent-session overview, and use the 3-layer recall protocol (mem_search with mode "compact" -> mem_timeline -> mem_get_observation) for precise retrieval.';
 
 export const SESSION_SUMMARY_TEMPLATE = `Use this exact structure for \`mem_session_summary\` content:
 
@@ -24,7 +24,7 @@ export const SESSION_SUMMARY_TEMPLATE = `Use this exact structure for \`mem_sess
 - path/to/file.ts - [what it does or what changed]`;
 
 export function buildCompactionReminder(sessionID: string): string {
-  return `FIRST ACTION REQUIRED: this session was compacted. Call \`mem_session_summary\` with the content of the compacted summary and \`session_id\` \`${sessionID}\`. This preserves what was accomplished before compaction. Do this BEFORE any other work. After that, call \`mem_capture_passive\` if the summary includes \`## Key Learnings:\`, and call \`mem_context\` if you need to restore recent memory.`;
+  return `FIRST ACTION REQUIRED: this session was compacted. Call \`mem_session_summary\` with the content of the compacted summary and \`session_id\` \`${sessionID}\`. This preserves what was accomplished before compaction. Do this BEFORE any other work. After that, call \`mem_capture_passive\` if the summary includes \`## Key Learnings:\`, call \`mem_context\` for a recent-session overview, and use the 3-layer recall protocol (\`mem_search\` with \`mode: "compact"\` -> \`mem_timeline\` -> \`mem_get_observation\`) for precise retrieval.`;
 }
 
 export function buildCompactorInstruction(project: string): string {
@@ -57,7 +57,12 @@ WHEN TO SAVE
   - Learned: edge cases, caveats, or follow-up notes
 
 WHEN TO SEARCH MEMORY
-- If the user asks to recall prior work, call \`mem_context\` first, then \`mem_search\`, then \`mem_get_observation\` for exact records you need.
+- Broad recovery (session start, after compaction): call \`mem_context\` for a recent-session overview.
+- Targeted 3-layer recall (specific memory retrieval):
+  1. Call \`mem_search\` with \`mode: "compact"\` (default) to scan the compact index of IDs + titles.
+  2. Call \`mem_timeline\` around promising observation IDs for chronological context within the same session.
+  3. Call \`mem_get_observation\` only for observations you need in full.
+- Use \`mode: "preview"\` with \`mem_search\` only when compact results are insufficient to disambiguate.
 - Search proactively on the first message about a project, feature, or problem when prior context may matter.
 - Search before starting work that may have been done before.
 - Search when the user mentions a topic that lacks enough local context.
@@ -72,7 +77,8 @@ ${SESSION_SUMMARY_TEMPLATE}
 
 AFTER COMPACTION
 - IMMEDIATELY call \`mem_session_summary\` with the compacted summary content.
-- Then call \`mem_context\`.
+- Then call \`mem_context\` for a recent-session overview.
+- Use the 3-layer recall protocol (\`mem_search\` with \`mode: "compact"\` -> \`mem_timeline\` -> \`mem_get_observation\`) for precise artifact/prior-observation retrieval.
 - Only then continue working.
 
 SDD topic_key convention:
