@@ -7,6 +7,7 @@
 | `thoth-mem` | thoth-mem only | thoth-mem only | The user wants no repo artifact changes |
 | `openspec` | filesystem only | OpenSpec files only | The user wants visible repo artifacts without memory overhead |
 | `hybrid` | thoth-mem, then filesystem fallback | thoth-mem and OpenSpec files | The change should survive compaction and exist in the repo |
+| `none` | orchestrator prompt context only | nowhere (inline response only) | Ephemeral exploration, privacy-sensitive work, or no persistence backend available |
 
 SDD skills MUST obey the selected artifact store mode. Do not reference or rely
 on engram.
@@ -25,6 +26,15 @@ on engram.
 2. Write SDD artifacts to canonical OpenSpec paths only.
 3. Do not call thoth-mem save or recovery tools.
 
+### `none`
+
+1. Read SDD artifacts from orchestrator prompt context only.
+2. Do not persist artifacts to any external store.
+3. Return all artifacts as inline text in the response.
+4. Do not call thoth-mem save tools.
+5. Do not create or modify OpenSpec files.
+6. Recommend enabling `thoth-mem` or `openspec` for persistent work.
+
 ## Hybrid Rules
 
 When running in `hybrid` mode:
@@ -34,6 +44,25 @@ When running in `hybrid` mode:
 3. Treat the operation as complete only when both writes succeed.
 4. If filesystem and memory diverge, repair them immediately by rewriting the
    stale copy from the freshest full artifact.
+
+## Memory Ownership
+
+Memory responsibilities are split between orchestrator and sub-agents:
+
+**Orchestrator owns general memory:**
+- Decisions, discoveries, bug fixes, session summaries
+- Progress checkpoints (SDD task state updates)
+- User preferences and configuration notes
+
+**Sub-agents write deterministic SDD artifacts:**
+- Canonical SDD artifacts with topic_key matching `sdd/{change}/{artifact}`
+- Includes: proposal, spec, design, tasks, apply-progress, verify-report,
+  archive-report, state
+- Sub-agents persist these directly when the active mode includes thoth-mem
+- Sub-agents do NOT write general memory observations
+
+This split preserves artifact nuance (sub-agents have full context when writing)
+while keeping general memory centralized under orchestrator control.
 
 ## Retrieval Protocol
 
@@ -71,6 +100,8 @@ Always complete the 3-layer recall before using content as source material.
    path from the filesystem.
 5. In `hybrid`, if filesystem recovery succeeds, re-save the artifact to
    thoth-mem so the two stores converge again.
+6. If the mode is `none`, read artifacts from the orchestrator prompt context
+   only. Do not attempt to retrieve from thoth-mem or filesystem.
 
 ## Artifact Ownership
 
@@ -82,6 +113,7 @@ Always complete the 3-layer recall before using content as source material.
   updated `sdd/{change-name}/tasks`
 - `sdd-verify` persists `sdd/{change-name}/verify-report`
 - `sdd-archive` persists `sdd/{change-name}/archive-report`
+- `state` persists `sdd/{change-name}/state`
 
 ## Recovery Notes
 

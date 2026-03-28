@@ -37,9 +37,45 @@ Supported artifact names:
 - `apply-progress`
 - `verify-report`
 - `archive-report`
+- `state`
 
 Use the same value for `title` and `topic_key` unless there is a strong reason
 not to.
+
+## State Artifact Format
+
+The orchestrator persists a lightweight state checkpoint after each SDD phase
+transition to enable recovery:
+
+```yaml
+change: {change-name}
+phase: {last-completed-phase}
+mode: {thoth-mem|openspec|hybrid|none}
+artifacts:
+  proposal: true
+  spec: false
+  design: false
+  tasks: false
+  apply-progress: false
+  verify-report: false
+  archive-report: false
+last_updated: {ISO 8601 timestamp}
+```
+
+Save with:
+
+```text
+thoth_mem_mem_save(
+  title: "sdd/{change-name}/state",
+  topic_key: "sdd/{change-name}/state",
+  type: "architecture",
+  project: "{project}",
+  scope: "project",
+  content: "{YAML state content}"
+)
+```
+
+Recovery: `thoth_mem_mem_search("sdd/{change-name}/state")` → `thoth_mem_mem_get_observation(id)` → parse YAML → restore phase state.
 
 ## Three-Layer Recall Protocol
 
@@ -80,6 +116,9 @@ preview mode returns the full artifact body. Always complete the 3-layer recall
 to get the actual content.
 
 ## Save Contract
+
+**CRITICAL:** The orchestrator MUST persist the state artifact after each SDD
+phase transition. This is the canonical checkpoint for resume/recovery.
 
 Persist SDD artifacts with a stable topic key so repeated saves upsert instead
 of creating duplicates:
