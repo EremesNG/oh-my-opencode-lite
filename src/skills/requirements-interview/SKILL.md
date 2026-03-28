@@ -27,6 +27,20 @@ handoff path before implementation begins.
 - Do not patch files.
 - Do not create formal SDD artifacts until the user approves the route.
 
+## Question Tool Requirement
+
+- The interview flow MUST use the built-in `question` tool for user-input
+  prompts.
+- Do not embed interview questions as plain prose in normal response text.
+- Prefer one focused question-tool call at a time for the core interview loop.
+- Use short headers (<=30 chars), concise option labels, and concrete
+  descriptions.
+- Put the recommended option first and include `(Recommended)` in that label.
+- Do not add an `Other` option manually; rely on `custom: true` unless custom
+  input must be disabled.
+- Use `multiple: true` only when multiple simultaneous selections are genuinely
+  valid.
+
 ## Workflow
 
 ### Phase 1: Discovery Context Gathering
@@ -41,17 +55,18 @@ handoff path before implementation begins.
 
 ### Phase 2: Requirements Interview
 
-1. Ask 1 question at a time.
-2. Ask at most 5 total questions.
-3. Prefer multiple-choice questions when practical.
-4. Stop early when clarity is already sufficient.
-5. Focus on what the user truly needs, not only the first phrasing of the
+1. Ask each interview question through the `question` tool.
+2. Ask 1 question-tool call at a time.
+3. Ask at most 5 total questions.
+4. Prefer multiple-choice questions when practical.
+5. Stop early when clarity is already sufficient.
+6. Focus on what the user truly needs, not only the first phrasing of the
    request.
-6. Surface unstated assumptions and validate them with the user.
-7. Guide the user toward potentially better options when appropriate, but never
+7. Surface unstated assumptions and validate them with the user.
+8. Guide the user toward potentially better options when appropriate, but never
    impose a decision.
-8. Always ask and confirm; never choose on the user's behalf.
-9. Do not ask for details that the codebase, task artifacts, or gathered
+9. Always ask and confirm; never choose on the user's behalf.
+10. Do not ask for details that the codebase, task artifacts, or gathered
    context already answer.
 
 ### Phase 3: Complexity Assessment
@@ -72,7 +87,7 @@ Evaluate these 6 dimensions. Rate each as **Low**, **Medium**, or **High**:
 1. Present 2-3 viable options as recommendations, not decisions.
 2. For each option, give the main trade-offs and when it is a good fit.
 3. Mark one option as the current recommendation and explain why.
-4. Ask the user to confirm the preferred approach before moving on.
+4. Use the `question` tool to confirm the preferred approach before moving on.
 
 ### Phase 5: User Approval Gate
 
@@ -84,6 +99,8 @@ Present:
 - Proposed handoff path
 
 Then wait for explicit user confirmation.
+
+Use the `question` tool for this approval gate.
 
 Nothing proceeds without explicit approval in this phase. The user is the sole
 approver during requirements discovery. Do not request oracle review here.
@@ -129,11 +146,14 @@ Before any SDD generation starts, present the artifact store policy choice:
 
 ```text
 How would you like to persist planning artifacts?
-1. thoth-mem — Memory only. Lightest token cost. No repo files.
-2. openspec — Repo files only. Visible and reviewable.
-3. hybrid — Both. Maximum durability, higher token cost.
+1. none — No persistence. Ephemeral exploration, privacy-sensitive work, or when no backend is available. Results are inline only and not saved across sessions.
+2. thoth-mem — Memory only. Lightest token cost. No repo files.
+3. openspec — Repo files only. Visible and reviewable.
+4. hybrid — Both. Maximum durability, higher token cost.
 Default: hybrid
 ```
+
+Collect this choice with the `question` tool rather than plain prose.
 
 When the user selects a mode that includes OpenSpec (`openspec` or `hybrid`),
 verify that `openspec/` is initialized. If it is not, recommend running
@@ -154,12 +174,13 @@ ask, and wait.
 ## Guardrails
 
 - Maximum 5 interview questions.
-- Ask only one question at a time.
+- Ask only one question-tool call at a time.
 - Do not ask what codebase context can answer.
 - Do not skip explicit user approval.
 - Do not auto-select the handoff route.
 - Do not auto-select the persistence mode.
 - Never convert recommendations into unilateral decisions.
+- Do not replace question-tool prompts with plain-text interview questions.
 
 ## Anti-Patterns
 
