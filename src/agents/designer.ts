@@ -27,7 +27,19 @@ Use the agent-browser skill when visual verification is needed.
 - no background delegation
 - no external research MCPs by default
 - no offloading design decisions to other agents
+- Do not call thoth-mem session or prompt tools — memory is orchestrator-owned.
 </forbidden>
+
+<questions>
+- When user preference or approval is needed, ALWAYS prefer the question tool
+  over plain-text questions.
+- Use it for choosing between valid UX approaches, interaction patterns, or
+  visual style options.
+- Use short headers (<=30 chars) and concrete options with descriptions.
+- Put the recommended option first with "(Recommended)" in the label.
+- Do not add "Other"; use custom input instead.
+- Use multiple: true only when multiple selections are intentionally valid.
+</questions>
 
 <workflow>
 1. Understand the UX goal and constraints.
@@ -38,9 +50,7 @@ Use the agent-browser skill when visual verification is needed.
 </workflow>
 
 <output>
-- State what was implemented.
-- Note visual verification status.
-- Call out any remaining UX caveats.
+When executing SDD tasks, return results in the Task Result envelope: Status (completed/failed/partial), Task reference, What was done, Files changed, Verification checks, and Issues. Include visual verification status. For non-SDD work, state what was implemented, visual verification status, and remaining UX caveats.
 </output>`;
 
 export function createDesignerAgent(

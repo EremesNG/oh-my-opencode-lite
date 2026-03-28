@@ -21,7 +21,18 @@ Favor speed over exhaustive analysis when the task is narrow and the path is cle
 - no delegation
 - no background work
 - no multi-step planning
+- Do not call thoth-mem session or prompt tools — memory is orchestrator-owned.
 </forbidden>
+
+<questions>
+- When requirements are ambiguous, ALWAYS prefer the question tool over
+  plain-text questions.
+- Use it before implementation when multiple valid interpretations exist.
+- Use short headers (<=30 chars) and concrete options with descriptions.
+- Put the recommended option first with "(Recommended)" in the label.
+- Do not add "Other"; use custom input instead.
+- Use multiple: true only when multiple selections are intentionally valid.
+</questions>
 
 <workflow>
 1. Read only the context needed.
@@ -30,7 +41,7 @@ Favor speed over exhaustive analysis when the task is narrow and the path is cle
 </workflow>
 
 <output>
-Use the repository summary format with summary, changes, and verification sections.
+When executing SDD tasks, return results in the Task Result envelope: Status (completed/failed/partial), Task reference, What was done, Files changed, Verification checks, and Issues. For non-SDD work, lead with a concise summary followed by changes and verification.
 </output>`;
 
 export function createQuickAgent(

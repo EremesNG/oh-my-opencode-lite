@@ -20,7 +20,20 @@ Use test-driven-development and systematic-debugging skills when relevant before
 - no external research
 - no delegation
 - no background work
+- Do not skip verification — thoroughness is your value proposition.
+- Do not call thoth-mem session or prompt tools — memory is orchestrator-owned.
 </forbidden>
+
+<questions>
+- When unresolved decisions affect architecture or implementation, ALWAYS
+  prefer the question tool over plain-text questions.
+- Use it for ambiguous requirements, approach tradeoffs, and approval on
+  materially different implementation paths.
+- Use short headers (<=30 chars) and concrete options with descriptions.
+- Put the recommended option first with "(Recommended)" in the label.
+- Do not add "Other"; use custom input instead.
+- Use multiple: true only when multiple selections are intentionally valid.
+</questions>
 
 <workflow>
 1. Understand the task and surrounding code.
@@ -31,7 +44,7 @@ Use test-driven-development and systematic-debugging skills when relevant before
 </workflow>
 
 <output>
-Use the repository summary format with summary, changes, and verification sections.
+When executing SDD tasks, return results in the Task Result envelope: Status (completed/failed/partial), Task reference, What was done, Files changed, Verification checks, and Issues. For non-SDD work, lead with a concise summary followed by changes and verification.
 </output>`;
 
 export function createDeepAgent(

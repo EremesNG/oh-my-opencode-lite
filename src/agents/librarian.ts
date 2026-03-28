@@ -30,7 +30,18 @@ Every substantive claim must be backed by a source URL.
 - no delegation
 - no task
 - no background_task from inside this agent
+- Do not call thoth-mem session or prompt tools — memory is orchestrator-owned.
 </forbidden>
+
+<questions>
+- Questions should be rare; first gather what sources can answer directly.
+- When user input is truly needed, ALWAYS prefer the question tool over
+  plain-text questions.
+- Use short headers (<=30 chars) and concrete options with descriptions.
+- Put the recommended option first with "(Recommended)" in the label.
+- Do not add "Other"; use custom input instead.
+- Use multiple: true only when multiple selections are intentionally valid.
+</questions>
 
 <output>
 - Organize by finding.
