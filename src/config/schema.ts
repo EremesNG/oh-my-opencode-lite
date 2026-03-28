@@ -155,25 +155,6 @@ export const DelegationConfigSchema = z.object({
 
 export type DelegationConfig = z.infer<typeof DelegationConfigSchema>;
 
-export const ClarificationGateModeSchema = z.enum([
-  'off',
-  'explicit-only',
-  'auto',
-  'auto-for-planning',
-]);
-
-export const ClarificationGateConfigSchema = z.object({
-  mode: ClarificationGateModeSchema.default('auto'),
-  min_scope_signals: z.number().min(0).default(2),
-  hard_complex_signal_threshold: z.number().min(0).default(3),
-  explicit_keywords: z.array(z.string()).optional(),
-  planning_keywords: z.array(z.string()).optional(),
-});
-
-export type ClarificationGateConfig = z.infer<
-  typeof ClarificationGateConfigSchema
->;
-
 export const ArtifactStoreModeSchema = z.enum([
   'thoth-mem',
   'openspec',
@@ -218,7 +199,6 @@ export const PluginConfigSchema = z.object({
   fallback: FailoverConfigSchema.optional(),
   thoth: ThothConfigSchema.optional(),
   delegation: DelegationConfigSchema.optional(),
-  clarificationGate: ClarificationGateConfigSchema.optional(),
   artifactStore: ArtifactStoreConfigSchema.optional(),
 });
 

@@ -116,7 +116,7 @@ describe('skill-manifest', () => {
       pluginVersion: '1.2.3',
       sharedHash: 'shared-hash',
       skills: {
-        brainstorming: {
+        'requirements-interview': {
           hash: 'abc123',
           installedAt: '2026-03-25T00:00:00.000Z',
         },
@@ -227,8 +227,8 @@ describe('skill-manifest', () => {
       pluginVersion: '1.0.0',
       sharedHash: 'shared-hash',
       skills: {
-        brainstorming: {
-          hash: 'brainstorming-hash',
+        'requirements-interview': {
+          hash: 'requirements-interview-hash',
           installedAt: '2026-03-25T00:00:00.000Z',
         },
         'obsolete-skill': {

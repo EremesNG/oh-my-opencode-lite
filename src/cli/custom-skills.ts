@@ -41,11 +41,11 @@ const SHARED_SKILL_SOURCE_PATH = `src/skills/${SHARED_SKILL_DIRECTORY}`;
  */
 export const CUSTOM_SKILLS: CustomSkill[] = [
   {
-    name: 'brainstorming',
+    name: 'requirements-interview',
     description:
-      'Understand user intent and scope through structured clarification before implementation',
+      'Mandatory step-0 discovery interview to understand user intent, clarify scope, and choose the right path before implementation',
     allowedAgents: ['orchestrator'],
-    sourcePath: 'src/skills/brainstorming',
+    sourcePath: 'src/skills/requirements-interview',
   },
   {
     name: 'cartography',

@@ -499,43 +499,6 @@
         }
       }
     },
-    "clarificationGate": {
-      "type": "object",
-      "properties": {
-        "mode": {
-          "default": "auto",
-          "type": "string",
-          "enum": [
-            "off",
-            "explicit-only",
-            "auto",
-            "auto-for-planning"
-          ]
-        },
-        "min_scope_signals": {
-          "default": 2,
-          "type": "number",
-          "minimum": 0
-        },
-        "hard_complex_signal_threshold": {
-          "default": 3,
-          "type": "number",
-          "minimum": 0
-        },
-        "explicit_keywords": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "planning_keywords": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
     "artifactStore": {
       "type": "object",
       "properties": {

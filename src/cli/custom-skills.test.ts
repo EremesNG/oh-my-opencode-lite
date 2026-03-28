@@ -124,10 +124,16 @@ describe('CUSTOM_SKILLS', () => {
     expect(report.skippedSkills).toHaveLength(0);
     expect(
       readFileSync(
-        join(tmpConfigRoot, 'opencode', 'skills', 'brainstorming', 'SKILL.md'),
+        join(
+          tmpConfigRoot,
+          'opencode',
+          'skills',
+          'requirements-interview',
+          'SKILL.md',
+        ),
         'utf-8',
       ),
-    ).toContain('Skill content for brainstorming');
+    ).toContain('Skill content for requirements-interview');
     expect(
       existsSync(join(tmpConfigRoot, 'opencode', 'skills', '_shared')),
     ).toBe(true);
