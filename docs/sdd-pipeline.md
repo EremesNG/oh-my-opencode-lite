@@ -11,16 +11,23 @@ The full pipeline is:
 propose -> [spec || design] -> tasks -> apply -> verify -> archive
 ```
 
-Brainstorming runs before this when the request is ambiguous, open-ended, or too
+The requirements interview runs before this when the request is ambiguous, open-ended, or too
 large to implement safely without scope alignment.
 
-## How Brainstorming Feeds into SDD
+## How the Requirements Interview Feeds into SDD
 
-The bundled `brainstorming` skill decides the handoff route after clarification.
+The bundled `requirements-interview` skill decides the handoff route
+after clarification using a 6-dimension complexity assessment (logic
+depth, contract sensitivity, context span, discovery need, failure
+cost, and concern coupling).
 
-- trivial work (`1-2` files): direct implementation
-- medium work (`3-7` files): accelerated SDD, usually `propose -> tasks`
-- complex work (`8+` files): full SDD pipeline
+- low complexity: direct implementation
+- moderate complexity: accelerated SDD, usually `propose -> tasks`
+- high complexity: full SDD pipeline
+
+Routing is based on the nature and risk of the change, not file count.
+A mechanical rename across many files routes direct, while a dense
+business-logic rewrite in two files may need full SDD.
 
 Before SDD begins, the user chooses an artifact store mode.
 

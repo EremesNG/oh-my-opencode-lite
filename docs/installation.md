@@ -39,7 +39,7 @@ delegate-first seven-agent roster for OpenCode.
 
 When skills are enabled, it also installs or copies:
 
-- Bundled `brainstorming`
+- Bundled `requirements-interview`
 - Bundled `cartography`
 - Bundled `plan-reviewer`
 - Bundled `executing-plans`
@@ -48,7 +48,7 @@ When skills are enabled, it also installs or copies:
   `sdd-verify`, `sdd-archive`
 - Recommended external skills such as `simplify` and `agent-browser`
 
-In other words, brainstorming and the SDD pipeline are included as part of the
+In other words, requirements-interview and the SDD pipeline are included as part of the
 standard oh-my-opencode-lite workflow rather than something you assemble by
 hand later.
 
@@ -150,7 +150,7 @@ bunx oh-my-opencode-lite@latest install --no-tui --tmux=no --skills=no
 bunx oh-my-opencode-lite@latest install --reset
 ```
 
-With skills enabled, the install includes the brainstorming skill, the bundled
+With skills enabled, the install includes the requirements-interview skill, the bundled
 SDD pipeline, `plan-reviewer`, `executing-plans`, and cartography in addition to
 recommended external skills.
 

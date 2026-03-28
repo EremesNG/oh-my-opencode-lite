@@ -5,7 +5,7 @@
 **oh-my-opencode-lite** is an OpenCode plugin for delegate-first agent
 orchestration. It provides a seven-agent roster, async background delegation,
 disk-persisted delegation results, thoth-mem integration, bundled SDD
-skills, and a brainstorming clarification gate for ambiguous work.
+skills, and a requirements-interview skill for clarifying ambiguous work.
 
 ## Commands
 
@@ -137,16 +137,18 @@ State management:
   filesystem OpenSpec artifacts as fallback only when the mode includes repo
   files.
 
-## Brainstorming / Clarification Gate
+## Requirements Interview
 
-Ambiguous or substantial work starts with the bundled `brainstorming` skill.
-The clarification gate hook detects ambiguity via keyword matching and scope
-signal heuristics, nudging the orchestrator to explore before implementing.
-
-Brainstorming produces an approved direction and routes into:
-- direct implementation for trivial work (1-2 files)
-- accelerated SDD (`propose -> tasks`) for medium work (3-7 files)
-- full SDD (`propose -> spec -> design -> tasks`) for complex work (8+ files)
+Ambiguous or substantial work starts with the bundled `requirements-interview` skill.
+The requirements interview produces an approved direction and routes into:
+- direct implementation for low-complexity work (no high dimensions,
+  at most one medium, low contract sensitivity and failure cost)
+- accelerated SDD (`propose -> tasks`) for moderate complexity
+  (2-3 medium dimensions or one high in logic/context/discovery,
+  but contract sensitivity and failure cost are not high)
+- full SDD (`propose -> spec -> design -> tasks`) for high complexity
+  (high contract sensitivity, high failure cost, 2+ high dimensions,
+  or high discovery need combined with other medium/high dimensions)
 
 ### Artifact Store Policy
 
@@ -260,12 +262,10 @@ oh-my-opencode-lite/
 │   ├── cli/
 │   ├── config/
 │   ├── delegation/
-│   ├── hooks/
-│   │   └── clarification-gate/
 │   ├── mcp/
 │   ├── skills/
 │   │   ├── _shared/
-│   │   ├── brainstorming/
+│   │   ├── requirements-interview/
 │   │   ├── cartography/
 │   │   ├── executing-plans/
 │   │   ├── plan-reviewer/

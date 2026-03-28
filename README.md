@@ -7,7 +7,7 @@
 ---
 
 Delegate-first OpenCode plugin with a seven-agent roster, root-session
-`thoth_mem` persistence, disk-backed delegation records, bundled brainstorming,
+`thoth_mem` persistence, disk-backed delegation records, bundled requirements-interview,
 and a full SDD workflow.
 
 oh-my-opencode-lite keeps the `orchestrator` lean, pushes discovery into
@@ -43,7 +43,7 @@ bunx oh-my-opencode-lite@latest install --reset
 ```
 
 When skills are enabled, the installer adds the recommended external skills and
-copies the bundled brainstorming, cartography, plan-reviewer,
+copies the bundled requirements-interview, cartography, plan-reviewer,
 executing-plans, and SDD skills into your OpenCode skills directory.
 
 ### For LLM agents
@@ -227,7 +227,7 @@ safety, and verification remain straightforward.
 - Disk-persisted delegation results that survive compaction and in-memory loss
 - Bundled SDD pipeline: `sdd-propose`, `sdd-spec`, `sdd-design`, `sdd-tasks`,
   `sdd-apply`, `sdd-verify`, `sdd-archive`
-- Brainstorming skill with clarification-gate hook for ambiguous work
+- Requirements-interview skill for clarifying ambiguous work before implementation
 - `plan-reviewer` for oracle review loops on task plans
 - `executing-plans` for task-state ownership and progress tracking
 - `cartography` for repository mapping and codemap generation
@@ -249,7 +249,7 @@ The bundled SDD workflow follows this path:
 propose -> [spec || design] -> tasks -> apply -> verify -> archive
 ```
 
-For medium work, brainstorming can route into an accelerated path that starts at
+For medium work, the requirements interview can route into an accelerated path that starts at
 `propose -> tasks`. For complex work, the full path is used.
 
 Artifacts can be persisted in three modes:
@@ -276,10 +276,13 @@ During execution, `executing-plans` owns task-state tracking:
 - `- [x]` completed
 - `- [-]` skipped with reason
 
-## Brainstorming & Clarification Gate
+## Requirements Interview
 
-The bundled `brainstorming` skill is the front door for ambiguous or substantial
-work. Its workflow is six phases:
+The bundled `requirements-interview` skill is the front door for ambiguous or substantial
+work. It is step-0 in the orchestrator prompt and runs before implementation when the
+request is open-ended, spans multiple parts of the system, or needs scope calibration.
+
+Its workflow is six phases:
 
 1. Context gathering
 2. Interview
@@ -288,13 +291,8 @@ work. Its workflow is six phases:
 5. User approval
 6. Handoff
 
-The clarification-gate hook can auto-detect requests that should go through this
-flow before implementation. It checks for explicit planning keywords plus scope
-signals such as multi-view work, API/data changes, restructuring, multi-layer
-impact, business-language requests, open-ended phrasing, and cross-directory
-scope. When triggered, it injects a reminder for the `orchestrator` to load the
-brainstorming skill, ask one clarifying question at a time, and wait for
-explicit approval before coding.
+After clarification, the skill routes the work into direct implementation, accelerated
+SDD, or full SDD based on complexity assessment.
 
 ## 🧩 Skills & MCP Servers
 
@@ -302,7 +300,7 @@ explicit approval before coding.
 
 | Skill | Category | Purpose |
 | --- | --- | --- |
-| `brainstorming` | Clarification | Clarify intent, assess scope, and choose direct work vs accelerated or full SDD |
+| `requirements-interview` | Clarification | Clarify intent, assess scope, and choose direct work vs accelerated or full SDD |
 | `cartography` | Discovery | Generate and update hierarchical repository codemaps |
 | `plan-reviewer` | Review | Validate `tasks.md` for real execution blockers and return `[OKAY]` or `[REJECT]` |
 | `sdd-propose` | SDD | Create or update `proposal.md` |
