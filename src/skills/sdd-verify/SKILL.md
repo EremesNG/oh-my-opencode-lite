@@ -99,4 +99,3 @@ Return:
 - Do not fix issues inside this phase; report them.
 - Recover full artifacts with the protocol in
   `~/.config/opencode/skills/_shared/persistence-contract.md`.
-- Never reference engram.

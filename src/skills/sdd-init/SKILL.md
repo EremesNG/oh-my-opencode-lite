@@ -155,4 +155,3 @@ Return:
 - Keep `config.yaml` context concise (max 10 lines).
 - Detect and include CI, test, and style conventions in the context summary.
 - Never create placeholder spec/change files during init.
-- Never reference engram.

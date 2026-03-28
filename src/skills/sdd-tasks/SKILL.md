@@ -113,4 +113,3 @@ Return:
 - Do not create vague tasks such as “implement feature”.
 - Retrieve all dependencies through the mode-aware protocol in
   `~/.config/opencode/skills/_shared/persistence-contract.md`.
-- Never reference engram.
