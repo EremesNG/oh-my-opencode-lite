@@ -2,13 +2,15 @@ import type { RemoteMcpConfig } from './types';
 
 /**
  * Exa AI web search - real-time web search
- * @see https://exa.ai
+ * @see https://exa.ai/docs/reference/exa-mcp
  */
+const baseUrl = 'https://mcp.exa.ai/mcp?tools=web_search_exa';
+const url = process.env.EXA_API_KEY
+  ? `${baseUrl}&exaApiKey=${process.env.EXA_API_KEY}`
+  : baseUrl;
+
 export const websearch: RemoteMcpConfig = {
   type: 'remote',
-  url: 'https://mcp.exa.ai/mcp?tools=web_search_exa',
-  headers: process.env.EXA_API_KEY
-    ? { 'x-api-key': process.env.EXA_API_KEY }
-    : undefined,
+  url,
   oauth: false,
 };
