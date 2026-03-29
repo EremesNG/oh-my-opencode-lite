@@ -6,6 +6,7 @@ import {
   buildCompactionReminder,
   buildCompactorInstruction,
   buildMemoryInstructions,
+  buildSaveNudge,
   FIRST_ACTION_INSTRUCTION,
 } from './protocol';
 
@@ -81,6 +82,15 @@ function isSessionSummaryTool(toolName: string): boolean {
   );
 }
 
+function isMemSaveTool(toolName: string): boolean {
+  const normalized = toolName.toLowerCase();
+  return (
+    normalized === 'mem_save' ||
+    normalized.endsWith('.mem_save') ||
+    normalized.endsWith('_mem_save')
+  );
+}
+
 export function createThothMemHook(options: CreateThothMemHookOptions) {
   const enabled = options.enabled !== false;
   const thoth = createThothClient({
@@ -94,6 +104,9 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
   const trackedRootSessions = new Set<string>();
   const needsCompactionFollowUp = new Set<string>();
   const ensuredRootSessions = new Map<string, Promise<void>>();
+  const sessionCreatedAt = new Map<string, number>();
+  const lastMemSaveAt = new Map<string, number>();
+  const nudgePending = new Set<string>();
 
   async function ensureRootSession(sessionId: string): Promise<void> {
     if (!enabled || trackedRootSessions.has(sessionId)) {
@@ -121,6 +134,28 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
     await pending;
   }
 
+  function shouldInjectSaveNudge(sessionId: string): boolean {
+    if (nudgePending.has(sessionId)) {
+      return false;
+    }
+    if (needsCompactionFollowUp.has(sessionId)) {
+      return false;
+    }
+
+    const createdAt = sessionCreatedAt.get(sessionId);
+    if (!createdAt || Date.now() - createdAt < 5 * 60 * 1000) {
+      return false;
+    }
+
+    const lastSave = lastMemSaveAt.get(sessionId);
+    if (lastSave && Date.now() - lastSave < 15 * 60 * 1000) {
+      return false;
+    }
+
+    nudgePending.add(sessionId);
+    return true;
+  }
+
   async function handleSessionCreated(session: RootSessionLike): Promise<void> {
     if (!enabled || !isRootSession(session)) {
       return;
@@ -129,6 +164,7 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
     const started = await thoth.memSessionStart(session.id);
     if (started) {
       trackedRootSessions.add(session.id);
+      sessionCreatedAt.set(session.id, Date.now());
     } else {
       log('[thoth] session start unavailable, skipping tracking:', session.id);
     }
@@ -146,6 +182,9 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
     trackedRootSessions.delete(session.id);
     needsCompactionFollowUp.delete(session.id);
     ensuredRootSessions.delete(session.id);
+    sessionCreatedAt.delete(session.id);
+    lastMemSaveAt.delete(session.id);
+    nudgePending.delete(session.id);
   }
 
   return {
@@ -202,7 +241,7 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
       }
 
       const sanitizedPromptText = sanitizePromptText(promptText);
-      if (!sanitizedPromptText) {
+      if (!sanitizedPromptText || sanitizedPromptText.length <= 10) {
         return;
       }
 
@@ -230,11 +269,18 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
       const compactionReminder = needsCompactionFollowUp.has(input.sessionID)
         ? buildCompactionReminder(input.sessionID)
         : null;
+      const saveNudge = shouldInjectSaveNudge(input.sessionID)
+        ? buildSaveNudge()
+        : null;
 
       if (output.system.length === 0) {
-        const systemPrompt = compactionReminder
-          ? appendInstruction(memoryInstructions, compactionReminder)
-          : memoryInstructions;
+        let systemPrompt = memoryInstructions;
+        if (compactionReminder) {
+          systemPrompt = appendInstruction(systemPrompt, compactionReminder);
+        }
+        if (saveNudge) {
+          systemPrompt = appendInstruction(systemPrompt, saveNudge);
+        }
         output.system.push(systemPrompt);
         return;
       }
@@ -250,6 +296,10 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
           updatedSystemPrompt,
           compactionReminder,
         );
+      }
+
+      if (saveNudge) {
+        updatedSystemPrompt = appendInstruction(updatedSystemPrompt, saveNudge);
       }
 
       output.system[lastIndex] = updatedSystemPrompt;
@@ -298,6 +348,11 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
 
       if (!enabled) {
         return;
+      }
+
+      if (isMemSaveTool(input.tool)) {
+        lastMemSaveAt.set(input.sessionID, Date.now());
+        nudgePending.delete(input.sessionID);
       }
 
       if (isSessionSummaryTool(input.tool)) {
