@@ -127,19 +127,47 @@ Keep orchestration lean. Sub-agent work stays isolated so your own context remai
 
 <progress>
 For multi-step work (SDD apply, direct implementation with 3+ tasks, or
-multi-delegation flows), use todowrite to create and maintain a visible task
-list for the user.
+multi-delegation flows), progress tracking has two mandatory layers that
+MUST both be maintained:
 
-Lifecycle: Create todos at start, mark in_progress before each delegation,
-mark completed after verified completion, mark cancelled if skipped.
+1. **todowrite (ALWAYS, mode-agnostic):** The macro-level visual task list
+   that guides the user. This layer is ALWAYS active for multi-step work,
+   regardless of persistence mode or whether the work is SDD-backed.
+2. **Persistent SDD artifact (when SDD is active):** The canonical task
+   checkboxes in openspec/tasks.md and/or thoth-mem, depending on
+   persistence mode. Updated via the executing-plans skill protocol.
 
-Keep it lean—track top-level tasks/phases only, not sub-steps. Use priority
-(high/medium/low) to reflect actual task priority.
+Both layers follow the same state transition timing:
+
+- **Before dispatching a delegation:** Mark the task as in_progress in
+  todowrite AND in the persistent artifact (if SDD is active). This MUST
+  happen in the SAME response, BEFORE the delegation tool call.
+- **After receiving sub-agent results:** Mark the task as completed (on
+  success) or cancelled (on skip/permanent failure) in todowrite AND in
+  the persistent artifact. This MUST happen IMMEDIATELY, before any other
+  delegation.
+- **Never proceed to the next delegation** without updating BOTH layers
+  for the current task first.
+
+When delegating a single task, only ONE todo should be in_progress at a
+time. When delegating an entire SDD phase (P0, P1, …) to a single agent,
+mark ALL tasks in that phase as in_progress before dispatching. After
+receiving results, update each task individually based on the sub-agent
+return envelope (completed or cancelled).
+
+Anti-patterns (protocol violations):
+- Updating only one layer (e.g., todowrite but not the SDD artifact, or
+  vice versa).
+- Batch-completing tasks across different delegations instead of updating
+  after each delegation returns.
+- Leaving a task in_progress after sub-agent results have been received.
+- Starting a new delegation without marking the previous task's outcome.
+- Forgetting to create the todowrite list at the start of multi-step work.
+
+Keep todowrite lean—track top-level tasks/phases only, not sub-steps. Use
+priority (high/medium/low) to reflect actual task priority.
 
 Skip todowrite for trivial single-step changes; it adds no value there.
-
-This is a complementary visual layer; it does not replace thoth-mem or
-openspec task tracking.
 </progress>
 
 <memory>
