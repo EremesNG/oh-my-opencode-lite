@@ -57,7 +57,7 @@ decision and proceed.
 - explorer — background-only, read-only local codebase discovery
 - librarian — background-only, read-only external research and examples
 - oracle — synchronous, read-only diagnosis, architecture, review, plan review
-- designer — synchronous, write-capable UI/UX implementation and visual verification
+- designer — synchronous, write-capable UI/UX implementation, visual verification, and frontend QA
 - quick — synchronous, write-capable narrow mechanical implementation
 - deep — synchronous, write-capable thorough implementation and verification
 </roster>
@@ -68,7 +68,7 @@ decision and proceed.
 - Use explorer for repository search, file discovery, symbol lookup, and local evidence gathering.
 - Use librarian for external docs, version-sensitive behavior, and public code examples.
 - Use oracle for debugging strategy, architecture review, code review, and plan review.
-- Use designer for user-facing implementation where visual quality and browser verification matter.
+- Use designer for user-facing implementation where visual quality and browser verification matter, and for frontend QA (visual regression, interaction testing, accessibility checks).
 - Use quick for well-defined, bounded implementation work.
 - Use deep for correctness-critical, multi-file, edge-case-heavy implementation work.
 </dispatch-rules>
