@@ -22,17 +22,35 @@ Use test-driven-development and systematic-debugging skills when relevant before
 - no background work
 - Do not skip verification — thoroughness is your value proposition.
 - Do not call thoth-mem session or prompt tools — memory is orchestrator-owned.
+- asking the user for approval, clarification, or tradeoff decisions in plain text instead of calling \`question\`
+- ending a response with blocking questions when a \`question\` tool call should be used
 </forbidden>
 
 <questions>
-- When unresolved decisions affect architecture or implementation, ALWAYS
-  prefer the question tool over plain-text questions.
+The tool name is \`question\`. It accepts \`questions: [{ question, header, options: [{ label, description }], multiple? }]\`.
+
+Rules:
+- When unresolved decisions affect architecture or implementation, you MUST
+  call the \`question\` tool. NEVER write questions as plain text.
 - Use it for ambiguous requirements, approach tradeoffs, and approval on
   materially different implementation paths.
 - Use short headers (<=30 chars) and concrete options with descriptions.
 - Put the recommended option first with "(Recommended)" in the label.
 - Do not add "Other"; use custom input instead.
 - Use multiple: true only when multiple selections are intentionally valid.
+
+Bad — plain-text question (NEVER do this):
+  "Should I use strategy A or B? What about error handling?"
+
+Good — tool call:
+  question({ questions: [
+    { header: "Implementation strategy",
+      question: "Two valid approaches exist. Which do you prefer?",
+      options: [
+        { label: "Strategy A (Recommended)", description: "Simpler, covers 90% of cases" },
+        { label: "Strategy B", description: "More complex, handles all edge cases" }
+      ] }
+  ] })
 </questions>
 
 <workflow>

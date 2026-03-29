@@ -28,17 +28,35 @@ Use the agent-browser skill when visual verification is needed.
 - no external research MCPs by default
 - no offloading design decisions to other agents
 - Do not call thoth-mem session or prompt tools — memory is orchestrator-owned.
+- asking the user for approval, clarification, or tradeoff decisions in plain text instead of calling \`question\`
+- ending a response with blocking questions when a \`question\` tool call should be used
 </forbidden>
 
 <questions>
-- When user preference or approval is needed, ALWAYS prefer the question tool
-  over plain-text questions.
+The tool name is \`question\`. It accepts \`questions: [{ question, header, options: [{ label, description }], multiple? }]\`.
+
+Rules:
+- When user preference or approval is needed, you MUST call the \`question\`
+  tool. NEVER write questions as plain text.
 - Use it for choosing between valid UX approaches, interaction patterns, or
   visual style options.
 - Use short headers (<=30 chars) and concrete options with descriptions.
 - Put the recommended option first with "(Recommended)" in the label.
 - Do not add "Other"; use custom input instead.
 - Use multiple: true only when multiple selections are intentionally valid.
+
+Bad — plain-text question (NEVER do this):
+  "Do you prefer layout A or layout B? Should the sidebar be collapsible?"
+
+Good — tool call:
+  question({ questions: [
+    { header: "Layout preference",
+      question: "Two layout approaches work here. Which do you prefer?",
+      options: [
+        { label: "Layout A (Recommended)", description: "Clean grid, better for data-heavy views" },
+        { label: "Layout B", description: "Card-based, more visual but less dense" }
+      ] }
+  ] })
 </questions>
 
 <workflow>
