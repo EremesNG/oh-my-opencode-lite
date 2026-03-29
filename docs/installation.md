@@ -44,7 +44,7 @@ When skills are enabled, it also installs or copies:
 - Bundled `plan-reviewer`
 - Bundled `executing-plans`
 - Bundled SDD pipeline skills:
-  `sdd-propose`, `sdd-spec`, `sdd-design`, `sdd-tasks`, `sdd-apply`,
+  `sdd-init`, `sdd-propose`, `sdd-spec`, `sdd-design`, `sdd-tasks`, `sdd-apply`,
   `sdd-verify`, `sdd-archive`
 - Recommended external skills such as `simplify` and `agent-browser`
 

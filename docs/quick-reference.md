@@ -125,6 +125,7 @@ scope calibration before coding.
 
 | Skill | Purpose |
 | --- | --- |
+| `sdd-init` | Bootstrap OpenSpec structure and SDD context |
 | `sdd-propose` | Create or update `proposal.md` |
 | `sdd-spec` | Write OpenSpec delta specs with RFC 2119 requirements |
 | `sdd-design` | Produce `design.md` with technical decisions |
@@ -146,6 +147,9 @@ actually executable.
 
 `executing-plans` owns progress tracking during task execution.
 
+Two layers are mandatory: `todowrite` for user-visible progress and the
+persistent SDD artifact (`tasks.md` and/or thoth-mem) as the canonical record.
+
 Recognized task states:
 
 - `- [ ]` pending
@@ -155,6 +159,9 @@ Recognized task states:
 
 The `orchestrator` updates task state; execution sub-agents report structured
 results back but do not edit checkboxes themselves.
+
+Automatic save nudges remind the orchestrator to persist observations after task
+completion.
 
 ### Cartography
 
@@ -179,7 +186,7 @@ These are not bundled in `src/skills/`, but they pair well with the workflow.
 Primary flow:
 
 ```text
-propose -> [spec || design] -> tasks -> apply -> verify -> archive
+sdd-init (if needed) -> propose -> [spec || design] -> tasks -> apply -> verify -> archive
 ```
 
 Routing is based on 6 complexity dimensions (logic depth, contract
@@ -199,11 +206,12 @@ See [SDD Pipeline](sdd-pipeline.md) for the full workflow.
 
 Use `artifactStore.mode` to control where SDD artifacts persist.
 
-| Mode | Writes to | Best for |
-| --- | --- | --- |
-| `thoth-mem` | thoth memory only | Fast planning with no repo artifact files |
-| `openspec` | `openspec/` only | Reviewable spec files in the repository |
-| `hybrid` | both | Maximum durability and recovery |
+| Mode | Writes to | Token cost | Best for |
+| --- | --- | --- | --- |
+| `thoth-mem` | thoth memory only | Low | Fast planning with no repo artifact files |
+| `openspec` | `openspec/` only | Medium | Reviewable spec files in the repository |
+| `hybrid` | both | High | Maximum durability and recovery |
+| `none` | Neither | Lowest | Ephemeral iterations, no persistence |
 
 ```json
 {
@@ -214,6 +222,12 @@ Use `artifactStore.mode` to control where SDD artifacts persist.
 ```
 
 Default mode is `hybrid`.
+
+3-layer recall for thoth-mem:
+
+1. `mem_search` (compact) - scan IDs + titles
+2. `mem_timeline` - context around candidates
+3. `mem_get_observation` - full content
 
 ## MCP Servers
 

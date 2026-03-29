@@ -63,6 +63,15 @@ bun test -t "pattern"
 - Read-only specialists do discovery; write-capable specialists change the repo.
 - The orchestrator owns root-session state and should retain summaries, not raw
   sub-agent context.
+- Independent delegations should be launched together in the same response.
+- If a `background_task` returns empty or contradictory results, retry once with
+  a more specific prompt; if the retry fails, report the limitation to the
+  user.
+- Maximum retries per delegated task: one after the initial attempt.
+
+Blocking user decisions MUST go through the `question` tool. Agents must never
+ask those questions in plain prose, because that breaks the handoff and pause
+contract for interactive decisions.
 
 ### Delegation Decision Table
 
@@ -110,8 +119,11 @@ Rule of thumb:
 Pipeline:
 
 ```text
-propose -> [spec || design] -> tasks -> apply -> verify -> archive
+sdd-init (if openspec/ is missing) -> propose -> [spec || design] -> tasks
+-> apply -> verify -> archive
 ```
+
+Run `sdd-init` before the pipeline whenever `openspec/` does not yet exist.
 
 Artifact dependency graph:
 
@@ -159,6 +171,7 @@ Before starting SDD, the user chooses a persistence mode:
 | `thoth-mem` | Memory only | Low | Quick iterations, no repo files |
 | `openspec` | Files only | Medium | Visible, reviewable artifacts |
 | `hybrid` | Both | High | Maximum durability (default) |
+| `none` | Neither | Lowest | Ephemeral iterations, no artifact persistence |
 
 ### Oracle Plan Review Loop
 
@@ -176,6 +189,15 @@ During execution, the orchestrator owns progress tracking via the
 - `- [~]` In progress
 - `- [x]` Completed
 - `- [-]` Skipped (with reason)
+
+Progress tracking has two mandatory layers:
+- `todowrite`: macro-level visual task list for the user; always active for
+  multi-step work
+- persistent SDD artifact: canonical task checkboxes in `tasks.md` and/or
+  `thoth-mem`
+
+Both layers must be updated before dispatching work and again after results are
+received.
 
 Execution sub-agents report structured results back to the orchestrator. They do
 not update task checkboxes themselves.
@@ -209,6 +231,8 @@ Search proactively:
 - decisions, architecture, bugfixes, discoveries, reusable patterns,
   configuration changes, learnings
 - SDD artifacts and progress checkpoints
+- An automatic save nudge reminds the orchestrator to persist observations
+  after each completed task.
 
 ### Save format
 
@@ -269,6 +293,7 @@ oh-my-opencode-lite/
 │   │   ├── cartography/
 │   │   ├── executing-plans/
 │   │   ├── plan-reviewer/
+│   │   ├── sdd-init/
 │   │   ├── sdd-propose/
 │   │   ├── sdd-spec/
 │   │   ├── sdd-design/
@@ -287,6 +312,9 @@ oh-my-opencode-lite/
 ```
 
 ## Development Workflow
+
+This project uses `@opencode-ai/plugin` and `@opencode-ai/sdk` v1.3.3; keep
+workflow notes and examples aligned with that SDK version.
 
 1. Make changes
 2. Run `bun run check:ci`

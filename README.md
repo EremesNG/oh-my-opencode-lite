@@ -83,6 +83,11 @@ specialists execute. Read-only discovery work goes to async specialists for
 context isolation. Advisory and write-capable work stays sync so review, undo
 safety, and verification remain straightforward.
 
+For blocking user decisions, the `orchestrator` uses a `question` tool —
+agents do not ask those questions in plain text. Independent work can be
+launched together when parallel dispatch is safe, and failed delegations are
+retried once before being reported back to the user.
+
 ### 🔑 Primary Agent
 
 <table width="100%">
@@ -252,13 +257,14 @@ propose -> [spec || design] -> tasks -> apply -> verify -> archive
 For medium work, the requirements interview can route into an accelerated path that starts at
 `propose -> tasks`. For complex work, the full path is used.
 
-Artifacts can be persisted in three modes:
+Artifacts can be persisted in four modes:
 
-| Mode | Writes to | Use when |
-| --- | --- | --- |
-| `thoth-mem` | Memory only | Fast iteration without repo planning files |
-| `openspec` | `openspec/` files only | Reviewable planning artifacts in the repo |
-| `hybrid` | Both | Maximum durability; default |
+| Mode | Writes to | Cost | Use when |
+| --- | --- | --- | --- |
+| `thoth-mem` | Memory only | Low | Fast iteration without repo planning files |
+| `openspec` | `openspec/` files only | Medium | Reviewable planning artifacts in the repo |
+| `hybrid` | Both | High | Maximum durability; default |
+| `none` | Neither | Lowest | Ephemeral iterations, no persistence |
 
 After `sdd-tasks`, the orchestrator can run an oracle review loop with
 `plan-reviewer`:
@@ -269,7 +275,9 @@ After `sdd-tasks`, the orchestrator can run an oracle review loop with
 4. Repeat until `[OKAY]`
 5. Continue into execution
 
-During execution, `executing-plans` owns task-state tracking:
+During execution, `executing-plans` owns task-state tracking. Progress has two
+mandatory layers: `todowrite` for the visual task list, plus a persistent SDD
+artifact via `tasks.md` checkboxes and/or `thoth_mem`.
 
 - `- [ ]` pending
 - `- [~]` in progress
@@ -303,6 +311,7 @@ SDD, or full SDD based on complexity assessment.
 | `requirements-interview` | Clarification | Clarify intent, assess scope, and choose direct work vs accelerated or full SDD |
 | `cartography` | Discovery | Generate and update hierarchical repository codemaps |
 | `plan-reviewer` | Review | Validate `tasks.md` for real execution blockers and return `[OKAY]` or `[REJECT]` |
+| `sdd-init` | SDD | Bootstrap OpenSpec structure and SDD context for a project |
 | `sdd-propose` | SDD | Create or update `proposal.md` |
 | `sdd-spec` | SDD | Write OpenSpec delta specs with RFC 2119 requirements and scenarios |
 | `sdd-design` | SDD | Produce `design.md` with technical decisions and file changes |
@@ -337,6 +346,16 @@ SDD, or full SDD based on complexity assessment.
 > off — even after context-window compaction. It is included by default and
 > runs locally via `npx`.
 
+For targeted retrieval, Thoth-Mem uses a 3-layer recall protocol:
+
+1. `mem_search` — scan the compact index of IDs and titles
+2. `mem_timeline` — inspect chronological context around candidates
+3. `mem_get_observation` — read full content for selected records
+
+After task completion, an automatic save nudge reminds the orchestrator to
+persist important observations. Session start also degrades gracefully if
+`thoth_mem` is unavailable, so memory errors do not block the main plugin flow.
+
 Skill and MCP access in this project is prompt-driven. The generated plugin
 config focuses on model presets and runtime options rather than per-agent
 permission matrices.
@@ -353,6 +372,8 @@ permission matrices.
 - [AGENTS.md](AGENTS.md)
 
 ## Development
+
+The project targets `@opencode-ai/plugin` and `@opencode-ai/sdk` v1.3.3.
 
 | Command | Purpose |
 | --- | --- |

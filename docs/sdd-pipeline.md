@@ -8,11 +8,14 @@ oh-my-opencode-lite.
 The full pipeline is:
 
 ```text
-propose -> [spec || design] -> tasks -> apply -> verify -> archive
+sdd-init (if openspec/ missing) -> propose -> [spec || design] -> tasks -> apply -> verify -> archive
 ```
 
 The requirements interview runs before this when the request is ambiguous, open-ended, or too
 large to implement safely without scope alignment.
+
+If `openspec/` does not exist yet, `sdd-init` bootstraps the structure before
+planning artifacts are created.
 
 ## How the Requirements Interview Feeds into SDD
 
@@ -35,11 +38,12 @@ Before SDD begins, the user chooses an artifact store mode.
 
 The artifact store controls where planning artifacts persist.
 
-| Mode | Writes to | Use when |
-| --- | --- | --- |
-| `thoth-mem` | thoth memory only | You want lightweight planning with no repo files |
-| `openspec` | `openspec/` files only | You want reviewable repo artifacts |
-| `hybrid` | both | You want maximum durability and recovery |
+| Mode | Writes to | Token cost | Use when |
+| --- | --- | --- | --- |
+| `thoth-mem` | thoth memory only | Low | You want lightweight planning with no repo files |
+| `openspec` | `openspec/` files only | Medium | You want reviewable repo artifacts |
+| `hybrid` | both | High | You want maximum durability and recovery |
+| `none` | Neither | Lowest | Ephemeral iterations, no artifact persistence |
 
 Config:
 
@@ -54,6 +58,15 @@ Config:
 Default mode is `hybrid`.
 
 ## Phase-by-Phase Flow
+
+Dispatch notes:
+
+- Dispatch independent phases or subtasks in parallel when they do not depend on
+  each other.
+- If a delegated phase fails or returns conflicting results, retry once with a
+  more specific prompt.
+- After that retry, report the limitation or failure clearly to the user.
+- Maximum retries per delegated task: one.
 
 ### 1. `sdd-propose`
 
@@ -184,6 +197,9 @@ openspec/changes/archive/YYYY-MM-DD-{change-name}/
 After `sdd-tasks`, the `orchestrator` can run an oracle review loop with the
 bundled `plan-reviewer` skill.
 
+Blocking user decisions during this loop or any later execution step MUST go
+through the `question` tool rather than plain-text questions.
+
 Flow:
 
 1. Generate `tasks.md`
@@ -198,6 +214,16 @@ Flow:
 
 The `executing-plans` skill defines the task-state model used during execution.
 
+Progress tracking has two mandatory layers:
+
+- `todowrite`: macro-level visual task list for the user; always active for
+  multi-step work
+- Persistent SDD artifact: canonical checkboxes in `tasks.md` and/or thoth
+  memory
+
+Both layers must be updated before dispatching work and again after receiving
+results.
+
 | State | Meaning |
 | --- | --- |
 | `- [ ]` | Pending |
@@ -211,7 +237,8 @@ Rules:
 2. Mark a task `- [x]` only after verification succeeds
 3. Mark a task `- [-]` only with a clear skip or escalation reason
 4. Do not batch-flip multiple tasks at once
-5. Re-read `tasks.md` after each update to confirm persistence
+5. Update both tracking layers before dispatch and after results return
+6. Re-read `tasks.md` after each update to confirm persistence
 
 ## Executing-Plans Ownership Model
 
@@ -237,6 +264,15 @@ sdd/{change-name}/apply-progress
 sdd/{change-name}/verify-report
 sdd/{change-name}/archive-report
 ```
+
+For targeted memory retrieval, use the 3-layer recall protocol:
+
+1. `mem_search` (compact) — scan IDs and titles
+2. `mem_timeline` — chronological context around candidates
+3. `mem_get_observation` — full content for selected records
+
+An automatic save nudge also reminds the `orchestrator` to persist observations
+after each completed task.
 
 ## Related Docs
 
