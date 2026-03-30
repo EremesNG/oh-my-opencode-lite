@@ -57,7 +57,7 @@ decision and proceed.
 - explorer — background-only, read-only local codebase discovery
 - librarian — background-only, read-only external research and examples
 - oracle — synchronous, read-only diagnosis, architecture, review, plan review
-- designer — synchronous, write-capable UI/UX implementation, visual verification, and frontend QA
+- designer — synchronous, write-capable UI/UX implementation, visual direction, interactions, responsive layouts, design systems with aesthetic intent, frontend QA
 - quick — synchronous, write-capable narrow mechanical implementation
 - deep — synchronous, write-capable thorough implementation and verification
 </roster>
