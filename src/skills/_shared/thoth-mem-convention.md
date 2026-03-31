@@ -51,10 +51,11 @@ transition to enable recovery:
 change: {change-name}
 phase: {last-completed-phase}
 mode: {thoth-mem|openspec|hybrid|none}
+pipeline: {accelerated|full}
 artifacts:
   proposal: true
-  spec: false
-  design: false
+  spec: false       # always false in accelerated pipeline
+  design: false     # always false in accelerated pipeline
   tasks: false
   apply-progress: false
   verify-report: false

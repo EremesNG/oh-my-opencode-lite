@@ -19,15 +19,23 @@ to hand to implementation.
 
 ## Purpose
 
-Review `openspec/changes/{change-name}/tasks.md` for true execution blockers.
+Review the tasks artifact for true execution blockers. Retrieve it according to
+the persistence mode: read `openspec/changes/{change-name}/tasks.md` for
+openspec/hybrid modes, use thoth-mem 3-layer recall for thoth-mem/hybrid modes,
+or read from inline context for none mode.
+
 Focus on whether the plan can be executed as written, not whether you would have
 designed it differently.
 
 ## Inputs
 
 - `change-name`
-- `openspec/changes/{change-name}/tasks.md`
-- Related proposal, spec, and design artifacts when needed for dependency checks
+- `pipeline-type` (`accelerated` or `full`)
+- `persistence-mode` (`thoth-mem`, `openspec`, `hybrid`, or `none`)
+- Tasks artifact (retrieved per persistence mode: filesystem for openspec/hybrid,
+  thoth-mem for thoth-mem/hybrid, inline for none)
+- **Full pipeline**: related spec and design artifacts when needed for dependency checks
+- **Accelerated pipeline**: proposal artifact when needed for dependency checks
 
 ## Task State Awareness
 

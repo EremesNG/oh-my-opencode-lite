@@ -161,7 +161,12 @@ verify that `openspec/` is initialized. If it is not, recommend running
 `~/.config/opencode/skills/sdd-init/SKILL.md`
 
 Once route, persistence mode, and initialization are confirmed, hand off to the
-corresponding SDD pipeline phase:
+corresponding SDD pipeline phase. The handoff MUST include:
+- `pipeline-type`: `accelerated` or `full` (matching the confirmed route)
+- `persistence-mode`: the user's chosen artifact store mode
+- `change-name`: derived from the approved scope
+
+Hand off to:
 
 - **Propose**: `~/.config/opencode/skills/sdd-propose/SKILL.md`
 - **Spec** (full SDD only): `~/.config/opencode/skills/sdd-spec/SKILL.md`

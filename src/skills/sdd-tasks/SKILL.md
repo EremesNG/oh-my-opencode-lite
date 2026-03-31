@@ -28,21 +28,26 @@ rules per mode.
 
 ## When to Use
 
-- Proposal, spec, and design are ready for execution planning
-- A task plan must be refreshed after design or scope changes
+- **Full pipeline**: proposal, spec, and design are ready for execution planning
+- **Accelerated pipeline**: proposal is ready and spec/design are intentionally skipped
+- A task plan must be refreshed after scope changes
 
 ## Prerequisites
 
 - `change-name`
+- `pipeline-type` (`accelerated` or `full`)
 - Proposal artifact
-- Spec artifact
-- Design artifact
+- Spec artifact (full pipeline only)
+- Design artifact (full pipeline only)
 
 ## Workflow
 
 1. Read the shared conventions.
-2. Recover `proposal`, `spec`, and `design` via the retrieval protocol in
-   `~/.config/opencode/skills/_shared/persistence-contract.md`.
+2. Recover artifacts via the retrieval protocol in
+   `~/.config/opencode/skills/_shared/persistence-contract.md`:
+   - **Always**: recover `proposal`
+   - **Full pipeline only**: recover `spec` and `design`
+   - In accelerated pipeline, derive task structure directly from the proposal.
 3. If a task plan already exists, recover `sdd/{change-name}/tasks` with the
    same mode-aware retrieval rules before rewriting it.
 4. Build a phased checklist for `openspec/changes/{change-name}/tasks.md`. In

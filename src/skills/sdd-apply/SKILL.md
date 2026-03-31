@@ -36,14 +36,20 @@ rules per mode.
 ## Prerequisites
 
 - `change-name`
+- `pipeline-type` (`accelerated` or `full`)
 - Assigned task numbers or phase range
-- Spec, design, and task artifacts
+- Task artifact
+- Spec and design artifacts (full pipeline only)
+- Proposal artifact (accelerated pipeline — used as the acceptance reference)
 
 ## Workflow
 
 1. Read the shared conventions.
-2. Recover `spec`, `design`, and `tasks` with the retrieval protocol in
-   `~/.config/opencode/skills/_shared/persistence-contract.md`.
+2. Recover artifacts with the retrieval protocol in
+   `~/.config/opencode/skills/_shared/persistence-contract.md`:
+   - **Always**: recover `tasks`
+   - **Full pipeline**: recover `spec` and `design`
+   - **Accelerated pipeline**: recover `proposal` (used as the acceptance reference)
 3. Read the affected code before editing anything.
 4. Execute only the assigned checklist items.
 5. In modes that include thoth-mem, persist an implementation progress report
@@ -81,7 +87,8 @@ via the `executing-plans` skill. Do not update task checkboxes yourself.
 
 ## Rules
 
-- Read specs before implementing; they are the acceptance contract.
+- Read the acceptance contract before implementing: specs in full pipeline,
+  proposal in accelerated pipeline.
 - Follow the design unless you explicitly report a justified deviation.
 - Update only the tasks assigned in the current batch.
 - Persist the progress artifact whenever the selected mode includes thoth-mem.

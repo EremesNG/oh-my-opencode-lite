@@ -87,7 +87,7 @@ Return a short report with:
 - `Artifact`: `openspec/changes/{change-name}/proposal.md`
 - `Topic Key`: `sdd/{change-name}/proposal`
 - `Summary`: 2-4 bullets covering intent, scope, and major risks
-- `Next Step`: usually `sdd-spec` or `sdd-design`
+- `Next Step`: `sdd-spec` (full pipeline) or `sdd-tasks` (accelerated pipeline)
 
 ## Rules
 

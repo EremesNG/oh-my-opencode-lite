@@ -71,10 +71,11 @@ thoth-mem.
 ## Artifact Content Rules
 
 - `proposal.md` explains why the change exists.
-- `spec.md` uses RFC 2119 keywords and Given/When/Then scenarios.
-- `design.md` explains how the change will be implemented.
+- `spec.md` uses RFC 2119 keywords and Given/When/Then scenarios (full pipeline only).
+- `design.md` explains how the change will be implemented (full pipeline only).
 - `tasks.md` is phase-based and uses Markdown checkboxes.
-- `verify-report.md` maps spec scenarios to executed evidence.
+- `verify-report.md` maps acceptance criteria to executed evidence: spec
+  scenarios in full pipeline, proposal success criteria in accelerated pipeline.
 
 ## `config.yaml` Shape
 
