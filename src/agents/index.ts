@@ -105,6 +105,9 @@ const BUILTIN_PERMISSION_PRESETS = {
     skill: 'allow',
     question: 'allow',
     todowrite: 'allow',
+    external_directory: {
+      '~/.config/opencode/skills/**': 'allow',
+    }
   },
   quick: {
     read: 'allow',
@@ -117,6 +120,9 @@ const BUILTIN_PERMISSION_PRESETS = {
     codesearch: 'allow',
     lsp: 'allow',
     todowrite: 'allow',
+    external_directory: {
+      '~/.config/opencode/skills/**': 'allow',
+    }
   },
   deep: 'allow',
 } as const satisfies Record<

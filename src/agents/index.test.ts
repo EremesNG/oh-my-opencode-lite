@@ -230,12 +230,20 @@ describe('orchestrator agent', () => {
   test('orchestrator prompt is delegate-first and forbids inline repo work', () => {
     const prompt = getAgentByName('orchestrator')?.config.prompt;
     expect(prompt).toContain('delegate-first');
-    expect(prompt).toContain('must not read source files inline');
-    expect(prompt).toContain('must not write or patch code inline');
-    expect(prompt).toContain('openspec/ files are coordination artifacts');
-    expect(prompt).toContain(
-      'read and edit openspec/changes/{change-name}/tasks.md',
-    );
+
+    // Forbid inline repo work (read/search/patch/verify) to keep delegation model intact.
+    expect(prompt).toMatch(/Never\s+read\s+source\s+file\s+contents/i);
+    expect(prompt).toMatch(/patch\s+code/i);
+    expect(prompt).toMatch(/verify\s+implementation\s+inline/i);
+
+    // Openspec is explicitly allowed for coordination artifacts.
+    expect(prompt).toContain('openspec/');
+    expect(prompt).toContain('openspec/changes/{change-name}/tasks.md');
+
+    // SDD awareness / phase order must remain in the orchestrator prompt.
+    expect(prompt).toContain('requirements-interview');
+    expect(prompt).toMatch(/propose\s*->\s*spec\s*->\s*design\s*->\s*tasks/i);
+    expect(prompt).toContain('run sdd-init first');
   });
 });
 
