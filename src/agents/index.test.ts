@@ -73,6 +73,9 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     lsp: 'allow',
     skill: 'allow',
     todowrite: 'allow',
+    external_directory: {
+      '~/.config/opencode/skills/**': 'allow',
+    },
   },
   quick: {
     read: 'allow',
@@ -85,6 +88,9 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     codesearch: 'allow',
     lsp: 'allow',
     todowrite: 'allow',
+    external_directory: {
+      '~/.config/opencode/skills/**': 'allow',
+    },
   },
   deep: 'allow',
 };
@@ -232,9 +238,13 @@ describe('orchestrator agent', () => {
     expect(prompt).toContain('delegate-first');
 
     // Forbid inline repo work (read/search/patch/verify) to keep delegation model intact.
-    expect(prompt).toMatch(/Never\s+read\s+source\s+file\s+contents/i);
-    expect(prompt).toMatch(/patch\s+code/i);
-    expect(prompt).toMatch(/verify\s+implementation\s+inline/i);
+    expect(prompt).toMatch(
+      /NEVER\s+request\s+or\s+read\s+the\s+full\s+content\s+of\s+any\s+source\s+file/i,
+    );
+    expect(prompt).toContain(
+      'Delegate all inspection, writing, searching, debugging, and verification.',
+    );
+    expect(prompt).toContain('Verify through delegation, not inline.');
 
     // Openspec is explicitly allowed for coordination artifacts.
     expect(prompt).toContain('openspec/');
