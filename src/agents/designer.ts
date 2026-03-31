@@ -1,5 +1,10 @@
 import type { AgentDefinition } from './orchestrator';
-import { composeAgentPrompt } from './prompt-utils';
+import {
+  composeAgentPrompt,
+  QUESTION_PROTOCOL,
+  RESPONSE_BUDGET,
+  SUBAGENT_RULES,
+} from './prompt-utils';
 
 const DESIGNER_PROMPT = `<role>
 You are designer.
@@ -12,35 +17,24 @@ You are designer.
 </mode>
 
 <responsibility>
-Own the user-facing solution end to end: choose the UX approach, implement it, and verify it visually.
-Use the agent-browser skill when visual verification is needed.
+Own the user-facing solution end to end: choose the UX approach, implement it, and verify it visually. Use the agent-browser skill when needed.
 </responsibility>
 
-<allowed>
-- local implementation tools
-- direct UI changes
-- browser-based visual verification
-- focused code and style updates needed to complete the design
-</allowed>
+<rules>
+${SUBAGENT_RULES}
+- Own UX decisions instead of bouncing them back unless a real user preference is required.
+- Verify visually when feasible; do not stop at code that merely compiles.
+- Keep changes focused on the user-facing outcome.
+</rules>
 
-<forbidden>
-- no background delegation
-- no external research MCPs by default
-- no offloading design decisions to other agents
-</forbidden>
-
-<workflow>
-1. Understand the UX goal and constraints.
-2. Inspect the relevant implementation.
-3. Decide the approach.
-4. Implement the change.
-5. Verify visually when feasible.
-</workflow>
+${QUESTION_PROTOCOL}
 
 <output>
-- State what was implemented.
-- Note visual verification status.
-- Call out any remaining UX caveats.
+${RESPONSE_BUDGET}
+For SDD tasks: use the Task Result envelope (Status, Task, What was done, Files changed, Verification, Issues).
+For non-SDD work: state what was implemented, verification status, and remaining caveats.
+- Include visual verification status when applicable.
+- Target: under 30 lines total.
 </output>`;
 
 export function createDesignerAgent(
@@ -62,6 +56,8 @@ export function createDesignerAgent(
       model,
       temperature: 0.4,
       prompt,
+      color: 'accent',
+      steps: 50,
     },
   };
 }

@@ -46,7 +46,7 @@ This creates:
 - `.lite/cartography.json` - File and folder hashes for change detection
 - Empty `codemap.md` files in all relevant subdirectories
 
-4. **Delegate to Explorer agents** - Spawn one explorer per folder to read code and fill in its specific `codemap.md` file.
+4. **Delegate discovery to explorer agents** — Spawn one explorer per folder to read code and gather findings. Then **delegate to quick** to write each folder's `codemap.md` based on explorer findings.
 
 ### Step 3: Detect Changes (If state already exists)
 
@@ -63,7 +63,7 @@ python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py changes \
    - Modified files
    - Affected folders
 
-3. **Only update affected codemaps** - Spawn one explorer per affected folder to update its `codemap.md`.
+3. **Only update affected codemaps** — Spawn one explorer per affected folder to gather updated findings, then dispatch quick to write the updated `codemap.md`.
 4. **Run update** to save new state:
 
 ```bash
@@ -73,7 +73,7 @@ python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py update \
 
 ### Step 4: Finalize Repository Atlas (Root Codemap)
 
-Once all specific directories are mapped, the Orchestrator must create or update the root `codemap.md`. This file serves as the **Master Entry Point** for any agent or human entering the repository.
+Once all specific directories are mapped, the Orchestrator must dispatch quick to create or update the root `codemap.md`. This file serves as the **Master Entry Point** for any agent or human entering the repository.
 
 1.  **Map Root Assets**: Document the root-level files (e.g., `package.json`, `index.ts`, `plugin.json`) and the project's overall purpose.
 2.  **Aggregate Sub-Maps**: Create a "Repository Directory Map" section. For every folder that has a `codemap.md`, extract its **Responsibility** summary and include it in a table or list in the root map.
@@ -81,7 +81,7 @@ Once all specific directories are mapped, the Orchestrator must create or update
 
 ### Step 5: Register Codemap in AGENTS.md
 
-**OpenCode auto-loads `AGENTS.md` into agent context on every session.** To ensure agents automatically discover and use the codemap, update (or create) `AGENTS.md` at the repo root:
+**OpenCode auto-loads `AGENTS.md` into agent context on every session.** To ensure agents automatically discover and use the codemap, dispatch quick to update (or create) `AGENTS.md` at the repo root:
 
 1. If `AGENTS.md` already exists and already contains a `## Repository Map` section, **skip this step** — the reference is already set up.
 2. If `AGENTS.md` exists but has no `## Repository Map` section, **append** the section below.
@@ -105,7 +105,7 @@ This is idempotent — repeated cartography runs will detect the existing sectio
 
 ## Codemap Content
 
-Explorers are granted write permissions for `codemap.md` files during this workflow. Use precise technical terminology to document the implementation:
+Explorer agents gather the technical findings; quick agents write the `codemap.md` files. Use precise technical terminology to document the implementation:
 
 - **Responsibility** - Define the specific role of this directory using standard software engineering terms (e.g., "Service Layer", "Data Access Object", "Middleware").
 - **Design Patterns** - Identify and name specific patterns used (e.g., "Observer", "Singleton", "Factory", "Strategy"). Detail the abstractions and interfaces.

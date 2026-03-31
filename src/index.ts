@@ -8,7 +8,6 @@ import { DelegationManager } from './delegation';
 import {
   createAutoUpdateCheckerHook,
   createChatHeadersHook,
-  createClarificationGateHook,
   createDelegateTaskRetryHook,
   createJsonErrorRecoveryHook,
   createPhaseReminderHook,
@@ -31,8 +30,23 @@ import {
 import { startTmuxCheck } from './utils';
 import { log } from './utils/logger';
 
+function resolveProjectName(project: object, directory: string): string {
+  const runtimeProjectName =
+    'name' in project && typeof project.name === 'string'
+      ? project.name
+      : undefined;
+
+  return (
+    runtimeProjectName || path.basename(directory) || 'oh-my-opencode-lite'
+  );
+}
+
 const OhMyOpenCodeLite: Plugin = async (ctx) => {
-  const config = loadPluginConfig(ctx.directory);
+  const { client, directory, project, worktree, $: shell, serverUrl } = ctx;
+  const worktreeDirectory = worktree || directory;
+  const projectName = resolveProjectName(project, directory);
+
+  const config = loadPluginConfig(directory);
   const agentDefs = createAgents(config);
   const agents = getAgentConfigs(config);
 
@@ -84,7 +98,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
   log('[plugin] initialized with tmux config', {
     tmuxConfig,
     rawTmuxConfig: config.tmux,
-    directory: ctx.directory,
+    directory,
   });
 
   try {
@@ -99,11 +113,12 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     startTmuxCheck();
   }
 
-  const projectName = path.basename(ctx.directory) || 'oh-my-opencode-lite';
-
   let backgroundManager: BackgroundTaskManager;
   const delegationManager = new DelegationManager({
-    directory: ctx.directory,
+    directory,
+    worktreeDirectory,
+    projectName,
+    shell,
     config: config.delegation,
     getActiveTaskIds: (rootSessionId) =>
       backgroundManager?.getActiveTaskIds(rootSessionId) ?? [],
@@ -114,6 +129,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     tmuxConfig,
     config,
     delegationManager,
+    worktreeDirectory,
   );
   const backgroundTools = createBackgroundTools(
     ctx,
@@ -128,25 +144,24 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
   const tmuxSessionManager = new TmuxSessionManager(ctx, tmuxConfig);
 
   // Initialize auto-update checker hook
-  const autoUpdateChecker = createAutoUpdateCheckerHook(ctx, {
-    showStartupToast: true,
-    autoUpdate: true,
-  });
+  const autoUpdateChecker = createAutoUpdateCheckerHook(
+    ctx,
+    {
+      showStartupToast: true,
+      autoUpdate: true,
+    },
+    shell,
+  );
 
   // Initialize phase reminder hook for workflow compliance
   const phaseReminderHook = createPhaseReminderHook();
-
-  // Initialize clarification gate hook for ambiguous planning requests
-  const clarificationGateHook = createClarificationGateHook({
-    clarificationGate: config.clarificationGate,
-  });
 
   // Initialize post-read nudge hook
   const postReadNudgeHook = createPostReadNudgeHook();
 
   const thothMemHook = createThothMemHook({
     project: projectName,
-    directory: ctx.directory,
+    directory,
     thoth: config.thoth,
     enabled: true,
   });
@@ -161,12 +176,14 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
 
   // Initialize foreground fallback manager for runtime model switching
   const foregroundFallback = new ForegroundFallbackManager(
-    ctx.client,
+    client,
     runtimeChains,
     config.fallback?.enabled !== false && Object.keys(runtimeChains).length > 0,
   );
 
-  type ThothEventInput = { event: Event };
+  void serverUrl;
+
+  // Hook input/output types for thoth-mem integration
   type ThothChatMessageInput = { sessionID: string };
   type ThothChatMessageOutput = {
     parts: Part[];
@@ -342,7 +359,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
       // Handle auto-update checking
       await autoUpdateChecker.event(input);
 
-      await thothMemHook.event(input as ThothEventInput);
+      await thothMemHook.event(input as { event: Event });
 
       // Handle tmux pane spawning for OpenCode's Task tool sessions
       await tmuxSessionManager.onSessionCreated(
@@ -409,20 +426,6 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
 
     'experimental.chat.messages.transform': async (input, output) => {
       await phaseReminderHook['experimental.chat.messages.transform'](
-        input as Record<string, never>,
-        output as {
-          messages: Array<{
-            info: { role: string; agent?: string; sessionID?: string };
-            parts: Array<{
-              type: string;
-              text?: string;
-              [key: string]: unknown;
-            }>;
-          }>;
-        },
-      );
-
-      await clarificationGateHook['experimental.chat.messages.transform'](
         input as Record<string, never>,
         output as {
           messages: Array<{

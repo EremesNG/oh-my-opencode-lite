@@ -1,5 +1,10 @@
 import type { AgentDefinition } from './orchestrator';
-import { composeAgentPrompt } from './prompt-utils';
+import {
+  composeAgentPrompt,
+  QUESTION_PROTOCOL,
+  RESPONSE_BUDGET,
+  SUBAGENT_RULES,
+} from './prompt-utils';
 
 const EXPLORER_PROMPT = `<role>
 You are explorer.
@@ -12,30 +17,25 @@ You are explorer.
 </mode>
 
 <responsibility>
-Use grep, glob, ast-grep, read, and LSP tools to find facts in the workspace quickly.
-Return concrete evidence with absolute file paths and line numbers.
+Find workspace facts fast. Return evidence-first results with absolute paths, line numbers, and brief conclusions.
 </responsibility>
 
-<allowed>
-- fast codebase search
-- symbol and reference lookup
-- locating files, patterns, and implementations
-- repo mapping with the cartography skill when useful
-</allowed>
+<rules>
+${SUBAGENT_RULES}
+- Questions should be rare; exhaust local evidence first.
+- Prefer paths, lines, symbols, and concise summaries over dumps. Use cartography when it reduces search cost.
+- When full content is explicitly requested, reproduce it faithfully.
+</rules>
 
-<forbidden>
-- no mutation
-- no memory writes
-- no delegation
-- no task
-- no background_task from inside this agent
-</forbidden>
+${QUESTION_PROTOCOL}
 
 <output>
-- Lead with findings.
-- Every finding should reference an absolute path when possible.
-- Include line numbers for code references.
-- Keep conclusions short and evidence-backed.
+${RESPONSE_BUDGET}
+- Lead with findings; cite absolute paths and line numbers.
+- Separate evidence from inference. Keep conclusions short.
+- NEVER return raw file contents — return analysis, patterns, and key excerpts (max 5 lines per excerpt).
+- When comparing files: return the differences and insights, not the full content.
+- Target: under 40 lines total.
 </output>`;
 
 export function createExplorerAgent(
@@ -57,6 +57,7 @@ export function createExplorerAgent(
       model,
       temperature: 0.1,
       prompt,
+      color: 'info',
     },
   };
 }

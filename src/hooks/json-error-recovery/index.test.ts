@@ -20,7 +20,11 @@ describe('json-error-recovery hook', () => {
     return {
       client: {} as PluginInput['client'],
       directory: '/tmp/test',
-    } as PluginInput;
+      worktree: '/tmp/test/worktree',
+      project: { name: 'test-project' },
+      $: {} as any,
+      serverUrl: new URL('http://localhost:3000'),
+    } as unknown as PluginInput;
   };
 
   beforeEach(() => {

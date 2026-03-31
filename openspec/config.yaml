@@ -1,5 +1,5 @@
 schema: spec-driven
-project: omolite
+project: oh-my-opencode-lite
 stack: TypeScript, Bun, Biome, OpenCode Plugin SDK
 
 context: |

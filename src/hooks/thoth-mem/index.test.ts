@@ -1,5 +1,9 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test';
-import { buildCompactionReminder, buildMemoryInstructions } from './protocol';
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
+import {
+  buildCompactionReminder,
+  buildMemoryInstructions,
+  buildSaveNudge,
+} from './protocol';
 
 const memContextMock = mock(async () => null as string | null);
 const memSessionStartMock = mock(async () => true);
@@ -16,6 +20,81 @@ mock.module('../../thoth', () => ({
 }));
 
 const { createThothMemHook } = await import('./index');
+
+const MINUTE = 60 * 1000;
+const realDateNow = Date.now;
+
+function createMockEvent(
+  type: string,
+  info: { id: string; parentID?: string },
+) {
+  return {
+    event: {
+      type,
+      properties: { info },
+    } as never,
+  };
+}
+
+function mockNow(now: number) {
+  Date.now = () => now;
+}
+
+async function createRootSession(
+  hook: ReturnType<typeof createThothMemHook>,
+  sessionID = 'root-session',
+) {
+  await hook.event(createMockEvent('session.created', { id: sessionID }));
+}
+
+async function compactSession(
+  hook: ReturnType<typeof createThothMemHook>,
+  sessionID = 'root-session',
+) {
+  await hook.event(createMockEvent('session.compacted', { id: sessionID }));
+}
+
+async function deleteSession(
+  hook: ReturnType<typeof createThothMemHook>,
+  sessionID = 'root-session',
+) {
+  await hook.event(createMockEvent('session.deleted', { id: sessionID }));
+}
+
+async function transformSystem(
+  hook: ReturnType<typeof createThothMemHook>,
+  sessionID = 'root-session',
+  system = ['Base system prompt'],
+) {
+  const output = { system: [...system] };
+
+  await hook['experimental.chat.system.transform']?.(
+    { sessionID, model: {} as never },
+    output,
+  );
+
+  return output;
+}
+
+async function runToolExecuteAfter(
+  hook: ReturnType<typeof createThothMemHook>,
+  tool: string,
+  sessionID = 'root-session',
+) {
+  await hook['tool.execute.after']?.(
+    {
+      tool,
+      sessionID,
+      callID: 'call-1',
+      args: {},
+    },
+    {
+      title: 'Tool finished',
+      output: 'ok',
+      metadata: {},
+    },
+  );
+}
 
 describe('createThothMemHook', () => {
   beforeEach(() => {
@@ -34,6 +113,11 @@ describe('createThothMemHook', () => {
     memContextMock.mockResolvedValue(null);
     memSessionStartMock.mockResolvedValue(true);
     memSavePromptMock.mockResolvedValue(true);
+    Date.now = realDateNow;
+  });
+
+  afterEach(() => {
+    Date.now = realDateNow;
   });
 
   test('creates the thoth client with HTTP settings', () => {
@@ -59,18 +143,9 @@ describe('createThothMemHook', () => {
       enabled: true,
     });
 
-    await hook.event({
-      event: {
-        type: 'session.created',
-        properties: { info: { id: 'root-session' } },
-      } as never,
-    });
+    await createRootSession(hook);
 
-    const output = { system: ['Base system prompt'] };
-    await hook['experimental.chat.system.transform']?.(
-      { sessionID: 'root-session', model: {} as never },
-      output,
-    );
+    const output = await transformSystem(hook);
 
     const expectedInstructions = buildMemoryInstructions(
       'root-session',
@@ -106,12 +181,12 @@ describe('createThothMemHook', () => {
       enabled: true,
     });
 
-    await hook.event({
-      event: {
-        type: 'session.created',
-        properties: { info: { id: 'child-session', parentID: 'root-session' } },
-      } as never,
-    });
+    await hook.event(
+      createMockEvent('session.created', {
+        id: 'child-session',
+        parentID: 'root-session',
+      }),
+    );
 
     expect(memSessionStartMock).not.toHaveBeenCalled();
   });
@@ -197,65 +272,281 @@ describe('createThothMemHook', () => {
     expect(memSavePromptMock).not.toHaveBeenCalled();
   });
 
+  test('does not save prompts that sanitize to exactly 10 characters', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    await hook['chat.message']?.(
+      { sessionID: 'root-session' },
+      {
+        parts: [{ type: 'text', text: '1234567890' } as never],
+        message: {},
+      },
+    );
+
+    expect(memSavePromptMock).not.toHaveBeenCalled();
+  });
+
+  test('saves prompts that sanitize to 11 characters', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    await hook['chat.message']?.(
+      { sessionID: 'root-session' },
+      {
+        parts: [{ type: 'text', text: '12345678901' } as never],
+        message: {},
+      },
+    );
+
+    expect(memSavePromptMock).toHaveBeenCalledWith(
+      'root-session',
+      '12345678901',
+    );
+  });
+
+  test('does not save prompts that become empty after trimming', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    await hook['chat.message']?.(
+      { sessionID: 'root-session' },
+      {
+        parts: [{ type: 'text', text: '   \n  ' } as never],
+        message: {},
+      },
+    );
+
+    expect(memSavePromptMock).not.toHaveBeenCalled();
+  });
+
   test('clears compaction follow-up flag when mem_session_summary tool is called', async () => {
     const hook = createThothMemHook({
       project: 'oh-my-opencode-lite',
       enabled: true,
     });
 
-    await hook.event({
-      event: {
-        type: 'session.created',
-        properties: { info: { id: 'root-session' } },
-      } as never,
-    });
-
-    await hook.event({
-      event: {
-        type: 'session.compacted',
-        properties: { info: { id: 'root-session' } },
-      } as never,
-    });
+    await createRootSession(hook);
+    await compactSession(hook);
 
     const expectedInstructions = buildMemoryInstructions(
       'root-session',
       'oh-my-opencode-lite',
     );
 
-    const withReminder = { system: ['Base system prompt'] };
-    await hook['experimental.chat.system.transform']?.(
-      { sessionID: 'root-session', model: {} as never },
-      withReminder,
-    );
+    const withReminder = await transformSystem(hook);
 
     expect(withReminder.system[0]).toContain(expectedInstructions);
     expect(withReminder.system[0]).toContain(
       buildCompactionReminder('root-session'),
     );
 
-    await hook['tool.execute.after']?.(
-      {
-        tool: 'mcp_thoth_mem_mem_session_summary',
-        sessionID: 'root-session',
-        callID: 'call-1',
-        args: {},
-      },
-      {
-        title: 'Summary saved',
-        output: 'ok',
-        metadata: {},
-      },
+    await runToolExecuteAfter(
+      hook,
+      'mcp_thoth_mem_mem_session_summary',
+      'root-session',
     );
 
-    const withoutReminder = { system: ['Base system prompt'] };
-    await hook['experimental.chat.system.transform']?.(
-      { sessionID: 'root-session', model: {} as never },
-      withoutReminder,
-    );
+    const withoutReminder = await transformSystem(hook);
 
     expect(withoutReminder.system[0]).toContain(expectedInstructions);
     expect(withoutReminder.system[0]).not.toContain(
       buildCompactionReminder('root-session'),
     );
+  });
+
+  test('does not inject a save nudge for young sessions', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    const start = 1_000_000;
+    mockNow(start);
+    await createRootSession(hook);
+
+    mockNow(start + 4 * MINUTE);
+    const output = await transformSystem(hook);
+
+    expect(output.system[0]).not.toContain(buildSaveNudge());
+  });
+
+  test('does not inject a save nudge when memory was saved recently', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    const start = 2_000_000;
+    mockNow(start);
+    await createRootSession(hook);
+
+    mockNow(start + 6 * MINUTE);
+    await runToolExecuteAfter(hook, 'mem_save');
+
+    mockNow(start + 10 * MINUTE);
+    const output = await transformSystem(hook);
+
+    expect(output.system[0]).not.toContain(buildSaveNudge());
+  });
+
+  test('injects a save nudge when the session is old enough and has no recent saves', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    const start = 3_000_000;
+    mockNow(start);
+    await createRootSession(hook);
+
+    mockNow(start + 6 * MINUTE);
+    const output = await transformSystem(hook);
+
+    expect(output.system[0]).toContain(buildSaveNudge());
+  });
+
+  test('injects a save nudge only once until memory is saved', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    const start = 4_000_000;
+    mockNow(start);
+    await createRootSession(hook);
+
+    mockNow(start + 6 * MINUTE);
+    const firstOutput = await transformSystem(hook);
+
+    mockNow(start + 7 * MINUTE);
+    const secondOutput = await transformSystem(hook);
+
+    expect(firstOutput.system[0]).toContain(buildSaveNudge());
+    expect(secondOutput.system[0]).not.toContain(buildSaveNudge());
+  });
+
+  test('resets the save nudge cycle after mem_save and nudges again later', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    const start = 5_000_000;
+    mockNow(start);
+    await createRootSession(hook);
+
+    mockNow(start + 6 * MINUTE);
+    const firstOutput = await transformSystem(hook);
+
+    mockNow(start + 7 * MINUTE);
+    await runToolExecuteAfter(hook, 'mem_save');
+
+    mockNow(start + 8 * MINUTE);
+    const recentSaveOutput = await transformSystem(hook);
+
+    mockNow(start + 23 * MINUTE);
+    const laterOutput = await transformSystem(hook);
+
+    expect(firstOutput.system[0]).toContain(buildSaveNudge());
+    expect(recentSaveOutput.system[0]).not.toContain(buildSaveNudge());
+    expect(laterOutput.system[0]).toContain(buildSaveNudge());
+  });
+
+  test('does not inject a save nudge during compaction follow-up', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    const start = 6_000_000;
+    mockNow(start);
+    await createRootSession(hook);
+    await compactSession(hook);
+
+    mockNow(start + 6 * MINUTE);
+    const output = await transformSystem(hook);
+
+    expect(output.system[0]).toContain(buildCompactionReminder('root-session'));
+    expect(output.system[0]).not.toContain(buildSaveNudge());
+  });
+
+  test('cleans nudge state when a deleted session is recreated', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    const start = 7_000_000;
+    mockNow(start);
+    await createRootSession(hook);
+
+    mockNow(start + 6 * MINUTE);
+    const firstOutput = await transformSystem(hook);
+
+    mockNow(start + 7 * MINUTE);
+    await runToolExecuteAfter(hook, 'mem_save');
+    await compactSession(hook);
+    await deleteSession(hook);
+
+    mockNow(start + 8 * MINUTE);
+    await createRootSession(hook);
+
+    mockNow(start + 14 * MINUTE);
+    const recreatedOutput = await transformSystem(hook);
+
+    expect(firstOutput.system[0]).toContain(buildSaveNudge());
+    expect(recreatedOutput.system[0]).toContain(buildSaveNudge());
+    expect(recreatedOutput.system[0]).not.toContain(
+      buildCompactionReminder('root-session'),
+    );
+  });
+
+  test('resets session age when a deleted session is recreated', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    const start = 8_000_000;
+    mockNow(start);
+    await createRootSession(hook);
+
+    mockNow(start + 6 * MINUTE);
+    await deleteSession(hook);
+
+    mockNow(start + 7 * MINUTE);
+    await createRootSession(hook);
+
+    mockNow(start + 11 * MINUTE);
+    const output = await transformSystem(hook);
+
+    expect(output.system[0]).not.toContain(buildSaveNudge());
+  });
+
+  test('buildMemoryInstructions includes the updated memory protocol guidance', () => {
+    const instructions = buildMemoryInstructions(
+      'root-session',
+      'oh-my-opencode-lite',
+    );
+
+    expect(instructions).toContain('### CORE TOOLS');
+    expect(instructions).toContain('**Self-check after EVERY task**');
+    expect(instructions).toContain('mem_save_prompt');
+    expect(instructions).toContain('dale');
+    expect(instructions).toContain('sounds good');
+  });
+
+  test('buildSaveNudge returns a non-empty reminder message', () => {
+    const nudge = buildSaveNudge();
+
+    expect(nudge.length).toBeGreaterThan(0);
+    expect(nudge).toContain('MEMORY REMINDER');
   });
 });

@@ -101,4 +101,3 @@ Return:
 - Keep implementation details aligned with the spec and repository patterns.
 - Retrieve full dependencies with the protocol in
   `~/.config/opencode/skills/_shared/persistence-contract.md`.
-- Never reference engram.

@@ -8,6 +8,23 @@ This convention applies only when the artifact store mode includes OpenSpec:
 - In `thoth-mem` mode, skip canonical `openspec/` file writes.
 - In `thoth-mem` mode, skip filesystem artifact recovery.
 
+## Pre-flight Validation
+
+When the selected persistence mode includes OpenSpec (`openspec` or `hybrid`),
+every SDD skill must verify this structure before proceeding:
+
+1. `openspec/config.yaml` exists
+2. `openspec/specs/` exists
+3. `openspec/changes/` exists
+
+If any required item is missing:
+
+- STOP and inform the orchestrator that `openspec/` is not initialized.
+- Recommend running the `sdd-init` skill first.
+- Do NOT attempt to create the structure in that skill.
+
+If all required items exist, continue normally.
+
 ## Directory Structure
 
 ```text

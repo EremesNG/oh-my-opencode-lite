@@ -91,4 +91,3 @@ Return:
 - Use the retrieval protocol in
   `~/.config/opencode/skills/_shared/persistence-contract.md` for every
   dependency.
-- Never reference engram.

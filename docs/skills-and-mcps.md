@@ -10,9 +10,10 @@ when skill installation is enabled.
 
 | Skill | Category | Description | Typical agent |
 | --- | --- | --- | --- |
-| `brainstorming` | Clarification | Clarify ambiguous work, assess scope, and choose the right planning path before implementation | `orchestrator` |
+| `requirements-interview` | Clarification | Clarify ambiguous work, assess scope, and choose the right planning path before implementation | `orchestrator` |
 | `cartography` | Discovery | Repository understanding and hierarchical codemap generation | `orchestrator`, `explorer` |
 | `plan-reviewer` | Review | Review SDD task plans for execution blockers and valid references | `orchestrator`, `oracle` |
+| `sdd-init` | SDD initialization | Bootstrap OpenSpec structure and SDD context for a project | `orchestrator` |
 | `sdd-propose` | SDD planning | Create or update `proposal.md` for an OpenSpec change | `orchestrator` |
 | `sdd-spec` | SDD specification | Write OpenSpec delta specifications | `orchestrator` |
 | `sdd-design` | SDD design | Create `design.md` with architecture decisions and file changes | `orchestrator` |
@@ -28,7 +29,7 @@ Agent assignments are descriptive, not enforced. Any agent can use any skill; th
 
 ### Clarification and Discovery
 
-- `brainstorming`
+- `requirements-interview`
 - `cartography`
 
 ### Review and Execution Control
@@ -38,6 +39,7 @@ Agent assignments are descriptive, not enforced. Any agent can use any skill; th
 
 ### Core SDD Pipeline
 
+- `sdd-init`
 - `sdd-propose`
 - `sdd-spec`
 - `sdd-design`
@@ -99,7 +101,6 @@ oh-my-opencode-lite registers four built-in MCP servers.
 
 - Built-in MCPs can be disabled globally with `disabled_mcps`
 - SDD artifact persistence is controlled by `artifactStore.mode`
-- Clarification behavior is controlled by `clarificationGate`
 - Skill and MCP usage is prompt-driven; the generated config does not use old
   per-agent allowlist fields
 

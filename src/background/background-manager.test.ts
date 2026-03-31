@@ -3,6 +3,18 @@ import type { DelegationManager } from '../delegation';
 import { LITE_INTERNAL_INITIATOR_MARKER } from '../utils';
 import { BackgroundTaskManager } from './background-manager';
 
+function createMockShell() {
+  return {
+    nothrow: mock(() => ({
+      cwd: mock(() =>
+        mock(() => ({
+          quiet: mock(async () => ({ exitCode: 0, text: () => '' })),
+        })),
+      ),
+    })),
+  };
+}
+
 function createMockContext(overrides?: {
   sessionCreateResult?: { data?: { id?: string } };
   sessionMessagesResult?: {
@@ -14,6 +26,7 @@ function createMockContext(overrides?: {
   promptImpl?: (args: unknown) => Promise<unknown>;
 }) {
   let callCount = 0;
+  const worktreeDirectory = '/test/worktree';
   return {
     client: {
       session: {
@@ -39,6 +52,11 @@ function createMockContext(overrides?: {
       },
     },
     directory: '/test/directory',
+    worktree: worktreeDirectory,
+    worktreeDirectory,
+    serverUrl: new URL('http://localhost:4317'),
+    project: { name: 'phase-2-project' },
+    $: createMockShell(),
   } as const;
 }
 
@@ -64,6 +82,31 @@ async function flushAsyncWork() {
   await Promise.resolve();
   await Promise.resolve();
   await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function getSessionCreateArgs(ctx: ReturnType<typeof createMockContext>) {
+  return ctx.client.session.create.mock.calls[0]?.[0] as
+    | {
+        body?: {
+          permission?: Array<{
+            permission: string;
+            pattern: string;
+            action: 'allow' | 'deny' | 'ask';
+          }>;
+        };
+      }
+    | undefined;
+}
+
+function getInitialPromptArgs(ctx: ReturnType<typeof createMockContext>) {
+  return ctx.client.session.prompt.mock.calls[0]?.[0] as
+    | {
+        body?: {
+          permission?: Record<string, unknown>;
+          tools?: Record<string, boolean>;
+        };
+      }
+    | undefined;
 }
 
 describe('BackgroundTaskManager', () => {
@@ -117,6 +160,162 @@ describe('BackgroundTaskManager', () => {
     expect(first.id).not.toBe(second.id);
 
     randomSpy.mockRestore();
+  });
+
+  test('threads worktreeDirectory into background session creation and prompting', async () => {
+    const ctx = createMockContext();
+    const manager = new BackgroundTaskManager(
+      ctx as never,
+      undefined,
+      undefined,
+      undefined,
+      ctx.worktreeDirectory,
+    );
+
+    const task = manager.launch({
+      agent: 'explorer',
+      prompt: 'Inspect the worktree',
+      description: 'Worktree scan',
+      parentSessionId: 'root-session',
+    });
+
+    await flushAsyncWork();
+
+    expect(ctx.client.session.create.mock.calls[0]?.[0]).toMatchObject({
+      body: {
+        parentID: 'root-session',
+        title: 'Background: Worktree scan',
+      },
+      query: { directory: ctx.worktreeDirectory },
+    });
+
+    const promptCalls = ctx.client.session.prompt.mock.calls as Array<
+      [
+        {
+          path?: { id?: string };
+          query?: { directory?: string };
+        },
+      ]
+    >;
+
+    expect(promptCalls[0]?.[0]).toMatchObject({
+      path: { id: task.sessionId },
+      query: { directory: ctx.worktreeDirectory },
+    });
+  });
+
+  test('denies delegation permissions for leaf child sessions and keeps legacy tool fallback', async () => {
+    const ctx = createMockContext();
+    const manager = new BackgroundTaskManager(ctx as never);
+
+    manager.launch({
+      agent: 'quick',
+      prompt: 'Implement the task',
+      description: 'Leaf work',
+      parentSessionId: 'root-session',
+    });
+
+    await flushAsyncWork();
+
+    expect(getSessionCreateArgs(ctx)).toMatchObject({
+      body: {
+        permission: expect.arrayContaining([
+          { permission: 'task', pattern: '*', action: 'deny' },
+          { permission: 'background_task', pattern: '*', action: 'deny' },
+          { permission: 'background_output', pattern: '*', action: 'deny' },
+          { permission: 'background_cancel', pattern: '*', action: 'deny' },
+        ]),
+      },
+    });
+
+    expect(getInitialPromptArgs(ctx)).toMatchObject({
+      body: {
+        permission: {
+          task: 'deny',
+          background_task: 'deny',
+          background_output: 'deny',
+          background_cancel: 'deny',
+        },
+        tools: {
+          task: false,
+          background_task: false,
+          background_output: false,
+          background_cancel: false,
+        },
+      },
+    });
+  });
+
+  test('allows only configured subagents in delegation permissions for delegating child sessions', async () => {
+    const ctx = createMockContext();
+    const manager = new BackgroundTaskManager(ctx as never);
+
+    manager.launch({
+      agent: 'orchestrator',
+      prompt: 'Coordinate the task',
+      description: 'Delegating work',
+      parentSessionId: 'root-session',
+    });
+
+    await flushAsyncWork();
+
+    expect(getSessionCreateArgs(ctx)).toMatchObject({
+      body: {
+        permission: expect.arrayContaining([
+          { permission: 'task', pattern: 'explorer', action: 'allow' },
+          { permission: 'task', pattern: 'librarian', action: 'allow' },
+          { permission: 'task', pattern: 'oracle', action: 'allow' },
+          { permission: 'task', pattern: 'designer', action: 'allow' },
+          { permission: 'task', pattern: 'quick', action: 'allow' },
+          { permission: 'task', pattern: 'deep', action: 'allow' },
+          { permission: 'task', pattern: '*', action: 'deny' },
+          {
+            permission: 'background_task',
+            pattern: 'explorer',
+            action: 'allow',
+          },
+          {
+            permission: 'background_task',
+            pattern: 'librarian',
+            action: 'allow',
+          },
+          {
+            permission: 'background_task',
+            pattern: '*',
+            action: 'deny',
+          },
+        ]),
+      },
+    });
+
+    expect(getInitialPromptArgs(ctx)).toMatchObject({
+      body: {
+        permission: {
+          task: {
+            explorer: 'allow',
+            librarian: 'allow',
+            oracle: 'allow',
+            designer: 'allow',
+            quick: 'allow',
+            deep: 'allow',
+            '*': 'deny',
+          },
+          background_task: {
+            explorer: 'allow',
+            librarian: 'allow',
+            '*': 'deny',
+          },
+          background_output: 'allow',
+          background_cancel: 'allow',
+        },
+        tools: {
+          task: true,
+          background_task: true,
+          background_output: true,
+          background_cancel: true,
+        },
+      },
+    });
   });
 
   test('persists completed tasks and keeps results when persistence fails', async () => {

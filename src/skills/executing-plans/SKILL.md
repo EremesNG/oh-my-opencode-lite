@@ -17,7 +17,7 @@ task progress durable, ordered, and verifiable.
 - `~/.config/opencode/skills/_shared/persistence-contract.md`
 - `~/.config/opencode/skills/_shared/thoth-mem-convention.md`
 
-## Ownership Model
+## Progress Tracking Invariants
 
 The orchestrator owns task progress tracking.
 
@@ -26,12 +26,23 @@ The orchestrator owns task progress tracking.
   received and verified.
 - The orchestrator marks `- [-]` with a clear reason when a task is skipped or
   fails after escalation.
+- Sub-agents execute assigned work and return structured results. They do not
+  own checkbox updates.
+- Never batch-update multiple checkboxes at once.
+- Never proceed without updating the current task state first.
+- Re-read the canonical tasks artifact after each edit to confirm persistence.
+- Persistence mode determines target stores: `openspec` → file only,
+  `thoth-mem` → memory only, `hybrid` → both. Never skip a store that the
+  active mode requires.
 - `openspec/` files are coordination artifacts, not source code. The
   orchestrator may read and edit them directly for progress tracking and state
-  management.
-
-Sub-agents execute assigned work and return structured results. They do not own
-checkbox updates.
+  management only when the active mode includes openspec artifacts.
+- Task state updates are NOT optional and NOT deferred — they happen in
+  real-time as execution proceeds.
+- Every state transition (pending→in-progress, in-progress→completed,
+  in-progress→skipped) MUST be persisted BEFORE moving on.
+- Real-time tracking is a hard invariant, not a best practice. Deferred or
+  batched updates are a protocol violation.
 
 ## When to Use
 
@@ -43,16 +54,19 @@ checkbox updates.
 
 ### Phase 1: Load
 
-1. Scan `openspec/changes/` for active changes.
-2. Read `tasks.md` and find the first unchecked task in state `- [ ]` or
-   `- [~]`.
-3. Build a mental model of the plan: total tasks, remaining work,
-   parallelizable work, and dependency order.
-4. Load SDD context from the change directory plus thoth-mem fallback using the
-   retrieval protocol in
-   `~/.config/opencode/skills/_shared/persistence-contract.md`.
-5. Determine the artifact store mode from config before reading or writing any
+1. Determine the artifact store mode from config before reading or writing any
    SDD artifacts.
+2. Load task artifacts using mode-aware retrieval:
+   - `openspec`/`hybrid`: scan `openspec/changes/` for active changes and read
+     `tasks.md`.
+   - `thoth-mem`: recover tasks via 3-layer recall
+     (`search` → `timeline` → `get_observation`) using topic key
+     `sdd/{change-name}/tasks`.
+3. Find the first unchecked task in state `- [ ]` or `- [~]`.
+4. Build a mental model of the plan: total tasks, remaining work,
+   parallelizable work, and dependency order.
+5. Load remaining SDD context using mode-aware retrieval in
+   `~/.config/opencode/skills/_shared/persistence-contract.md`.
 
 ### Phase 2: Execute Each Task
 
@@ -185,20 +199,15 @@ Treat missing sections or vague summaries as incomplete execution results.
 
 To resume safely:
 
-1. Read `openspec/changes/` to identify active changes.
-2. Read `openspec/changes/{change-name}/tasks.md` and inspect checkbox state.
-3. If the mode includes thoth-mem, recover `sdd/{change-name}/apply-progress`
-   and `sdd/{change-name}/tasks` with the exact topic-key protocol.
-4. Resume from the first task marked `- [ ]` or `- [~]`.
-
-## Progress Tracking Rules
-
-1. Before dispatching, change `- [ ]` to `- [~]`.
-2. After verified completion, change `- [~]` to `- [x]`.
-3. After 3 retries, change the task to `- [-]` and add the explicit reason.
-4. Never batch-update multiple checkboxes at once.
-5. Never proceed without updating the current task state first.
-6. Re-read `tasks.md` after each edit to confirm persistence.
+1. Determine the artifact store mode from config.
+2. Recover task state using mode-aware retrieval:
+   - `openspec`: read `openspec/changes/{change-name}/tasks.md`.
+   - `thoth-mem`: recover `sdd/{change-name}/tasks` and
+     `sdd/{change-name}/apply-progress` via 3-layer recall
+     (`search` → `timeline` → `get_observation`).
+   - `hybrid`: do both recovery paths and prefer thoth-mem as the source of
+     truth if state diverges.
+3. Resume from the first task marked `- [ ]` or `- [~]`.
 
 ## Guardrails
 

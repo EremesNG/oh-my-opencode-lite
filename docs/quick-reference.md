@@ -9,7 +9,6 @@ integration.
 - [Presets](#presets)
 - [Bundled Skills](#bundled-skills)
 - [Recommended External Skills](#recommended-external-skills)
-- [Clarification Gate](#clarification-gate)
 - [SDD Pipeline](#sdd-pipeline)
 - [Artifact Store Policy](#artifact-store-policy)
 - [MCP Servers](#mcp-servers)
@@ -105,9 +104,10 @@ Available chain keys are:
 Bundled skills are copied from `src/skills/` into the OpenCode skills directory
 when skills are installed.
 
-### Brainstorming
+### Requirements Interview
 
-`brainstorming` clarifies ambiguous work before implementation.
+`requirements-interview` is step-0 in the orchestrator prompt. It clarifies ambiguous
+work before implementation through a six-phase discovery interview.
 
 Core phases:
 
@@ -125,6 +125,7 @@ scope calibration before coding.
 
 | Skill | Purpose |
 | --- | --- |
+| `sdd-init` | Bootstrap OpenSpec structure and SDD context |
 | `sdd-propose` | Create or update `proposal.md` |
 | `sdd-spec` | Write OpenSpec delta specs with RFC 2119 requirements |
 | `sdd-design` | Produce `design.md` with technical decisions |
@@ -146,6 +147,9 @@ actually executable.
 
 `executing-plans` owns progress tracking during task execution.
 
+Two layers are mandatory: `todowrite` for user-visible progress and the
+persistent SDD artifact (`tasks.md` and/or thoth-mem) as the canonical record.
+
 Recognized task states:
 
 - `- [ ]` pending
@@ -155,6 +159,9 @@ Recognized task states:
 
 The `orchestrator` updates task state; execution sub-agents report structured
 results back but do not edit checkboxes themselves.
+
+Automatic save nudges remind the orchestrator to persist observations after task
+completion.
 
 ### Cartography
 
@@ -174,48 +181,21 @@ These are not bundled in `src/skills/`, but they pair well with the workflow.
 | `test-driven-development` | Optional | Useful before `deep` implements fixes or features |
 | `systematic-debugging` | Optional | Useful for `oracle` and `deep` bug diagnosis |
 
-## Clarification Gate
-
-The clarification gate is a hook at `src/hooks/clarification-gate/index.ts` that
-can inject a reminder for the `orchestrator` to run `brainstorming` before
-implementation.
-
-### Modes
-
-| Mode | Behavior |
-| --- | --- |
-| `off` | Never inject |
-| `explicit-only` | Inject only when explicit planning keywords match |
-| `auto` | Inject on explicit keywords or enough scope signals |
-| `auto-for-planning` | Inject for explicit keywords, planning keywords plus scope, or hard-complexity threshold |
-
-### Config Example
-
-```jsonc
-{
-  "clarificationGate": {
-    "mode": "auto",
-    "min_scope_signals": 2,
-    "hard_complex_signal_threshold": 3,
-    "explicit_keywords": ["brainstorm", "plan this", "architecture"],
-    "planning_keywords": ["feature", "implement", "refactor"]
-  }
-}
-```
-
 ## SDD Pipeline
 
 Primary flow:
 
 ```text
-propose -> [spec || design] -> tasks -> apply -> verify -> archive
+sdd-init (if needed) -> propose -> [spec || design] -> tasks -> apply -> verify -> archive
 ```
 
-Common routing:
+Routing is based on 6 complexity dimensions (logic depth, contract
+sensitivity, context span, discovery need, failure cost, concern
+coupling), not file count:
 
-- trivial work: direct implementation
-- medium work: accelerated SDD, typically `propose -> tasks`
-- complex work: full SDD pipeline
+- low complexity: direct implementation
+- moderate complexity: accelerated SDD, typically `propose -> tasks`
+- high complexity: full SDD pipeline
 
 Plan review happens after `sdd-tasks` and before execution. Progress tracking is
 handled through `executing-plans`.
@@ -226,11 +206,12 @@ See [SDD Pipeline](sdd-pipeline.md) for the full workflow.
 
 Use `artifactStore.mode` to control where SDD artifacts persist.
 
-| Mode | Writes to | Best for |
-| --- | --- | --- |
-| `thoth-mem` | thoth memory only | Fast planning with no repo artifact files |
-| `openspec` | `openspec/` only | Reviewable spec files in the repository |
-| `hybrid` | both | Maximum durability and recovery |
+| Mode | Writes to | Token cost | Best for |
+| --- | --- | --- | --- |
+| `thoth-mem` | thoth memory only | Low | Fast planning with no repo artifact files |
+| `openspec` | `openspec/` only | Medium | Reviewable spec files in the repository |
+| `hybrid` | both | High | Maximum durability and recovery |
+| `none` | Neither | Lowest | Ephemeral iterations, no persistence |
 
 ```json
 {
@@ -241,6 +222,12 @@ Use `artifactStore.mode` to control where SDD artifacts persist.
 ```
 
 Default mode is `hybrid`.
+
+3-layer recall for thoth-mem:
+
+1. `mem_search` (compact) - scan IDs + titles
+2. `mem_timeline` - context around candidates
+3. `mem_get_observation` - full content
 
 ## MCP Servers
 
@@ -340,7 +327,6 @@ If `preset` is set, the loader checks the preset subdirectory first:
 | `delegation.timeout` | number | `900000` | Delegation timeout |
 | `thoth.command` | string[] | `['npx', '-y', 'thoth-mem@latest']` | Local thoth MCP command |
 | `thoth.data_dir` | string | unset | Custom thoth data directory |
-| `clarificationGate.mode` | string | `auto` | Clarification-gate strategy |
 | `artifactStore.mode` | string | `hybrid` | SDD artifact persistence target |
 | `disabled_mcps` | string[] | `[]` | Globally disable built-in MCPs |
 

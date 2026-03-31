@@ -5,7 +5,7 @@
 **oh-my-opencode-lite** is an OpenCode plugin for delegate-first agent
 orchestration. It provides a seven-agent roster, async background delegation,
 disk-persisted delegation results, thoth-mem integration, bundled SDD
-skills, and a brainstorming clarification gate for ambiguous work.
+skills, and a requirements-interview skill for clarifying ambiguous work.
 
 ## Commands
 
@@ -63,6 +63,15 @@ bun test -t "pattern"
 - Read-only specialists do discovery; write-capable specialists change the repo.
 - The orchestrator owns root-session state and should retain summaries, not raw
   sub-agent context.
+- Independent delegations should be launched together in the same response.
+- If a `background_task` returns empty or contradictory results, retry once with
+  a more specific prompt; if the retry fails, report the limitation to the
+  user.
+- Maximum retries per delegated task: one after the initial attempt.
+
+Blocking user decisions MUST go through the `question` tool. Agents must never
+ask those questions in plain prose, because that breaks the handoff and pause
+contract for interactive decisions.
 
 ### Delegation Decision Table
 
@@ -110,8 +119,11 @@ Rule of thumb:
 Pipeline:
 
 ```text
-propose -> [spec || design] -> tasks -> apply -> verify -> archive
+sdd-init (if openspec/ is missing) -> propose -> [spec || design] -> tasks
+-> apply -> verify -> archive
 ```
+
+Run `sdd-init` before the pipeline whenever `openspec/` does not yet exist.
 
 Artifact dependency graph:
 
@@ -133,19 +145,22 @@ State management:
 - Format: `sdd/{change-name}/{artifact}`
 - Common keys: `proposal`, `spec`, `design`, `design-brief`, `tasks`, `apply-progress`,
   `verify-report`, `archive-report`
-- Search exact topic keys first; use filesystem OpenSpec artifacts as fallback
-  only when the mode includes repo files.
+- Search exact topic keys using the 3-layer recall protocol (see below); use
+  filesystem OpenSpec artifacts as fallback only when the mode includes repo
+  files.
 
-## Brainstorming / Clarification Gate
+## Requirements Interview
 
-Ambiguous or substantial work starts with the bundled `brainstorming` skill.
-The clarification gate hook detects ambiguity via keyword matching and scope
-signal heuristics, nudging the orchestrator to explore before implementing.
-
-Brainstorming produces an approved direction and routes into:
-- direct implementation for trivial work (1-2 files)
-- accelerated SDD (`propose -> tasks`) for medium work (3-7 files)
-- full SDD (`propose -> spec -> design -> tasks`) for complex work (8+ files)
+Ambiguous or substantial work starts with the bundled `requirements-interview` skill.
+The requirements interview produces an approved direction and routes into:
+- direct implementation for low-complexity work (no high dimensions,
+  at most one medium, low contract sensitivity and failure cost)
+- accelerated SDD (`propose -> tasks`) for moderate complexity
+  (2-3 medium dimensions or one high in logic/context/discovery,
+  but contract sensitivity and failure cost are not high)
+- full SDD (`propose -> spec -> design -> tasks`) for high complexity
+  (high contract sensitivity, high failure cost, 2+ high dimensions,
+  or high discovery need combined with other medium/high dimensions)
 
 ### Artifact Store Policy
 
@@ -156,6 +171,7 @@ Before starting SDD, the user chooses a persistence mode:
 | `thoth-mem` | Memory only | Low | Quick iterations, no repo files |
 | `openspec` | Files only | Medium | Visible, reviewable artifacts |
 | `hybrid` | Both | High | Maximum durability (default) |
+| `none` | Neither | Lowest | Ephemeral iterations, no artifact persistence |
 
 ### Oracle Plan Review Loop
 
@@ -174,6 +190,15 @@ During execution, the orchestrator owns progress tracking via the
 - `- [x]` Completed
 - `- [-]` Skipped (with reason)
 
+Progress tracking has two mandatory layers:
+- `todowrite`: macro-level visual task list for the user; always active for
+  multi-step work
+- persistent SDD artifact: canonical task checkboxes in `tasks.md` and/or
+  `thoth-mem`
+
+Both layers must be updated before dispatching work and again after results are
+received.
+
 Execution sub-agents report structured results back to the orchestrator. They do
 not update task checkboxes themselves.
 
@@ -183,6 +208,20 @@ The orchestrator owns thoth-mem for the root session.
 
 ### When to search
 
+Two retrieval patterns:
+
+**Broad recovery** (session start, after compaction):
+- Use `mem_context` for recent-session overview and quick context injection
+
+**Targeted 3-layer recall** (specific memory retrieval):
+1. `mem_search` with compact index (default) — scan IDs + titles to identify
+   promising observations
+2. `mem_timeline` — get chronological context around candidates to disambiguate
+3. `mem_get_observation` — retrieve full content only for records you need
+- Note: use `mode: "preview"` only when compact results are insufficient to
+  disambiguate
+
+Search proactively:
 - at session start for resumed or ambiguous work
 - before repeating prior investigation
 - before changing an area with likely historical decisions
@@ -192,6 +231,8 @@ The orchestrator owns thoth-mem for the root session.
 - decisions, architecture, bugfixes, discoveries, reusable patterns,
   configuration changes, learnings
 - SDD artifacts and progress checkpoints
+- An automatic save nudge reminds the orchestrator to persist observations
+  after each completed task.
 
 ### Save format
 
@@ -210,8 +251,9 @@ Learned: edge cases or caveats
 
 ### After compaction protocol
 
-- First recover with `mem_context`.
-- Then inspect exact `topic_key` records if SDD artifacts are needed.
+- First recover with `mem_context` (broad overview).
+- Then use 3-layer recall for specific `topic_key` records if SDD artifacts are
+  needed.
 - Continue without inventing missing memory.
 
 ## Tmux Session Lifecycle
@@ -244,15 +286,14 @@ oh-my-opencode-lite/
 │   ├── cli/
 │   ├── config/
 │   ├── delegation/
-│   ├── hooks/
-│   │   └── clarification-gate/
 │   ├── mcp/
 │   ├── skills/
 │   │   ├── _shared/
-│   │   ├── brainstorming/
+│   │   ├── requirements-interview/
 │   │   ├── cartography/
 │   │   ├── executing-plans/
 │   │   ├── plan-reviewer/
+│   │   ├── sdd-init/
 │   │   ├── sdd-propose/
 │   │   ├── sdd-spec/
 │   │   ├── sdd-design/
@@ -271,6 +312,9 @@ oh-my-opencode-lite/
 ```
 
 ## Development Workflow
+
+This project uses `@opencode-ai/plugin` and `@opencode-ai/sdk` v1.3.3; keep
+workflow notes and examples aligned with that SDK version.
 
 1. Make changes
 2. Run `bun run check:ci`

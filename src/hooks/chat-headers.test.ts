@@ -18,6 +18,11 @@ function createMockContext(parts: unknown[] = []) {
         })),
       },
     },
+    directory: '/test/directory',
+    worktree: '/test/worktree',
+    project: { name: 'test-project' },
+    $: {} as any,
+    serverUrl: new URL('http://localhost:3000'),
   } as unknown as PluginInput;
 }
 

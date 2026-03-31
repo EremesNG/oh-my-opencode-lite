@@ -285,21 +285,13 @@ export class ForegroundFallbackManager {
 
       // promptAsync queues the prompt and returns immediately — this avoids
       // blocking the event handler while waiting for a full LLM response.
-      // Cast required: promptAsync is not in the plugin TypeScript types for
-      // oh-my-opencode-lite but IS present on the real OpenCode client at
-      // runtime (verified by opencode-rate-limit-fallback reference impl).
-      const sessionClient = this.client.session as unknown as {
-        promptAsync: (args: {
-          path: { id: string };
-          body: {
-            parts: unknown[];
-            model: { providerID: string; modelID: string };
-          };
-        }) => Promise<unknown>;
-      };
-      await sessionClient.promptAsync({
+      await this.client.session.promptAsync({
         path: { id: sessionID },
-        body: { parts: lastUser.parts, model: ref },
+        body: {
+          // biome-ignore lint/suspicious/noExplicitAny: parts array from message history
+          parts: lastUser.parts as any,
+          model: ref,
+        },
       });
 
       this.sessionModel.set(sessionID, nextModel);

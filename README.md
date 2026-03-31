@@ -7,7 +7,7 @@
 ---
 
 Delegate-first OpenCode plugin with a seven-agent roster, root-session
-`thoth_mem` persistence, disk-backed delegation records, bundled brainstorming,
+`thoth_mem` persistence, disk-backed delegation records, bundled requirements-interview,
 and a full SDD workflow.
 
 oh-my-opencode-lite keeps the `orchestrator` lean, pushes discovery into
@@ -43,7 +43,7 @@ bunx oh-my-opencode-lite@latest install --reset
 ```
 
 When skills are enabled, the installer adds the recommended external skills and
-copies the bundled brainstorming, cartography, plan-reviewer,
+copies the bundled requirements-interview, cartography, plan-reviewer,
 executing-plans, and SDD skills into your OpenCode skills directory.
 
 ### For LLM agents
@@ -82,6 +82,11 @@ The delegate-first philosophy is simple: the `orchestrator` coordinates while
 specialists execute. Read-only discovery work goes to async specialists for
 context isolation. Advisory and write-capable work stays sync so review, undo
 safety, and verification remain straightforward.
+
+For blocking user decisions, the `orchestrator` uses a `question` tool —
+agents do not ask those questions in plain text. Independent work can be
+launched together when parallel dispatch is safe, and failed delegations are
+retried once before being reported back to the user.
 
 ### 🔑 Primary Agent
 
@@ -227,7 +232,7 @@ safety, and verification remain straightforward.
 - Disk-persisted delegation results that survive compaction and in-memory loss
 - Bundled SDD pipeline: `sdd-propose`, `sdd-spec`, `sdd-design`, `sdd-tasks`,
   `sdd-apply`, `sdd-verify`, `sdd-archive`
-- Brainstorming skill with clarification-gate hook for ambiguous work
+- Requirements-interview skill for clarifying ambiguous work before implementation
 - `plan-reviewer` for oracle review loops on task plans
 - `executing-plans` for task-state ownership and progress tracking
 - `cartography` for repository mapping and codemap generation
@@ -249,16 +254,17 @@ The bundled SDD workflow follows this path:
 propose -> [spec || design] -> tasks -> apply -> verify -> archive
 ```
 
-For medium work, brainstorming can route into an accelerated path that starts at
+For medium work, the requirements interview can route into an accelerated path that starts at
 `propose -> tasks`. For complex work, the full path is used.
 
-Artifacts can be persisted in three modes:
+Artifacts can be persisted in four modes:
 
-| Mode | Writes to | Use when |
-| --- | --- | --- |
-| `thoth-mem` | Memory only | Fast iteration without repo planning files |
-| `openspec` | `openspec/` files only | Reviewable planning artifacts in the repo |
-| `hybrid` | Both | Maximum durability; default |
+| Mode | Writes to | Cost | Use when |
+| --- | --- | --- | --- |
+| `thoth-mem` | Memory only | Low | Fast iteration without repo planning files |
+| `openspec` | `openspec/` files only | Medium | Reviewable planning artifacts in the repo |
+| `hybrid` | Both | High | Maximum durability; default |
+| `none` | Neither | Lowest | Ephemeral iterations, no persistence |
 
 After `sdd-tasks`, the orchestrator can run an oracle review loop with
 `plan-reviewer`:
@@ -269,17 +275,22 @@ After `sdd-tasks`, the orchestrator can run an oracle review loop with
 4. Repeat until `[OKAY]`
 5. Continue into execution
 
-During execution, `executing-plans` owns task-state tracking:
+During execution, `executing-plans` owns task-state tracking. Progress has two
+mandatory layers: `todowrite` for the visual task list, plus a persistent SDD
+artifact via `tasks.md` checkboxes and/or `thoth_mem`.
 
 - `- [ ]` pending
 - `- [~]` in progress
 - `- [x]` completed
 - `- [-]` skipped with reason
 
-## Brainstorming & Clarification Gate
+## Requirements Interview
 
-The bundled `brainstorming` skill is the front door for ambiguous or substantial
-work. Its workflow is six phases:
+The bundled `requirements-interview` skill is the front door for ambiguous or substantial
+work. It is step-0 in the orchestrator prompt and runs before implementation when the
+request is open-ended, spans multiple parts of the system, or needs scope calibration.
+
+Its workflow is six phases:
 
 1. Context gathering
 2. Interview
@@ -288,13 +299,8 @@ work. Its workflow is six phases:
 5. User approval
 6. Handoff
 
-The clarification-gate hook can auto-detect requests that should go through this
-flow before implementation. It checks for explicit planning keywords plus scope
-signals such as multi-view work, API/data changes, restructuring, multi-layer
-impact, business-language requests, open-ended phrasing, and cross-directory
-scope. When triggered, it injects a reminder for the `orchestrator` to load the
-brainstorming skill, ask one clarifying question at a time, and wait for
-explicit approval before coding.
+After clarification, the skill routes the work into direct implementation, accelerated
+SDD, or full SDD based on complexity assessment.
 
 ## 🧩 Skills & MCP Servers
 
@@ -302,9 +308,10 @@ explicit approval before coding.
 
 | Skill | Category | Purpose |
 | --- | --- | --- |
-| `brainstorming` | Clarification | Clarify intent, assess scope, and choose direct work vs accelerated or full SDD |
+| `requirements-interview` | Clarification | Clarify intent, assess scope, and choose direct work vs accelerated or full SDD |
 | `cartography` | Discovery | Generate and update hierarchical repository codemaps |
 | `plan-reviewer` | Review | Validate `tasks.md` for real execution blockers and return `[OKAY]` or `[REJECT]` |
+| `sdd-init` | SDD | Bootstrap OpenSpec structure and SDD context for a project |
 | `sdd-propose` | SDD | Create or update `proposal.md` |
 | `sdd-spec` | SDD | Write OpenSpec delta specs with RFC 2119 requirements and scenarios |
 | `sdd-design` | SDD | Produce `design.md` with technical decisions and file changes |
@@ -339,6 +346,16 @@ explicit approval before coding.
 > off — even after context-window compaction. It is included by default and
 > runs locally via `npx`.
 
+For targeted retrieval, Thoth-Mem uses a 3-layer recall protocol:
+
+1. `mem_search` — scan the compact index of IDs and titles
+2. `mem_timeline` — inspect chronological context around candidates
+3. `mem_get_observation` — read full content for selected records
+
+After task completion, an automatic save nudge reminds the orchestrator to
+persist important observations. Session start also degrades gracefully if
+`thoth_mem` is unavailable, so memory errors do not block the main plugin flow.
+
 Skill and MCP access in this project is prompt-driven. The generated plugin
 config focuses on model presets and runtime options rather than per-agent
 permission matrices.
@@ -355,6 +372,8 @@ permission matrices.
 - [AGENTS.md](AGENTS.md)
 
 ## Development
+
+The project targets `@opencode-ai/plugin` and `@opencode-ai/sdk` v1.3.3.
 
 | Command | Purpose |
 | --- | --- |

@@ -12,7 +12,7 @@ import { LITE_INTERNAL_INITIATOR_MARKER } from '../../utils';
 
 export const PHASE_REMINDER = `<reminder>Recall Workflow Rules:
 Understand → find the best path (delegate based on rules and parallelize independent work) → execute → verify.
-If delegating, launch the specialist in the same turn you mention it.</reminder>`;
+If delegating, launch the specialist in the same turn you mention it. If multiple delegations are independent, emit all tool calls in a single response — never serialize independent work across turns.</reminder>`;
 
 interface MessageInfo {
   role: string;

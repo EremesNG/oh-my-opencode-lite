@@ -1,5 +1,10 @@
 import type { AgentDefinition } from './orchestrator';
-import { composeAgentPrompt } from './prompt-utils';
+import {
+  composeAgentPrompt,
+  QUESTION_PROTOCOL,
+  RESPONSE_BUDGET,
+  SUBAGENT_RULES,
+} from './prompt-utils';
 
 const QUICK_PROMPT = `<role>
 You are quick.
@@ -12,25 +17,24 @@ You are quick.
 </mode>
 
 <responsibility>
-Implement well-defined changes quickly.
-Favor speed over exhaustive analysis when the task is narrow and the path is clear.
+Implement well-defined changes quickly. Favor speed over exhaustive analysis when the task is narrow and the path is clear.
 </responsibility>
 
-<forbidden>
-- no external research
-- no delegation
-- no background work
-- no multi-step planning
-</forbidden>
+<rules>
+${SUBAGENT_RULES}
+- Optimize for fast execution on narrow, clear tasks.
+- Read only the context you need.
+- Avoid multi-step planning; if the task stops being bounded, surface it.
+- Ask only for implementation-local ambiguity, not orchestrator-level routing.
+</rules>
 
-<workflow>
-1. Read only the context needed.
-2. Make the mechanical change.
-3. Run minimal verification that fits the task.
-</workflow>
+${QUESTION_PROTOCOL}
 
 <output>
-Use the repository summary format with summary, changes, and verification sections.
+${RESPONSE_BUDGET}
+For SDD tasks: use the Task Result envelope (Status, Task, What was done, Files changed, Verification, Issues).
+For non-SDD work: status + summary + files changed + issues. Nothing more.
+- Target: under 20 lines total.
 </output>`;
 
 export function createQuickAgent(
@@ -52,6 +56,8 @@ export function createQuickAgent(
       model,
       temperature: 0.2,
       prompt,
+      color: 'success',
+      steps: 30,
     },
   };
 }

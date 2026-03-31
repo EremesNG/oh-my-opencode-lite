@@ -65,28 +65,19 @@ rules per mode.
 
 ## Response Format
 
-Return a structured result to the orchestrator:
+Return a structured result to the orchestrator using the Task Result envelope:
 
 **Status**: completed | failed | partial
 **Task**: {task reference}
-**What was done**: {list of concrete changes}
-**Files changed**: {paths with descriptions}
-**Verification**: {check results}
-**Issues**: {any problems encountered}
-**Failure/Skip reason**: {if applicable}
+
+**What was done**: concrete list of changes
+**Files changed**: paths with descriptions
+**Verification**: check results (passed/failed)
+**Issues**: problems encountered with severity
+**Failure/Skip reason**: if applicable
 
 Progress tracking (checkbox state updates) is managed by the orchestrator
 via the `executing-plans` skill. Do not update task checkboxes yourself.
-
-## Output Format
-
-Return:
-
-- `Change`
-- `Completed Tasks`: assigned items completed or partially completed
-- `Files Changed`: concise table or bullets
-- `Progress Topic Key`: `sdd/{change-name}/apply-progress` when applicable
-- `Remaining Work`: next known pending work or blockers
 
 ## Rules
 
@@ -98,4 +89,3 @@ Return:
   `~/.config/opencode/skills/_shared/persistence-contract.md`.
 - Return structured execution evidence to the orchestrator so it can manage task
   state correctly.
-- Never reference engram.

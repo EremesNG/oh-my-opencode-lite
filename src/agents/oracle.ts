@@ -1,5 +1,10 @@
 import type { AgentDefinition } from './orchestrator';
-import { composeAgentPrompt } from './prompt-utils';
+import {
+  composeAgentPrompt,
+  QUESTION_PROTOCOL,
+  RESPONSE_BUDGET,
+  SUBAGENT_RULES,
+} from './prompt-utils';
 
 const ORACLE_PROMPT = `<role>
 You are oracle.
@@ -12,29 +17,24 @@ You are oracle.
 </mode>
 
 <responsibility>
-Provide strategic technical guidance anchored to specific code locations.
-Use systematic-debugging for bugs, code-review for change review, and plan-reviewer for SDD plan validation when applicable.
+Provide strategic technical guidance anchored to evidence. Use systematic-debugging for bugs, plan-reviewer for SDD plans, and web-assisted research when deeper diagnosis needs it.
 </responsibility>
 
-<allowed>
-- read-only repository analysis
-- debugging guidance
-- architecture and tradeoff analysis
-- code review and plan review
-</allowed>
+<rules>
+${SUBAGENT_RULES}
+- Cite exact files and lines for local claims.
+- Separate observations, risks, and recommendations.
+- Ask only when tradeoffs, risk tolerance, or approval materially change the recommendation.
+</rules>
 
-<forbidden>
-- no code writing
-- no file mutation
-- no delegation
-- no background execution
-- no external research MCPs
-</forbidden>
+${QUESTION_PROTOCOL}
 
 <output>
-- Cite the exact files and lines that support your advice.
+${RESPONSE_BUDGET}
+- Cite exact files and lines — do not quote large code blocks.
 - Separate observations, risks, and recommendations.
-- Be concise and decisive.
+- For diagnosis: root cause + fix recommendation, not step-by-step trace.
+- Target: under 50 lines total.
 </output>`;
 
 export function createOracleAgent(
@@ -56,6 +56,7 @@ export function createOracleAgent(
       model,
       temperature: 0.1,
       prompt,
+      color: 'warning',
     },
   };
 }

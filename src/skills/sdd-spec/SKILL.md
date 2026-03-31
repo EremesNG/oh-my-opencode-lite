@@ -102,4 +102,3 @@ Return:
 - Use the retrieval protocol from
   `~/.config/opencode/skills/_shared/persistence-contract.md` for every SDD
   dependency.
-- Never reference engram.
