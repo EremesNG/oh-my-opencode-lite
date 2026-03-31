@@ -35,22 +35,27 @@ rules per mode.
 ## Prerequisites
 
 - `change-name`
-- Spec artifact
-- Design artifact
+- `pipeline-type` (`accelerated` or `full`)
 - Tasks artifact
 - Verify report artifact
+- Spec artifact (full pipeline only)
+- Design artifact (full pipeline only)
+- Proposal artifact (always — used for audit trail)
 
 ## Workflow
 
 1. Read the shared conventions.
-2. Recover `spec`, `design`, `tasks`, and `verify-report` through the
-   retrieval protocol in
-   `~/.config/opencode/skills/_shared/persistence-contract.md`.
+2. Recover artifacts through the retrieval protocol in
+   `~/.config/opencode/skills/_shared/persistence-contract.md`:
+   - **Always**: recover `proposal`, `tasks`, and `verify-report`
+   - **Full pipeline only**: recover `spec` and `design`
 3. Refuse to archive if the verification report still contains unresolved
    critical failures.
-4. If the selected mode includes OpenSpec, merge every change spec from
+4. If the selected mode includes OpenSpec and the pipeline is full, merge
+   every change spec from
    `openspec/changes/{change-name}/specs/{domain}/spec.md` into
-   `openspec/specs/{domain}/spec.md`.
+   `openspec/specs/{domain}/spec.md`. In accelerated pipeline, skip the
+   spec merge (no delta specs exist).
 5. If the selected mode includes OpenSpec, move the completed change directory
    to `openspec/changes/archive/YYYY-MM-DD-{change-name}/`.
 6. Create an audit trail report summarizing merged domains, archive location,
@@ -84,7 +89,8 @@ Return:
 ## Rules
 
 - Archive only after verification is acceptable.
-- Merge delta specs before moving the change folder.
+- In full pipeline, merge delta specs before moving the change folder.
+  In accelerated pipeline, skip the spec merge (no delta specs exist).
 - Preserve canonical spec structure and untouched requirements.
 - Persist the final audit trail through thoth-mem when the selected mode
   includes it.

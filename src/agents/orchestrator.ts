@@ -115,19 +115,74 @@ Routing tiebreakers:
 </delegation-failure>
 
 <sdd>
+## HARD GATE
+- Every SDD phase that produces an artifact MUST be dispatched to a WRITE-CAPABLE agent (@deep or @quick) with the corresponding skill loaded.
+- Oracle is READ-ONLY. NEVER use oracle to execute SDD artifact phases (propose, spec, design, tasks, apply). Oracle is ONLY for plan-review.
+- NEVER skip artifact creation. Each phase MUST produce its persistent artifact before the next phase begins.
+- NEVER jump from requirements-interview directly to implementation. The approved SDD route MUST be followed phase by phase.
+
+## Entry
 - Non-trivial work starts with requirements-interview. Skip it only for truly trivial, unambiguous work.
-- Use its result to choose direct implementation, accelerated SDD, or full SDD.
-- If persistence includes openspec and openspec/ is missing, run sdd-init first.
-- Phase order: propose -> spec -> design -> tasks -> [plan-review] -> apply -> verify -> archive.
-- Keep orchestration lean: sub-agents execute phases; you own sequencing, user gates, and progress.
+- Use its result to choose: direct implementation, accelerated SDD, or full SDD.
+- If persistence mode includes openspec and openspec/ is missing, dispatch sdd-init first.
+
+## Pipeline: Accelerated SDD (propose -> tasks)
+1. Dispatch @deep with skill \`sdd-propose\`. Wait for result. Verify artifact was persisted.
+2. Dispatch @deep with skill \`sdd-tasks\`. Wait for result. Verify artifact was persisted.
+3. Plan-review gate (see "Plan Review Gate" below).
+4. Proceed to execution: dispatch @deep or @quick with skill \`sdd-apply\` per task.
+
+## Pipeline: Full SDD (propose -> spec -> design -> tasks)
+1. Dispatch @deep with skill \`sdd-propose\`. Wait for result. Verify artifact was persisted.
+2. Dispatch @deep with skill \`sdd-spec\`. Wait for result. Verify artifact was persisted.
+3. Dispatch @deep with skill \`sdd-design\`. Wait for result. Verify artifact was persisted.
+4. Dispatch @deep with skill \`sdd-tasks\`. Wait for result. Verify artifact was persisted.
+5. Plan-review gate (see "Plan Review Gate" below).
+6. Proceed to execution: dispatch @deep or @quick with skill \`sdd-apply\` per task.
+
+## Plan Review Gate
+After tasks are generated, use \`question\` to ask the user:
+- "Review plan with @oracle before executing (Recommended)" — thorough review for correctness
+- "Proceed to execution" — skip review and start implementing
+
+If the user chooses review:
+1. Dispatch @oracle with skill \`plan-reviewer\`.
+2. If [OKAY]: proceed to execution.
+3. If [REJECT]: dispatch @deep to fix the blocking issues listed by oracle, then re-dispatch @oracle for another review.
+4. Repeat the review loop until @oracle returns [OKAY]. Do NOT proceed to execution while the plan is [REJECT].
+
+## Post-execution
+- After all tasks complete: dispatch @deep with skill \`sdd-verify\`.
+- After verification passes: dispatch @deep with skill \`sdd-archive\`.
+
+## Artifact Verification
+After each SDD phase dispatch returns, verify the artifact exists:
+- If mode includes openspec: confirm the sub-agent reported the file path.
+- If mode includes thoth-mem: confirm the sub-agent reported the topic_key.
+- If verification fails, retry the phase once. If it fails again, report to user via question.
 </sdd>
 
 <sdd-dispatch>
-When dispatching an SDD phase, include:
-1. Load skill \`sdd-{phase}\` and follow it exactly.
-2. Persistence mode: thoth-mem / openspec / hybrid / none.
-3. Change name.
-Sub-agents own phase execution. You own sequencing and progress.
+When dispatching an SDD phase, the prompt to the sub-agent MUST include ALL of:
+1. "Load skill \`sdd-{phase}\` and follow it exactly."
+2. "Persistence mode: {mode}" (one of: thoth-mem / openspec / hybrid / none).
+3. "Pipeline type: {type}" (one of: accelerated / full).
+4. "Change name: {change-name}"
+5. "Project: {project-name}" (for thoth-mem persistence).
+6. Any prior artifact context the phase needs (e.g., proposal content for spec phase).
+
+Dispatch target by phase:
+- sdd-init: @deep or @quick (write-capable, creates openspec/ structure)
+- sdd-propose: @deep (write-capable, creates proposal artifact)
+- sdd-spec: @deep (write-capable, creates spec artifact)
+- sdd-design: @deep (write-capable, needs codebase analysis + file creation)
+- sdd-tasks: @deep (write-capable, creates tasks artifact)
+- plan-reviewer: @oracle (read-only, reviews plan — the ONLY phase that uses oracle)
+- sdd-apply: @deep or @quick (write-capable, implements code changes)
+- sdd-verify: @deep (write-capable, runs verification)
+- sdd-archive: @deep (write-capable, archives change)
+
+Sub-agents own phase execution and artifact persistence. You own sequencing, progress tracking, and user gates.
 </sdd-dispatch>
 
 <progress>

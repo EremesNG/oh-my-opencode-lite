@@ -35,16 +35,21 @@ rules per mode.
 ## Prerequisites
 
 - `change-name`
-- Spec artifact
-- Design artifact
 - Tasks artifact
+- `pipeline-type` (`accelerated` or `full`)
+- Spec artifact (full pipeline only)
+- Design artifact (full pipeline only)
+- Proposal artifact (accelerated pipeline — used as the verification reference)
 - Ability to run the relevant checks or tests
 
 ## Workflow
 
 1. Read the shared conventions.
-2. Recover `spec`, `design`, and `tasks` with the retrieval protocol in
-   `~/.config/opencode/skills/_shared/persistence-contract.md`.
+2. Recover artifacts with the retrieval protocol in
+   `~/.config/opencode/skills/_shared/persistence-contract.md`:
+   - **Always**: recover `tasks`
+   - **Full pipeline**: recover `spec` and `design`
+   - **Accelerated pipeline**: recover `proposal` (used as the verification reference)
 3. Optionally recover `apply-progress` with the same mode-aware rules if it
    exists and helps explain task coverage.
 4. Read the changed code and run the required verification commands.
@@ -54,19 +59,22 @@ rules per mode.
    In `thoth-mem` mode, produce the same report content without creating the
    file:
 
-   ```md
-   # Verification Report: {Change Title}
+    ```md
+    # Verification Report: {Change Title}
 
-   ## Completeness
-   ## Build and Test Evidence
-   ## Spec Compliance Matrix
-   ## Design Coherence
-   ## Issues Found
-   ## Verdict
-   ```
+    ## Completeness
+    ## Build and Test Evidence
+    ## Compliance Matrix
+    <!-- Full pipeline: map Given/When/Then scenarios from spec -->
+    <!-- Accelerated pipeline: map success criteria from proposal -->
+    ## Design Coherence (full pipeline only)
+    ## Issues Found
+    ## Verdict
+    ```
 
-6. Build a compliance matrix that maps each Given/When/Then scenario to the test
-   or execution evidence that proved it.
+6. Build a compliance matrix: in full pipeline, map each Given/When/Then
+   scenario to evidence; in accelerated pipeline, map each proposal success
+   criterion to evidence.
 7. If the selected mode includes thoth-mem, persist the report with:
 
    ```text
@@ -94,7 +102,8 @@ Return:
 ## Rules
 
 - Verification requires real evidence, not only static inspection.
-- Every spec scenario must appear in the compliance matrix.
+- Every acceptance criterion must appear in the compliance matrix: spec
+  scenarios in full pipeline, proposal success criteria in accelerated pipeline.
 - Distinguish blockers from warnings clearly.
 - Do not fix issues inside this phase; report them.
 - Recover full artifacts with the protocol in

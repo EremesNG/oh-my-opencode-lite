@@ -115,6 +115,23 @@ Always complete the 3-layer recall before using content as source material.
 - `sdd-archive` persists `sdd/{change-name}/archive-report`
 - `state` persists `sdd/{change-name}/state`
 
+## Pipeline Type Impact on Prerequisites
+
+The orchestrator passes `pipeline-type` (`accelerated` or `full`) alongside the
+persistence mode. This affects which artifacts each skill requires:
+
+| Artifact | Full pipeline | Accelerated pipeline |
+| --- | --- | --- |
+| Proposal | Required by all phases | Required by all phases (serves as acceptance reference) |
+| Spec | Required by design, tasks, apply, verify, archive | Not produced; not required |
+| Design | Required by tasks, apply, verify, archive | Not produced; not required |
+| Tasks | Required by apply, verify, archive | Required by apply, verify, archive |
+| Verify report | Required by archive | Required by archive |
+
+In accelerated pipeline, the proposal serves as the acceptance reference where
+specs would normally be used. Skills must adapt their retrieval, compliance
+checks, and archive behavior accordingly.
+
 ## Recovery Notes
 
 - Prefer exact topic-key queries over fuzzy natural-language search.

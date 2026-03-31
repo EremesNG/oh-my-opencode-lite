@@ -116,35 +116,78 @@ Rule of thumb:
 
 ## SDD Pipeline
 
-Pipeline:
+### HARD GATE
 
-```text
-sdd-init (if openspec/ is missing) -> propose -> [spec || design] -> tasks
--> apply -> verify -> archive
-```
+- Every SDD phase that produces an artifact MUST be dispatched to a
+  **write-capable** agent (`@deep` or `@quick`) with the corresponding skill.
+- `@oracle` is **read-only**. NEVER use oracle to execute SDD artifact phases
+  (propose, spec, design, tasks, apply). Oracle is ONLY for plan-review.
+- NEVER skip artifact creation. Each phase MUST produce its persistent artifact
+  before the next phase begins.
+- NEVER jump from requirements-interview directly to implementation. The approved
+  SDD route MUST be followed phase by phase.
+
+### Pipelines
+
+**Accelerated SDD** (`propose -> tasks`):
+
+1. Dispatch `@deep` with skill `sdd-propose`. Wait for result. Verify artifact.
+2. Dispatch `@deep` with skill `sdd-tasks`. Wait for result. Verify artifact.
+3. Plan-review gate (see "Oracle Plan Review Gate" below).
+4. Proceed to execution with `sdd-apply`.
+
+**Full SDD** (`propose -> spec -> design -> tasks`):
+
+1. Dispatch `@deep` with skill `sdd-propose`. Wait for result. Verify artifact.
+2. Dispatch `@deep` with skill `sdd-spec`. Wait for result. Verify artifact.
+3. Dispatch `@deep` with skill `sdd-design`. Wait for result. Verify artifact.
+4. Dispatch `@deep` with skill `sdd-tasks`. Wait for result. Verify artifact.
+5. Plan-review gate (see "Oracle Plan Review Gate" below).
+6. Proceed to execution with `sdd-apply`.
+
+**Post-execution**: `sdd-verify` then `sdd-archive` (both via `@deep`).
 
 Run `sdd-init` before the pipeline whenever `openspec/` does not yet exist.
 
-Artifact dependency graph:
+### Dispatch Contract
 
-```text
-proposal
-  ├─> spec
-  └─> design
-       spec + design
-            └─> tasks
-                 └─> apply
-                      └─> verify
-                           └─> archive
-```
+When dispatching an SDD phase, the prompt MUST include:
 
-State management:
+1. `Load skill sdd-{phase} and follow it exactly.`
+2. `Persistence mode: {mode}` (thoth-mem / openspec / hybrid / none).
+3. `Pipeline type: {type}` (accelerated / full).
+4. `Change name: {change-name}`
+5. `Project: {project-name}` (for thoth-mem persistence).
+6. Any prior artifact context the phase needs.
 
-- SDD artifacts persist through **thoth-mem** with deterministic
-  `topic_key`s.
+Dispatch target by phase:
+
+| Phase | Agent | Why |
+| --- | --- | --- |
+| `sdd-init` | `@deep` or `@quick` | Write-capable, creates openspec/ structure |
+| `sdd-propose` | `@deep` | Write-capable, creates proposal artifact |
+| `sdd-spec` | `@deep` | Write-capable, creates spec artifact |
+| `sdd-design` | `@deep` | Write-capable, needs codebase analysis + file creation |
+| `sdd-tasks` | `@deep` | Write-capable, creates tasks artifact |
+| `plan-reviewer` | `@oracle` | Read-only — the ONLY phase that uses oracle |
+| `sdd-apply` | `@deep` or `@quick` | Write-capable, implements code changes |
+| `sdd-verify` | `@deep` | Write-capable, runs verification |
+| `sdd-archive` | `@deep` | Write-capable, archives change |
+
+### Artifact Verification
+
+After each SDD phase dispatch returns, verify the artifact exists:
+- If mode includes openspec: confirm the sub-agent reported the file path.
+- If mode includes thoth-mem: confirm the sub-agent reported the topic_key.
+- If verification fails, retry the phase once. If it fails again, report to
+  user via `question`.
+
+### State Management
+
+- SDD artifacts persist through **thoth-mem** with deterministic `topic_key`s.
 - Format: `sdd/{change-name}/{artifact}`
-- Common keys: `proposal`, `spec`, `design`, `design-brief`, `tasks`, `apply-progress`,
-  `verify-report`, `archive-report`
+- Common keys: `proposal`, `spec`, `design`, `design-brief`, `tasks`,
+  `apply-progress`, `verify-report`, `archive-report`
 - Search exact topic keys using the 3-layer recall protocol (see below); use
   filesystem OpenSpec artifacts as fallback only when the mode includes repo
   files.
@@ -173,13 +216,21 @@ Before starting SDD, the user chooses a persistence mode:
 | `hybrid` | Both | High | Maximum durability (default) |
 | `none` | Neither | Lowest | Ephemeral iterations, no artifact persistence |
 
-### Oracle Plan Review Loop
+### Oracle Plan Review Gate
 
-After SDD tasks are generated, the orchestrator offers a plan review:
-- Dispatch oracle with `plan-reviewer` skill
-- If `[REJECT]`: fix max 3 blocking issues, re-dispatch
-- Repeat until `[OKAY]`
-- Then proceed to execution
+After SDD tasks are generated, the orchestrator uses `question` to ask the user:
+- "Review plan with @oracle before executing (Recommended)" — thorough review
+  for correctness
+- "Proceed to execution" — skip review and start implementing
+
+If the user chooses review:
+1. Dispatch `@oracle` (the ONLY SDD phase that uses oracle) with `plan-reviewer`
+   skill.
+2. If `[OKAY]`: proceed to execution via `@deep` or `@quick` with `sdd-apply`.
+3. If `[REJECT]`: dispatch `@deep` to fix the blocking issues listed by oracle,
+   then re-dispatch `@oracle` for another review.
+4. Repeat the review loop until `@oracle` returns `[OKAY]`. Do NOT proceed to
+   execution while the plan is `[REJECT]`.
 
 ### Task Progress Tracking
 
