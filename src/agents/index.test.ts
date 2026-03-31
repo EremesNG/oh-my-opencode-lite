@@ -253,7 +253,7 @@ describe('orchestrator agent', () => {
     // SDD awareness / phase order must remain in the orchestrator prompt.
     expect(prompt).toContain('requirements-interview');
     expect(prompt).toMatch(/propose\s*->\s*spec\s*->\s*design\s*->\s*tasks/i);
-    expect(prompt).toContain('run sdd-init first');
+    expect(prompt).toContain('dispatch sdd-init first');
   });
 });
 
