@@ -130,7 +130,7 @@ Routing tiebreakers:
 1. Dispatch @deep with skill \`sdd-propose\`. Wait for result. Verify artifact was persisted.
 2. Dispatch @deep with skill \`sdd-tasks\`. Wait for result. Verify artifact was persisted.
 3. Plan-review gate (see "Plan Review Gate" below).
-4. Proceed to execution: dispatch @deep or @quick with skill \`sdd-apply\` per task.
+4. Execute tasks: load skill \`executing-plans\` and follow it for the full execution loop. For each task: follow the \`<progress>\` protocol for state tracking, use the 6-part dispatch envelope from \`executing-plans\` (TASK, CONTEXT, REQUIREMENTS, BOUNDARIES, VERIFICATION, RETURN ENVELOPE), dispatch @deep or @quick with skill \`sdd-apply\`, and follow the escalation policy on failure.
 
 ## Pipeline: Full SDD (propose -> spec -> design -> tasks)
 1. Dispatch @deep with skill \`sdd-propose\`. Wait for result. Verify artifact was persisted.
@@ -138,7 +138,7 @@ Routing tiebreakers:
 3. Dispatch @deep with skill \`sdd-design\`. Wait for result. Verify artifact was persisted.
 4. Dispatch @deep with skill \`sdd-tasks\`. Wait for result. Verify artifact was persisted.
 5. Plan-review gate (see "Plan Review Gate" below).
-6. Proceed to execution: dispatch @deep or @quick with skill \`sdd-apply\` per task.
+6. Execute tasks: load skill \`executing-plans\` and follow it for the full execution loop. For each task: follow the \`<progress>\` protocol for state tracking, use the 6-part dispatch envelope from \`executing-plans\` (TASK, CONTEXT, REQUIREMENTS, BOUNDARIES, VERIFICATION, RETURN ENVELOPE), dispatch @deep or @quick with skill \`sdd-apply\`, and follow the escalation policy on failure.
 
 ## Plan Review Gate
 After tasks are generated, use \`question\` to ask the user:
