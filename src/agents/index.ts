@@ -104,7 +104,7 @@ const BUILTIN_PERMISSION_PRESETS = {
     lsp: 'allow',
     skill: 'allow',
     question: 'allow',
-    todowrite: 'allow',
+    todowrite: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     }
@@ -119,12 +119,30 @@ const BUILTIN_PERMISSION_PRESETS = {
     question: 'allow',
     codesearch: 'allow',
     lsp: 'allow',
-    todowrite: 'allow',
+    todowrite: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     }
   },
-  deep: 'allow',
+  deep: {
+    read: 'allow',
+    edit: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    skill: 'allow',
+    question: 'allow',
+    webfetch: 'allow',
+    websearch: 'allow',
+    todowrite: 'deny',
+    task: 'deny',
+    external_directory: {
+      '~/.config/opencode/skills/**': 'allow',
+    },
+  },
 } as const satisfies Record<
   BuiltinPermissionPresetName,
   BuiltinPermissionPreset

@@ -1,8 +1,6 @@
 ---
 name: requirements-interview
-description: >
-  Mandatory step-0 requirements discovery for non-trivial work before any
-  implementation or SDD routing decisions.
+description: Mandatory step-0 requirements discovery for non-trivial work before any implementation or SDD routing decisions.
 metadata:
   author: oh-my-opencode-lite
   version: '1.0'
