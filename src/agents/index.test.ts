@@ -72,7 +72,7 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     codesearch: 'allow',
     lsp: 'allow',
     skill: 'allow',
-    todowrite: 'allow',
+    todowrite: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     },
@@ -87,12 +87,30 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     question: 'allow',
     codesearch: 'allow',
     lsp: 'allow',
-    todowrite: 'allow',
+    todowrite: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     },
   },
-  deep: 'allow',
+  deep: {
+    read: 'allow',
+    edit: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    skill: 'allow',
+    question: 'allow',
+    webfetch: 'allow',
+    websearch: 'allow',
+    todowrite: 'deny',
+    task: 'deny',
+    external_directory: {
+      '~/.config/opencode/skills/**': 'allow',
+    }
+  },
 };
 
 function getAgentByName(
@@ -239,7 +257,7 @@ describe('orchestrator agent', () => {
 
     // Forbid inline repo work (read/search/patch/verify) to keep delegation model intact.
     expect(prompt).toMatch(
-      /NEVER\s+request\s+or\s+read\s+the\s+full\s+content\s+of\s+any\s+source\s+file/i,
+        /NEVER\s+read\s+or\s+write\s+any\s+file\s+in\s+the\s+workspace/i,
     );
     expect(prompt).toContain(
       'Delegate all inspection, writing, searching, debugging, and verification.',
@@ -350,9 +368,29 @@ describe('granular permission defaults', () => {
     expect(getPermissionRecord('librarian').external_directory).toBe('allow');
     expect(getPermissionRecord('oracle').external_directory).toBe('allow');
   });
-
-  test('deep has blanket allow permission', () => {
-    expect(getPermission('deep')).toBe('allow');
+  
+  test('deep has explicit granular permission map', () => {
+    const deepPermission = getPermission('deep');
+    expect(typeof deepPermission).toBe('object');
+    expect(deepPermission).toEqual({
+      read: 'allow',
+      edit: 'allow',
+      glob: 'allow',
+      grep: 'allow',
+      list: 'allow',
+      bash: 'allow',
+      codesearch: 'allow',
+      lsp: 'allow',
+      skill: 'allow',
+      question: 'allow',
+      webfetch: 'allow',
+      websearch: 'allow',
+      todowrite: 'deny',
+      task: 'deny',
+      external_directory: {
+        '~/.config/opencode/skills/**': 'allow',
+      },
+    });
   });
 });
 
