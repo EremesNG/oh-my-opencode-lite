@@ -126,6 +126,9 @@ Rule of thumb:
   before the next phase begins.
 - NEVER jump from requirements-interview directly to implementation. The approved
   SDD route MUST be followed phase by phase.
+- NEVER execute SDD tasks without first loading the `executing-plans`
+  skill via the skill tool. Reading artifacts and delegating directly is a
+  protocol violation. The skill MUST be loaded BEFORE the first task dispatch.
 
 ### Pipelines
 
@@ -134,7 +137,9 @@ Rule of thumb:
 1. Dispatch `@deep` with skill `sdd-propose`. Wait for result. Verify artifact.
 2. Dispatch `@deep` with skill `sdd-tasks`. Wait for result. Verify artifact.
 3. Plan-review gate (see "Oracle Plan Review Gate" below).
-4. Proceed to execution with `sdd-apply`.
+4. **Load the `executing-plans` skill** via the skill tool. This is mandatory
+   and must happen before any task dispatch.
+5. Proceed to execution with `sdd-apply`.
 
 **Full SDD** (`propose -> spec -> design -> tasks`):
 
@@ -143,7 +148,9 @@ Rule of thumb:
 3. Dispatch `@deep` with skill `sdd-design`. Wait for result. Verify artifact.
 4. Dispatch `@deep` with skill `sdd-tasks`. Wait for result. Verify artifact.
 5. Plan-review gate (see "Oracle Plan Review Gate" below).
-6. Proceed to execution with `sdd-apply`.
+6. **Load the `executing-plans` skill** via the skill tool. This is mandatory
+   and must happen before any task dispatch.
+7. Proceed to execution with `sdd-apply`.
 
 **Post-execution**: `sdd-verify` then `sdd-archive` (both via `@deep`).
 

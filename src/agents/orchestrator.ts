@@ -120,6 +120,7 @@ Routing tiebreakers:
 - Oracle is READ-ONLY. NEVER use oracle to execute SDD artifact phases (propose, spec, design, tasks, apply). Oracle is ONLY for plan-review.
 - NEVER skip artifact creation. Each phase MUST produce its persistent artifact before the next phase begins.
 - NEVER jump from requirements-interview directly to implementation. The approved SDD route MUST be followed phase by phase.
+- NEVER execute SDD tasks without first loading the \`executing-plans\` skill via the skill tool. Reading artifacts and delegating directly is a protocol violation. The skill MUST be loaded BEFORE the first task dispatch.
 
 ## Entry
 - Non-trivial work starts with requirements-interview. Skip it only for truly trivial, unambiguous work.
@@ -130,7 +131,8 @@ Routing tiebreakers:
 1. Dispatch @deep with skill \`sdd-propose\`. Wait for result. Verify artifact was persisted.
 2. Dispatch @deep with skill \`sdd-tasks\`. Wait for result. Verify artifact was persisted.
 3. Plan-review gate (see "Plan Review Gate" below).
-4. Execute tasks: load skill \`executing-plans\` and follow it for the full execution loop. For each task: follow the \`<progress>\` protocol for state tracking, use the 6-part dispatch envelope from \`executing-plans\` (TASK, CONTEXT, REQUIREMENTS, BOUNDARIES, VERIFICATION, RETURN ENVELOPE), dispatch @deep or @quick with skill \`sdd-apply\`, and follow the escalation policy on failure.
+4. **Load the \`executing-plans\` skill** via the skill tool. This is mandatory and must happen before any task dispatch.
+5. **Execute tasks** following the loaded skill exactly: for each task, follow the \`<progress>\` protocol for state tracking, use the 6-part dispatch envelope (TASK, CONTEXT, REQUIREMENTS, BOUNDARIES, VERIFICATION, RETURN ENVELOPE), dispatch @deep or @quick with skill \`sdd-apply\`, and follow the escalation policy on failure.
 
 ## Pipeline: Full SDD (propose -> spec -> design -> tasks)
 1. Dispatch @deep with skill \`sdd-propose\`. Wait for result. Verify artifact was persisted.
@@ -138,7 +140,8 @@ Routing tiebreakers:
 3. Dispatch @deep with skill \`sdd-design\`. Wait for result. Verify artifact was persisted.
 4. Dispatch @deep with skill \`sdd-tasks\`. Wait for result. Verify artifact was persisted.
 5. Plan-review gate (see "Plan Review Gate" below).
-6. Execute tasks: load skill \`executing-plans\` and follow it for the full execution loop. For each task: follow the \`<progress>\` protocol for state tracking, use the 6-part dispatch envelope from \`executing-plans\` (TASK, CONTEXT, REQUIREMENTS, BOUNDARIES, VERIFICATION, RETURN ENVELOPE), dispatch @deep or @quick with skill \`sdd-apply\`, and follow the escalation policy on failure.
+6. **Load the \`executing-plans\` skill** via the skill tool. This is mandatory and must happen before any task dispatch.
+7. **Execute tasks** following the loaded skill exactly: for each task, follow the \`<progress>\` protocol for state tracking, use the 6-part dispatch envelope (TASK, CONTEXT, REQUIREMENTS, BOUNDARIES, VERIFICATION, RETURN ENVELOPE), dispatch @deep or @quick with skill \`sdd-apply\`, and follow the escalation policy on failure.
 
 ## Plan Review Gate
 After tasks are generated, use \`question\` to ask the user:
