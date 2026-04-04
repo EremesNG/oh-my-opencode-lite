@@ -101,7 +101,7 @@ Routing tiebreakers:
 </agents>
 
 <parallel-dispatch>
-- Launch independent delegations in one response.
+- If delegations are independent and ready now, launch all in one response.
 - If you say "in parallel", emit all ready tool calls immediately.
 - background_task is fire-and-forget: launch it, then continue with other ready coordination work.
 - Use task only when you need the result before the next step.
