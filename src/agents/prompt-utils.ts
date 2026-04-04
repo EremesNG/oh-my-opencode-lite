@@ -20,7 +20,9 @@ After calling question, STOP — do not continue execution.
 
 export const SUBAGENT_RULES = `- Do not call ANY thoth-mem tools — memory is exclusively orchestrator-owned.
 - Do not call \`todowrite\` — task progress tracking is exclusively orchestrator-owned.
-- Use \`question\` tool for blocking decisions, never plain text.`;
+- Use \`question\` tool for blocking decisions, never plain text.
+- NEVER run destructive git commands that discard working-tree changes: \`git restore\`, \`git checkout -- <path>\`, \`git reset --hard\`, \`git clean\`, \`git stash\`. During SDD execution, files modified by prior tasks are intentional progress — reverting them destroys the pipeline.
+- NEVER run \`git restore\` to "clean up" tracked file changes you did not make. Those changes belong to earlier tasks in the same pipeline.`;
 
 export const RESPONSE_BUDGET = `Your response returns to an expensive orchestrator model. Be ruthlessly concise:
 - Return insights and conclusions, NEVER raw file contents or full code blocks.

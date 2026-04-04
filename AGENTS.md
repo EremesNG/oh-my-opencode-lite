@@ -68,6 +68,11 @@ bun test -t "pattern"
   a more specific prompt; if the retry fails, report the limitation to the
   user.
 - Maximum retries per delegated task: one after the initial attempt.
+- **NEVER** request full file contents from sub-agents. Sub-agents analyze
+  files internally and return insights — they do not relay raw content.
+- Always request only what you need to decide: insights, symbol locations, line
+  ranges, diff summaries, or verification outcomes — never raw file dumps.
+  Sub-agents handle large content; you handle decisions.
 
 Blocking user decisions MUST go through the `question` tool. Agents must never
 ask those questions in plain prose, because that breaks the handoff and pause
@@ -83,6 +88,33 @@ contract for interactive decisions.
 
 If you mention a specialist and execution is required, dispatch it in the same
 turn.
+
+### Sub-Agent Request Refinement
+
+- If a sub-agent does not return the detail you expected, refine your request
+  with specific questions — **NEVER** fall back to reading the file yourself.
+  The orchestrator reading workspace files is an emergency-only last resort.
+- Delegation failure is a signal to ask better questions, not to bypass
+  delegation.
+
+### Git Safety for Sub-Agents
+
+Sub-agents MUST NOT run destructive git commands that discard working-tree
+changes:
+
+- `git restore`
+- `git checkout -- <path>`
+- `git reset --hard`
+- `git clean`
+- `git stash`
+
+During SDD execution, files modified by prior tasks are cumulative progress.
+A sub-agent that "cleans up" those changes destroys the entire pipeline.
+
+This rule is enforced globally via `SUBAGENT_RULES` in
+`src/agents/prompt-utils.ts`. The `@quick` agent has additional
+reinforcement in its own instructions because it is the most frequent
+offender.
 
 ## Token Economics
 

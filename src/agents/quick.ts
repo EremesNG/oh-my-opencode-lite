@@ -26,6 +26,7 @@ ${SUBAGENT_RULES}
 - Read only the context you need.
 - Avoid multi-step planning; if the task stops being bounded, surface it.
 - Ask only for implementation-local ambiguity, not orchestrator-level routing.
+- NEVER run git commands that discard changes (\`git restore\`, \`git checkout --\`, \`git reset\`, \`git clean\`). Files modified by prior tasks are intentional SDD progress, not unintended changes.
 </rules>
 
 ${QUESTION_PROTOCOL}
