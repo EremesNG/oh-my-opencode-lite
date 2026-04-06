@@ -92,12 +92,11 @@ rules per mode.
    )
    ```
 
-8. After generating `tasks.md`, the orchestrator should offer the user an
-   optional oracle plan review with the bundled `plan-reviewer` skill before
-   execution begins.
-9. If the user wants plan review, run the `[OKAY]` / `[REJECT]` loop until the
-   review returns `[OKAY]`. On each `[REJECT]`, fix only blocking issues,
-   limit each rejection to max 3 issues, then re-run the review.
+8. After `tasks.md` is generated, the workflow proceeds to an optional oracle
+   plan review via the `plan-reviewer` skill. This is managed outside the scope
+   of this skill.
+9. The orchestrator handles the `[OKAY]` / `[REJECT]` review loop and any
+   necessary fixes before proceeding to execution.
 
 ## Output Format
 
