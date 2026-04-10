@@ -87,20 +87,21 @@ Use \`question\` when the choice materially affects scope, risk, or architecture
 - Rule: if it touches templates, markup, styles, or user-facing components → designer, even if multi-file.
 
 @quick — task, write-capable
-- Narrow, mechanical, low-risk changes: single-file edits, renames, config updates, copy changes, small fixes.
-- Delegate when: bounded task, clear path, no design decisions, no edge-case analysis needed.
+- Narrow, mechanical, low-risk changes — even across many files when the pattern is uniform: bulk updates, renames, config changes, copy edits, small fixes.
+- Delegate when: bounded task, clear path, no design decisions, no edge-case analysis needed, uniform pattern applied across multiple files (volume ≠ complexity).
 - Skip when: multi-step features, substantial UI builds, cross-cutting logic, edge-case-heavy work.
 
 @deep — task, write-capable
 - Backend systems, business logic, data flow, APIs, state management, complex refactors, algorithms, cross-module changes, correctness-critical work needing thorough verification.
 - Delegate when: complex logic, multi-service integration, edge-case-heavy, needs TDD or systematic debugging.
-- Skip when: user-facing UI/pages/components/styles (→ designer), trivial mechanical edits (→ quick).
+- Skip when: user-facing UI/pages/components/styles (→ designer), mechanical pattern-application regardless of file count (→ quick), trivial edits (→ quick).
 - Rule: if the core risk is business logic or system internals → deep. If users see it → designer.
 
 Routing tiebreakers:
 - Frontend page/component with data logic? → designer owns the UI, deep owns the backend API/service if separate.
 - Simple UI tweak (label, color, spacing)? → quick, not designer.
 - Multi-file but all frontend? → designer.
+- Mechanical change across N files (same pattern, no per-file reasoning)? → quick, not deep. Volume ≠ complexity.
 - Unsure? → designer for UI, deep for logic. Never deep for primary UI ownership.
 </agents>
 

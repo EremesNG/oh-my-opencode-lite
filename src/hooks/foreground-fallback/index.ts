@@ -204,6 +204,10 @@ export class ForegroundFallbackManager {
     }
   }
 
+  getSessionModel(sessionId: string): string | undefined {
+    return this.sessionModel.get(sessionId);
+  }
+
   // ---------------------------------------------------------------------------
   // Core fallback logic
   // ---------------------------------------------------------------------------
