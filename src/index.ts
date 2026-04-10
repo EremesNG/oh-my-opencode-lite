@@ -30,6 +30,13 @@ import {
 import { startTmuxCheck } from './utils';
 import { log } from './utils/logger';
 
+type SessionContextModel = { providerID: string; modelID: string };
+
+type SessionContext = {
+  model?: SessionContextModel;
+  variant?: string;
+};
+
 function resolveProjectName(project: object, directory: string): string {
   const runtimeProjectName =
     'name' in project && typeof project.name === 'string'
@@ -48,6 +55,9 @@ const OhMyOpenCodeLite: Plugin = async (
   const { client, directory, project, worktree, $: shell, serverUrl } = ctx;
   const worktreeDirectory = worktree || directory;
   const projectName = resolveProjectName(project, directory);
+  const sessionContext = new Map<string, SessionContext>();
+  const getSessionContext = (sessionId: string): SessionContext | undefined =>
+    sessionContext.get(sessionId);
 
   const config = loadPluginConfig(directory);
   const agentDefs = createAgents(config);
@@ -133,12 +143,14 @@ const OhMyOpenCodeLite: Plugin = async (
     config,
     delegationManager,
     worktreeDirectory,
+    getSessionContext,
   );
   const backgroundTools = createBackgroundTools(
     ctx,
     backgroundManager,
     tmuxConfig,
     config,
+    getSessionContext,
   );
   // Register built-in MCPs, including thoth_mem.
   const mcps = createBuiltinMcps(config.disabled_mcps, config.thoth);
@@ -356,6 +368,18 @@ const OhMyOpenCodeLite: Plugin = async (
     },
 
     event: async (input) => {
+      if (input.event.type === 'session.deleted') {
+        const deletedEvent = input.event as {
+          properties?: { info?: { id?: string }; sessionID?: string };
+        };
+        const deletedSessionId =
+          deletedEvent.properties?.info?.id ??
+          deletedEvent.properties?.sessionID;
+        if (deletedSessionId) {
+          sessionContext.delete(deletedSessionId);
+        }
+      }
+
       // Runtime model fallback for foreground agents (rate-limit detection)
       await foregroundFallback.handleEvent(input.event);
 
@@ -410,6 +434,36 @@ const OhMyOpenCodeLite: Plugin = async (
     'chat.headers': chatHeadersHook['chat.headers'],
 
     'chat.message': async (input, output) => {
+      const chatInput = input as {
+        sessionID: string;
+        model?: { providerID?: string; modelID?: string };
+        variant?: string;
+      };
+
+      if (chatInput.sessionID) {
+        const previous = sessionContext.get(chatInput.sessionID);
+        const context: SessionContext = {
+          model: previous?.model,
+          variant: previous?.variant,
+        };
+
+        if (
+          typeof chatInput.model?.providerID === 'string' &&
+          typeof chatInput.model?.modelID === 'string'
+        ) {
+          context.model = {
+            providerID: chatInput.model.providerID,
+            modelID: chatInput.model.modelID,
+          };
+        }
+
+        if (typeof chatInput.variant === 'string') {
+          context.variant = chatInput.variant;
+        }
+
+        sessionContext.set(chatInput.sessionID, context);
+      }
+
       if (thothMemHook['chat.message']) {
         await thothMemHook['chat.message'](
           input as ThothChatMessageInput,

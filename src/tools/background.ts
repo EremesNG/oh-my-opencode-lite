@@ -13,6 +13,11 @@ import type { TmuxConfig } from '../config/schema';
 
 const z = tool.schema;
 
+type SessionContext = {
+  model?: { providerID: string; modelID: string };
+  variant?: string;
+};
+
 /**
  * Creates background task management tools for the plugin.
  * @param _ctx - Plugin input context
@@ -26,6 +31,7 @@ export function createBackgroundTools(
   manager: BackgroundTaskManager,
   _tmuxConfig?: TmuxConfig,
   _pluginConfig?: PluginConfig,
+  getSessionContext?: (sessionId: string) => SessionContext | undefined,
 ): Record<string, ToolDefinition> {
   const agentNames = SUBAGENT_NAMES.join(', ');
   const backgroundCapableAgents = BACKGROUND_CAPABLE_AGENTS.join(', ');
@@ -109,11 +115,14 @@ Key behaviors:
       }
 
       // Fire-and-forget launch
+      const parentContext = getSessionContext?.(parentSessionId);
       const task = await manager.launchBackgroundTask({
         agent,
         prompt,
         description,
         parentSessionId,
+        parentModel: parentContext?.model,
+        parentVariant: parentContext?.variant,
       });
 
       return `Background task launched.

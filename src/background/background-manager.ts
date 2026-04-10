@@ -40,9 +40,16 @@ import { log } from '../utils/logger';
 
 type LegacyToolConfig = Record<string, boolean>;
 
+type ModelReference = { providerID: string; modelID: string };
+
+type SessionPromptContext = {
+  model?: ModelReference;
+  variant?: string;
+};
+
 type PromptBody = {
   messageID?: string;
-  model?: { providerID: string; modelID: string };
+  model?: ModelReference;
   agent?: string;
   noReply?: boolean;
   system?: string;
@@ -148,6 +155,8 @@ export interface BackgroundTask {
   persistenceError?: string; // Persistence failure details when unavailable
   config: BackgroundTaskConfig; // Task configuration
   parentSessionId: string; // Parent session ID for notifications
+  parentModel?: ModelReference; // Parent session model to preserve on notification
+  parentVariant?: string; // Parent session variant to preserve on notification
   startedAt: Date; // Task creation timestamp
   completedAt?: Date; // Task completion/failure timestamp
   prompt: string; // Initial prompt
@@ -162,6 +171,8 @@ export interface LaunchOptions {
   prompt: string; // Initial prompt to send to the agent
   description: string; // Human-readable task description
   parentSessionId: string; // Parent session ID for task hierarchy
+  parentModel?: ModelReference;
+  parentVariant?: string;
 }
 
 export class BackgroundTaskManager {
@@ -194,6 +205,9 @@ export class BackgroundTaskManager {
     config?: PluginConfig,
     delegationManager?: DelegationManager,
     worktreeDirectory?: string,
+    private readonly getSessionContext?:
+      | ((sessionId: string) => SessionPromptContext | undefined)
+      | undefined,
   ) {
     this.client = ctx.client;
     this.directory = ctx.directory;
@@ -369,6 +383,8 @@ export class BackgroundTaskManager {
         timeoutMs: this.backgroundConfig.timeoutMs,
       },
       parentSessionId: opts.parentSessionId,
+      parentModel: opts.parentModel,
+      parentVariant: opts.parentVariant,
       prompt: opts.prompt,
     };
   }
@@ -412,8 +428,14 @@ export class BackgroundTaskManager {
     }
 
     const rootSessionId = this.resolveRootSessionId(opts.parentSessionId);
+    const parentSessionContext = this.getSessionContext?.(opts.parentSessionId);
+    const launchOptions: LaunchOptions = {
+      ...opts,
+      parentModel: opts.parentModel ?? parentSessionContext?.model,
+      parentVariant: opts.parentVariant ?? parentSessionContext?.variant,
+    };
     const task = this.createTaskRecord(
-      opts,
+      launchOptions,
       await this.createTaskId(rootSessionId),
       rootSessionId,
     );
@@ -965,11 +987,22 @@ export class BackgroundTaskManager {
         ? `[Background task "${task.description}" completed]`
         : `[Background task "${task.description}" failed: ${task.error}]`;
 
+    const body: PromptBody = {
+      parts: [createInternalAgentTextPart(message)],
+    };
+
+    if (task.parentModel) {
+      body.model = task.parentModel;
+    }
+
+    if (task.parentVariant) {
+      // TODO: remove cast when @opencode-ai/sdk types include variant field
+      (body as PromptBody & { variant?: string }).variant = task.parentVariant;
+    }
+
     await this.client.session.prompt({
       path: { id: task.parentSessionId },
-      body: {
-        parts: [createInternalAgentTextPart(message)],
-      },
+      body,
     });
   }
 
