@@ -403,7 +403,7 @@ oh-my-opencode-lite/
 
 ## Development Workflow
 
-This project uses `@opencode-ai/plugin` and `@opencode-ai/sdk` v1.3.3; keep
+This project uses `@opencode-ai/plugin` and `@opencode-ai/sdk` v1.4.0; keep
 workflow notes and examples aligned with that SDK version.
 
 1. Make changes

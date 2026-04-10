@@ -41,7 +41,10 @@ function resolveProjectName(project: object, directory: string): string {
   );
 }
 
-const OhMyOpenCodeLite: Plugin = async (ctx) => {
+const OhMyOpenCodeLite: Plugin = async (
+  ctx,
+  _options?: Record<string, unknown>,
+) => {
   const { client, directory, project, worktree, $: shell, serverUrl } = ctx;
   const worktreeDirectory = worktree || directory;
   const projectName = resolveProjectName(project, directory);
