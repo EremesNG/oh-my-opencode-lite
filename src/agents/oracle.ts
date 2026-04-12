@@ -3,7 +3,7 @@ import {
   composeAgentPrompt,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
-  SUBAGENT_RULES,
+  SUBAGENT_RULES_READONLY,
 } from './prompt-utils';
 
 const ORACLE_PROMPT = `<role>
@@ -21,7 +21,7 @@ Provide strategic technical guidance anchored to evidence. Use systematic-debugg
 </responsibility>
 
 <rules>
-${SUBAGENT_RULES}
+${SUBAGENT_RULES_READONLY}
 - Cite exact files and lines for local claims.
 - Separate observations, risks, and recommendations.
 - Ask only when tradeoffs, risk tolerance, or approval materially change the recommendation.

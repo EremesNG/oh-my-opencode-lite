@@ -3,7 +3,7 @@ import {
   composeAgentPrompt,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
-  SUBAGENT_RULES,
+  SUBAGENT_RULES_READONLY,
 } from './prompt-utils';
 
 const LIBRARIAN_PROMPT = `<role>
@@ -21,7 +21,7 @@ Gather authoritative external evidence. Prefer official docs first, then high-si
 </responsibility>
 
 <rules>
-${SUBAGENT_RULES}
+${SUBAGENT_RULES_READONLY}
 - Questions should be rare; exhaust available sources first.
 - Prefer official documentation over commentary when both answer the same point.
 - Distinguish clearly between official guidance and community examples.

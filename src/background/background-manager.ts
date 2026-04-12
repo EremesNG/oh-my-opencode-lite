@@ -13,6 +13,7 @@
  * - Supports task cancellation and result retrieval
  */
 
+import path from 'node:path';
 import type { PluginInput } from '@opencode-ai/plugin';
 import type {
   PermissionActionConfig,
@@ -46,6 +47,19 @@ type SessionPromptContext = {
   model?: ModelReference;
   variant?: string;
 };
+
+function resolveProjectName(project: unknown, directory: string): string {
+  const runtimeProjectName =
+    typeof project === 'object' &&
+    project !== null &&
+    'name' in project &&
+    typeof project.name === 'string' &&
+    project.name.trim().length > 0
+      ? project.name.trim()
+      : undefined;
+
+  return runtimeProjectName || path.basename(directory) || 'project';
+}
 
 type PromptBody = {
   messageID?: string;
@@ -187,6 +201,7 @@ export class BackgroundTaskManager {
   private config?: PluginConfig;
   private backgroundConfig: BackgroundTaskConfig;
   private delegationManager?: DelegationManager;
+  private readonly projectName: string;
 
   // Start queue
   private startQueue: BackgroundTask[] = [];
@@ -212,6 +227,7 @@ export class BackgroundTaskManager {
     this.client = ctx.client;
     this.directory = ctx.directory;
     this.worktreeDirectory = worktreeDirectory ?? ctx.directory;
+    this.projectName = resolveProjectName(ctx.project, this.worktreeDirectory);
     this.tmuxEnabled = tmuxConfig?.enabled ?? false;
     this.config = config;
     this.delegationManager = delegationManager;
@@ -692,7 +708,12 @@ export class BackgroundTaskManager {
         agent: task.agent,
         permission: delegationPermissions.permission,
         tools: delegationPermissions.legacyTools,
-        parts: [{ type: 'text' as const, text: task.prompt }],
+        parts: [
+          {
+            type: 'text' as const,
+            text: `${task.prompt}\n\n## Orchestrator Session Context\n- session_id: ${task.rootSessionId}\n- project: ${this.projectName}\n\nUse these values for ALL thoth-mem tool calls.`,
+          },
+        ],
       } as PromptBody) as unknown as PromptBody;
 
       const fallbackEnabled = this.config?.fallback?.enabled ?? true;

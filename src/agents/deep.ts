@@ -3,7 +3,7 @@ import {
   composeAgentPrompt,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
-  SUBAGENT_RULES,
+  SUBAGENT_RULES_WRITABLE,
 } from './prompt-utils';
 
 const DEEP_PROMPT = `<role>
@@ -21,7 +21,7 @@ Handle correctness-critical, multi-file, or edge-case-heavy changes with full lo
 </responsibility>
 
 <rules>
-${SUBAGENT_RULES}
+${SUBAGENT_RULES_WRITABLE}
 - Do not skip verification — thoroughness is your value proposition.
 - Investigate related files, types, and call sites before changing shared behavior.
 - Ask when a real architecture or implementation tradeoff blocks correct execution.
