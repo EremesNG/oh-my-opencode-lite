@@ -25,6 +25,7 @@ import type {
 import type { BackgroundTaskConfig, PluginConfig } from '../config';
 import {
   BACKGROUND_TASK_TIMEOUT_MS,
+  ORCHESTRATOR_NAME,
   SUBAGENT_DELEGATION_RULES,
 } from '../config';
 import type { TmuxConfig } from '../config/schema';
@@ -334,6 +335,11 @@ export class BackgroundTaskManager {
     );
   }
 
+  private getCallerAgentName(parentSessionId: string): string {
+    // Untracked sessions are the root orchestrator (created by OpenCode, not by us)
+    return this.agentBySessionId.get(parentSessionId) ?? ORCHESTRATOR_NAME;
+  }
+
   /**
    * Check if a parent session is allowed to delegate to a specific agent type.
    * @param parentSessionId - The session ID of the parent
@@ -341,9 +347,7 @@ export class BackgroundTaskManager {
    * @returns true if allowed, false if not
    */
   isAgentAllowed(parentSessionId: string, requestedAgent: string): boolean {
-    // Untracked sessions are the root orchestrator (created by OpenCode, not by us)
-    const parentAgentName =
-      this.agentBySessionId.get(parentSessionId) ?? 'orchestrator';
+    const parentAgentName = this.getCallerAgentName(parentSessionId);
 
     const allowedSubagents = this.getSubagentRules(parentAgentName);
 
@@ -358,9 +362,7 @@ export class BackgroundTaskManager {
    * @returns Array of allowed agent names, empty if none
    */
   getAllowedSubagents(parentSessionId: string): readonly string[] {
-    // Untracked sessions are the root orchestrator (created by OpenCode, not by us)
-    const parentAgentName =
-      this.agentBySessionId.get(parentSessionId) ?? 'orchestrator';
+    const parentAgentName = this.getCallerAgentName(parentSessionId);
 
     return this.getSubagentRules(parentAgentName);
   }
@@ -437,6 +439,13 @@ export class BackgroundTaskManager {
   }
 
   async launchBackgroundTask(opts: LaunchOptions): Promise<BackgroundTask> {
+    const callerAgent = this.getCallerAgentName(opts.parentSessionId);
+    if (callerAgent !== ORCHESTRATOR_NAME) {
+      throw new Error(
+        `Only the orchestrator can launch background tasks. Caller: '${callerAgent}' is not permitted.`,
+      );
+    }
+
     if (!this.isBackgroundCapableAgent(opts.agent)) {
       throw new Error(
         `Agent '${opts.agent}' is not background-capable. Allowed agents: ${BACKGROUND_CAPABLE_AGENTS.join(', ')}`,

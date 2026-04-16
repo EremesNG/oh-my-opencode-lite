@@ -60,6 +60,9 @@ const BUILTIN_PERMISSION_PRESETS = {
     edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
   },
   librarian: {
     read: 'allow',
@@ -75,6 +78,9 @@ const BUILTIN_PERMISSION_PRESETS = {
     edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
   },
   oracle: {
     read: 'allow',
@@ -92,6 +98,9 @@ const BUILTIN_PERMISSION_PRESETS = {
     edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
   },
   designer: {
     read: 'allow',
@@ -105,9 +114,13 @@ const BUILTIN_PERMISSION_PRESETS = {
     skill: 'allow',
     question: 'allow',
     todowrite: 'deny',
+    task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
-    }
+    },
   },
   quick: {
     read: 'allow',
@@ -120,9 +133,13 @@ const BUILTIN_PERMISSION_PRESETS = {
     codesearch: 'allow',
     lsp: 'allow',
     todowrite: 'deny',
+    task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
-    }
+    },
   },
   deep: {
     read: 'allow',
@@ -139,6 +156,9 @@ const BUILTIN_PERMISSION_PRESETS = {
     websearch: 'allow',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     },
