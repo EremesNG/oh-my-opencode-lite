@@ -54,8 +54,8 @@
   "dependencies": {
     "@ast-grep/cli": "^0.40.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "@opencode-ai/plugin": "1.4.3",
-    "@opencode-ai/sdk": "1.4.3",
+    "@opencode-ai/plugin": "1.4.7",
+    "@opencode-ai/sdk": "1.4.7",
     "unique-names-generator": "^4.7.1",
     "vscode-jsonrpc": "^8.2.0",
     "vscode-languageserver-protocol": "^3.17.5",
