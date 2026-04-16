@@ -28,14 +28,10 @@ export const RECOMMENDED_SKILLS: RecommendedSkill[] = [
     description: 'YAGNI code simplification expert',
   },
   {
-    name: 'agent-browser',
-    repo: 'https://github.com/vercel-labs/agent-browser',
-    skillName: 'agent-browser',
-    description: 'High-performance browser automation',
-    postInstallCommands: [
-      'npm install -g agent-browser',
-      'agent-browser install',
-    ],
+    name: 'playwright-cli',
+    repo: 'https://github.com/microsoft/playwright-cli',
+    skillName: 'playwright-cli',
+    description: 'Browser automation for visual checks and testing',
   },
 ];
 

@@ -326,7 +326,7 @@ SDD, or full SDD based on complexity assessment.
 | Skill | Status | Typical use |
 | --- | --- | --- |
 | `simplify` | Installed by `--skills=yes` | Keep solutions lean and reduce unnecessary complexity |
-| `agent-browser` | Installed by `--skills=yes` | Browser automation for `designer` visual checks |
+| `playwright-cli` | Installed by `--skills=yes` | Browser automation for `designer` visual checks |
 | `test-driven-development` | Optional companion | Useful before implementing bug fixes or features with `deep` |
 | `systematic-debugging` | Optional companion | Useful for `oracle` and `deep` when failures need disciplined diagnosis |
 

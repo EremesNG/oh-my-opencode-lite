@@ -46,7 +46,7 @@ When skills are enabled, it also installs or copies:
 - Bundled SDD pipeline skills:
   `sdd-init`, `sdd-propose`, `sdd-spec`, `sdd-design`, `sdd-tasks`, `sdd-apply`,
   `sdd-verify`, `sdd-archive`
-- Recommended external skills such as `simplify` and `agent-browser`
+- Recommended external skills such as `simplify` and `playwright-cli`
 
 In other words, requirements-interview and the SDD pipeline are included as part of the
 standard oh-my-opencode-lite workflow rather than something you assemble by
@@ -250,7 +250,7 @@ See the [Tmux Integration Guide](tmux-integration.md) for more detail.
 
 3. Optionally remove recommended external skills:
 
-   ```bash
-   npx skills remove simplify
-   npx skills remove agent-browser
-   ```
+    ```bash
+    npx skills remove simplify
+    npx skills remove playwright-cli
+    ```

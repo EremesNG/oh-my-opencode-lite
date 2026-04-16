@@ -55,7 +55,7 @@ These are compatible external skills that complement the workflow.
 | Skill | Status | Why use it | Typical agent |
 | --- | --- | --- | --- |
 | `simplify` | Recommended and installed by `--skills=yes` | Encourages lean, low-complexity solutions | `orchestrator` |
-| `agent-browser` | Recommended and installed by `--skills=yes` | Browser automation for UI work and visual verification | `designer` |
+| `playwright-cli` | Recommended and installed by `--skills=yes` | Browser automation for UI work and visual verification | `designer` |
 | `test-driven-development` | Optional companion | Useful before implementing fixes or features with stronger verification discipline | `deep` |
 | `systematic-debugging` | Optional companion | Useful for structured failure diagnosis and root-cause analysis | `oracle`, `deep` |
 
