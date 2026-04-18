@@ -45,7 +45,27 @@ type AgentOverrideWithPermission = AgentOverrideConfig & {
 };
 
 const BUILTIN_PERMISSION_PRESETS = {
-  orchestrator: 'allow',
+  orchestrator: {
+    read: 'allow',
+    edit: 'allow',
+    write: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    skill: 'allow',
+    question: 'allow',
+    webfetch: 'allow',
+    websearch: 'allow',
+    todowrite: 'allow',
+    task: 'allow',
+    background_task: 'allow',
+    background_output: 'allow',
+    background_cancel: 'allow',
+    external_directory: 'allow',
+  },
   explorer: {
     read: 'allow',
     glob: 'allow',

@@ -248,7 +248,7 @@ export function createOrchestratorAgent(
       temperature: 0.1,
       prompt,
       color: 'primary',
-      steps: 100,
+      // steps: 100,
     },
   };
 

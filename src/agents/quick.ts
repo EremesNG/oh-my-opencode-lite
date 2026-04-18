@@ -58,7 +58,7 @@ export function createQuickAgent(
       temperature: 0.2,
       prompt,
       color: 'success',
-      steps: 30,
+      // steps: 30,
     },
   };
 }
