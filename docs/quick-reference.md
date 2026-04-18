@@ -177,7 +177,7 @@ These are not bundled in `src/skills/`, but they pair well with the workflow.
 | Skill | Status | Typical use |
 | --- | --- | --- |
 | `simplify` | Installed by `--skills=yes` | Keep implementations lean |
-| `agent-browser` | Installed by `--skills=yes` | Browser automation for `designer` |
+| `playwright-cli` | Installed by `--skills=yes` | Browser automation for `designer` |
 | `test-driven-development` | Optional | Useful before `deep` implements fixes or features |
 | `systematic-debugging` | Optional | Useful for `oracle` and `deep` bug diagnosis |
 

@@ -13,6 +13,7 @@
  * - Supports task cancellation and result retrieval
  */
 
+import path from 'node:path';
 import type { PluginInput } from '@opencode-ai/plugin';
 import type {
   PermissionActionConfig,
@@ -24,6 +25,7 @@ import type {
 import type { BackgroundTaskConfig, PluginConfig } from '../config';
 import {
   BACKGROUND_TASK_TIMEOUT_MS,
+  ORCHESTRATOR_NAME,
   SUBAGENT_DELEGATION_RULES,
 } from '../config';
 import type { TmuxConfig } from '../config/schema';
@@ -46,6 +48,19 @@ type SessionPromptContext = {
   model?: ModelReference;
   variant?: string;
 };
+
+function resolveProjectName(project: unknown, directory: string): string {
+  const runtimeProjectName =
+    typeof project === 'object' &&
+    project !== null &&
+    'name' in project &&
+    typeof project.name === 'string' &&
+    project.name.trim().length > 0
+      ? project.name.trim()
+      : undefined;
+
+  return runtimeProjectName || path.basename(directory) || 'project';
+}
 
 type PromptBody = {
   messageID?: string;
@@ -187,6 +202,7 @@ export class BackgroundTaskManager {
   private config?: PluginConfig;
   private backgroundConfig: BackgroundTaskConfig;
   private delegationManager?: DelegationManager;
+  private readonly projectName: string;
 
   // Start queue
   private startQueue: BackgroundTask[] = [];
@@ -212,6 +228,7 @@ export class BackgroundTaskManager {
     this.client = ctx.client;
     this.directory = ctx.directory;
     this.worktreeDirectory = worktreeDirectory ?? ctx.directory;
+    this.projectName = resolveProjectName(ctx.project, this.worktreeDirectory);
     this.tmuxEnabled = tmuxConfig?.enabled ?? false;
     this.config = config;
     this.delegationManager = delegationManager;
@@ -318,6 +335,11 @@ export class BackgroundTaskManager {
     );
   }
 
+  private getCallerAgentName(parentSessionId: string): string {
+    // Untracked sessions are the root orchestrator (created by OpenCode, not by us)
+    return this.agentBySessionId.get(parentSessionId) ?? ORCHESTRATOR_NAME;
+  }
+
   /**
    * Check if a parent session is allowed to delegate to a specific agent type.
    * @param parentSessionId - The session ID of the parent
@@ -325,9 +347,7 @@ export class BackgroundTaskManager {
    * @returns true if allowed, false if not
    */
   isAgentAllowed(parentSessionId: string, requestedAgent: string): boolean {
-    // Untracked sessions are the root orchestrator (created by OpenCode, not by us)
-    const parentAgentName =
-      this.agentBySessionId.get(parentSessionId) ?? 'orchestrator';
+    const parentAgentName = this.getCallerAgentName(parentSessionId);
 
     const allowedSubagents = this.getSubagentRules(parentAgentName);
 
@@ -342,9 +362,7 @@ export class BackgroundTaskManager {
    * @returns Array of allowed agent names, empty if none
    */
   getAllowedSubagents(parentSessionId: string): readonly string[] {
-    // Untracked sessions are the root orchestrator (created by OpenCode, not by us)
-    const parentAgentName =
-      this.agentBySessionId.get(parentSessionId) ?? 'orchestrator';
+    const parentAgentName = this.getCallerAgentName(parentSessionId);
 
     return this.getSubagentRules(parentAgentName);
   }
@@ -421,6 +439,13 @@ export class BackgroundTaskManager {
   }
 
   async launchBackgroundTask(opts: LaunchOptions): Promise<BackgroundTask> {
+    const callerAgent = this.getCallerAgentName(opts.parentSessionId);
+    if (callerAgent !== ORCHESTRATOR_NAME) {
+      throw new Error(
+        `Only the orchestrator can launch background tasks. Caller: '${callerAgent}' is not permitted.`,
+      );
+    }
+
     if (!this.isBackgroundCapableAgent(opts.agent)) {
       throw new Error(
         `Agent '${opts.agent}' is not background-capable. Allowed agents: ${BACKGROUND_CAPABLE_AGENTS.join(', ')}`,
@@ -692,7 +717,12 @@ export class BackgroundTaskManager {
         agent: task.agent,
         permission: delegationPermissions.permission,
         tools: delegationPermissions.legacyTools,
-        parts: [{ type: 'text' as const, text: task.prompt }],
+        parts: [
+          {
+            type: 'text' as const,
+            text: `${task.prompt}\n\n## Orchestrator Session Context\n- session_id: ${task.rootSessionId}\n- project: ${this.projectName}\n\nUse these values for ALL thoth-mem tool calls.`,
+          },
+        ],
       } as PromptBody) as unknown as PromptBody;
 
       const fallbackEnabled = this.config?.fallback?.enabled ?? true;

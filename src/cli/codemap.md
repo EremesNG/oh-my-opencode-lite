@@ -296,8 +296,8 @@ generateLiteConfig() [providers.ts]
 |--------|-----------|---------|
 | `system.ts` | `opencode` CLI | Check installation, get version |
 | `skills.ts` | `npx skills` | Install recommended skills |
-| `skills.ts` | `npm` | Install agent-browser globally |
-| `skills.ts` | `agent-browser` CLI | Install browser automation |
+| `skills.ts` | `npm` | Install @playwright/cli globally |
+| `skills.ts` | `playwright-cli` CLI | Install browser automation |
 | `system.ts` | `tmux` CLI | Check tmux installation |
 | `providers.ts` | `DEFAULT_AGENT_MCPS` | MCP configurations per agent |
 
@@ -394,7 +394,7 @@ InstallConfig (preferences)
 | Name | Repo | Agents | Description |
 |------|------|--------|-------------|
 | `simplify` | brianlovin/claude-config | orchestrator | YAGNI code simplification expert |
-| `agent-browser` | vercel-labs/agent-browser | designer | High-performance browser automation |
+| `playwright-cli` | microsoft/playwright-cli | designer | Browser automation for visual checks and testing |
 
 ### Custom Bundled Skills (copied from src/skills/)
 

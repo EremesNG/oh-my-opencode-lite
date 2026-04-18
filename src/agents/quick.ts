@@ -3,7 +3,7 @@ import {
   composeAgentPrompt,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
-  SUBAGENT_RULES,
+  SUBAGENT_RULES_WRITABLE,
 } from './prompt-utils';
 
 const QUICK_PROMPT = `<role>
@@ -21,7 +21,7 @@ Implement well-defined changes quickly. Favor speed over exhaustive analysis whe
 </responsibility>
 
 <rules>
-${SUBAGENT_RULES}
+${SUBAGENT_RULES_WRITABLE}
 - Optimize for fast execution on narrow, clear tasks.
 - Read only the context you need.
 - Avoid multi-step planning; if the task stops being bounded, surface it.
@@ -58,7 +58,7 @@ export function createQuickAgent(
       temperature: 0.2,
       prompt,
       color: 'success',
-      steps: 30,
+      // steps: 30,
     },
   };
 }

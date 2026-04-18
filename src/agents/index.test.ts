@@ -16,50 +16,59 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
   orchestrator: 'allow',
   explorer: {
     read: 'allow',
-    edit: 'deny',
     glob: 'allow',
     grep: 'allow',
     list: 'allow',
-    bash: 'allow',
     codesearch: 'allow',
     lsp: 'allow',
     external_directory: 'allow',
+    bash: 'allow',
     question: 'allow',
     skill: 'allow',
+    edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
   },
   librarian: {
     read: 'allow',
-    edit: 'deny',
     glob: 'allow',
     grep: 'allow',
-    bash: 'allow',
     external_directory: 'allow',
+    bash: 'allow',
     webfetch: 'allow',
     websearch: 'allow',
     codesearch: 'allow',
     question: 'allow',
     skill: 'allow',
+    edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
   },
   oracle: {
     read: 'allow',
-    edit: 'deny',
     glob: 'allow',
     grep: 'allow',
     list: 'allow',
-    bash: 'allow',
-    external_directory: 'allow',
+    lsp: 'allow',
+    codesearch: 'allow',
     webfetch: 'allow',
     websearch: 'allow',
-    codesearch: 'allow',
-    lsp: 'allow',
+    external_directory: 'allow',
+    bash: 'allow',
     question: 'allow',
     skill: 'allow',
+    edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
   },
   designer: {
     read: 'allow',
@@ -68,11 +77,15 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     grep: 'allow',
     list: 'allow',
     bash: 'allow',
-    question: 'allow',
     codesearch: 'allow',
     lsp: 'allow',
     skill: 'allow',
+    question: 'allow',
     todowrite: 'deny',
+    task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     },
@@ -88,6 +101,10 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     codesearch: 'allow',
     lsp: 'allow',
     todowrite: 'deny',
+    task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     },
@@ -107,9 +124,12 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     websearch: 'allow',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
-    }
+    },
   },
 };
 
@@ -257,7 +277,7 @@ describe('orchestrator agent', () => {
 
     // Forbid inline repo work (read/search/patch/verify) to keep delegation model intact.
     expect(prompt).toMatch(
-        /NEVER\s+read\s+or\s+write\s+any\s+file\s+in\s+the\s+workspace/i,
+      /NEVER\s+read\s+or\s+write\s+any\s+file\s+in\s+the\s+workspace/i,
     );
     expect(prompt).toContain(
       'Delegate all inspection, writing, searching, debugging, and verification.',
@@ -368,7 +388,7 @@ describe('granular permission defaults', () => {
     expect(getPermissionRecord('librarian').external_directory).toBe('allow');
     expect(getPermissionRecord('oracle').external_directory).toBe('allow');
   });
-  
+
   test('deep has explicit granular permission map', () => {
     const deepPermission = getPermission('deep');
     expect(typeof deepPermission).toBe('object');
@@ -387,6 +407,9 @@ describe('granular permission defaults', () => {
       websearch: 'allow',
       todowrite: 'deny',
       task: 'deny',
+      background_task: 'deny',
+      background_output: 'deny',
+      background_cancel: 'deny',
       external_directory: {
         '~/.config/opencode/skills/**': 'allow',
       },
@@ -417,6 +440,48 @@ describe('prompt role markers', () => {
     );
     expect(getAgentByName('quick')?.config.prompt).toContain('write-capable');
     expect(getAgentByName('deep')?.config.prompt).toContain('write-capable');
+  });
+
+  test('read-only subagents have read-only thoth-mem access', () => {
+    const readOnlyAgents = ['explorer', 'librarian', 'oracle'];
+
+    for (const agentName of readOnlyAgents) {
+      const prompt = getAgentByName(agentName)?.config.prompt;
+
+      // Should include read-only access instructions
+      expect(prompt).toContain('READ-ONLY access to thoth-mem');
+
+      // Should include the 3-layer recall protocol
+      expect(prompt).toContain('mem_search');
+      expect(prompt).toContain('mem_timeline');
+      expect(prompt).toContain('mem_get_observation');
+
+      // Should ban write tools
+      expect(prompt).toContain('mem_save');
+      expect(prompt).toContain('mem_update');
+      expect(prompt).toContain('mem_delete');
+      expect(prompt).toContain('mem_session_summary');
+      expect(prompt).toContain(
+        'Memory writes are exclusively orchestrator-owned',
+      );
+
+      // Should NOT contain the old blanket ban
+      expect(prompt).not.toContain(
+        'Do not call ANY thoth-mem tools — memory is exclusively orchestrator-owned.',
+      );
+    }
+  });
+
+  test('write-capable subagents require root session/project for thoth-mem calls', () => {
+    expect(getAgentByName('designer')?.config.prompt).toContain(
+      'You have access to thoth-mem tools',
+    );
+    expect(getAgentByName('quick')?.config.prompt).toContain(
+      'ALWAYS use the session_id and project values provided in your dispatch prompt for ALL thoth-mem calls.',
+    );
+    expect(getAgentByName('deep')?.config.prompt).toContain(
+      'If no session_id or project is provided in the dispatch, do NOT call thoth-mem tools.',
+    );
   });
 });
 

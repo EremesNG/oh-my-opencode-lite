@@ -50,13 +50,15 @@ bun test -t "pattern"
 | `explorer` | local codebase discovery | read-only | **async** via `background_task` | `read`, `glob`, `grep`, AST search, LSP read tools |
 | `librarian` | external docs and public examples | read-only | **async** via `background_task` | research MCPs + local read/search |
 | `oracle` | review, diagnosis, architecture, plan review | read-only | **sync** via `task` | local read/analysis tools |
-| `designer` | UX/UI decisions, implementation, visual verification | write-capable | **sync** via `task` | local implementation tools; browser verification when needed |
+| `designer` | UX/UI decisions, implementation, visual verification, visual QA | write-capable | **sync** via `task` | local implementation tools; browser verification; exclusive owner of screenshots and visual QA |
 | `quick` | narrow, bounded implementation | write-capable | **sync** via `task` | local implementation tools |
 | `deep` | thorough implementation and verification | write-capable | **sync** via `task` | local implementation tools + full local verification |
 
 ## delegate-first Rules
 
 - The orchestrator is **delegate-first** and must stay lean.
+- The orchestrator NEVER uses browser tools, takes screenshots, or processes
+  images. All visual verification and UX/UI QA is delegated to `@designer`.
 - Default delegation primitive is **`background_task`**.
 - Use **`task`** only when the caller must block for a result or when the agent
   is write-capable.
@@ -419,6 +421,8 @@ Before claiming completion:
 - verify code changes with the smallest sufficient automated checks
 - prefer `deep` for correctness-critical implementation + verification
 - keep evidence tied to files, tests, and diagnostics
+- visual/UX verification is ALWAYS delegated to `@designer` — the orchestrator
+  never takes screenshots or uses browser tools
 
 ## root-session Notes
 

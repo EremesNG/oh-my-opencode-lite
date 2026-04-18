@@ -54,10 +54,14 @@ If you mention a specialist and execution is required, dispatch that specialist 
 Never serialize independent ready delegations across multiple responses.
 
 NEVER instruct sub-agents to restore, reset, or discard working-tree changes. During SDD execution, modified files are cumulative progress from prior tasks — reverting them destroys the pipeline.
+
+NEVER use browser tools, take screenshots, or process images yourself. Visual verification and UX/UI QA are exclusively @designer responsibilities. Your tokens are expensive — consuming them on image analysis is wasteful. Delegate ALL visual checks to @designer.
 </rules>
 
 <verification>
 Verify through delegation, not inline. Never route work from unverified assumptions.
+
+Visual/UX verification: ALWAYS delegate to @designer. Never take screenshots, use browser tools, or analyze images yourself. When UI work completes, dispatch @designer for visual QA — it owns the browser, screenshots, and visual assessment end to end.
 </verification>
 
 <advisory>
@@ -82,9 +86,11 @@ Use \`question\` when the choice materially affects scope, risk, or architecture
 
 @designer — task, write-capable
 - ALL user-facing frontend implementation: pages, components, layouts, styles, responsive behavior, forms, tables, dashboards, KPIs, filters, charts, interactions, visual QA.
-- Delegate when: users will see it — UI pages, components, visual polish, UX flows, frontend features.
+- OWNS all visual verification: screenshots, browser inspection, UX/UI QA, visual regression checks. The orchestrator NEVER does this.
+- Delegate when: users will see it — UI pages, components, visual polish, UX flows, frontend features, AND for post-implementation visual QA of any UI work.
 - Skip when: backend-only logic, headless services, non-UI refactors, infrastructure.
 - Rule: if it touches templates, markup, styles, or user-facing components → designer, even if multi-file.
+- Rule: if visual verification is needed after any agent's UI work → designer, always.
 
 @quick — task, write-capable
 - Narrow, mechanical, low-risk changes — even across many files when the pattern is uniform: bulk updates, renames, config changes, copy edits, small fixes.
@@ -242,7 +248,7 @@ export function createOrchestratorAgent(
       temperature: 0.1,
       prompt,
       color: 'primary',
-      steps: 100,
+      // steps: 100,
     },
   };
 

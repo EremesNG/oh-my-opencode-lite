@@ -3,7 +3,7 @@ import {
   composeAgentPrompt,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
-  SUBAGENT_RULES,
+  SUBAGENT_RULES_READONLY,
 } from './prompt-utils';
 
 const EXPLORER_PROMPT = `<role>
@@ -21,7 +21,7 @@ Find workspace facts fast. Return evidence-first results with absolute paths, li
 </responsibility>
 
 <rules>
-${SUBAGENT_RULES}
+${SUBAGENT_RULES_READONLY}
 - Questions should be rare; exhaust local evidence first.
 - Prefer paths, lines, symbols, and concise summaries over dumps. Use cartography when it reduces search cost.
 - When full content is explicitly requested, reproduce it faithfully.

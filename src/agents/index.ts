@@ -45,7 +45,27 @@ type AgentOverrideWithPermission = AgentOverrideConfig & {
 };
 
 const BUILTIN_PERMISSION_PRESETS = {
-  orchestrator: 'allow',
+  orchestrator: {
+    read: 'allow',
+    edit: 'allow',
+    write: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    skill: 'allow',
+    question: 'allow',
+    webfetch: 'allow',
+    websearch: 'allow',
+    todowrite: 'allow',
+    task: 'allow',
+    background_task: 'allow',
+    background_output: 'allow',
+    background_cancel: 'allow',
+    external_directory: 'allow',
+  },
   explorer: {
     read: 'allow',
     glob: 'allow',
@@ -60,6 +80,9 @@ const BUILTIN_PERMISSION_PRESETS = {
     edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
   },
   librarian: {
     read: 'allow',
@@ -75,6 +98,9 @@ const BUILTIN_PERMISSION_PRESETS = {
     edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
   },
   oracle: {
     read: 'allow',
@@ -92,6 +118,9 @@ const BUILTIN_PERMISSION_PRESETS = {
     edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
   },
   designer: {
     read: 'allow',
@@ -105,9 +134,13 @@ const BUILTIN_PERMISSION_PRESETS = {
     skill: 'allow',
     question: 'allow',
     todowrite: 'deny',
+    task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
-    }
+    },
   },
   quick: {
     read: 'allow',
@@ -120,9 +153,13 @@ const BUILTIN_PERMISSION_PRESETS = {
     codesearch: 'allow',
     lsp: 'allow',
     todowrite: 'deny',
+    task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
-    }
+    },
   },
   deep: {
     read: 'allow',
@@ -139,6 +176,9 @@ const BUILTIN_PERMISSION_PRESETS = {
     websearch: 'allow',
     todowrite: 'deny',
     task: 'deny',
+    background_task: 'deny',
+    background_output: 'deny',
+    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     },

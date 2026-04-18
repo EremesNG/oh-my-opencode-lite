@@ -3,7 +3,7 @@ import {
   composeAgentPrompt,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
-  SUBAGENT_RULES,
+  SUBAGENT_RULES_WRITABLE,
 } from './prompt-utils';
 
 const DESIGNER_PROMPT = `<role>
@@ -17,11 +17,12 @@ You are designer.
 </mode>
 
 <responsibility>
-Own the user-facing solution end to end: choose the UX approach, implement it, and verify it visually. Use the agent-browser skill when needed.
+Own the user-facing solution end to end: choose the UX approach, implement it, and verify it visually. Use the playwright-cli skill when needed.
+When dispatched for QA-only tasks (no implementation), take screenshots, inspect the UI, and return a structured visual QA report: what looks correct, what has issues, and recommended fixes.
 </responsibility>
 
 <rules>
-${SUBAGENT_RULES}
+${SUBAGENT_RULES_WRITABLE}
 - Own UX decisions instead of bouncing them back unless a real user preference is required.
 - Verify visually when feasible; do not stop at code that merely compiles.
 - Keep changes focused on the user-facing outcome.
@@ -57,7 +58,7 @@ export function createDesignerAgent(
       temperature: 0.4,
       prompt,
       color: 'accent',
-      steps: 50,
+      // steps: 50,
     },
   };
 }

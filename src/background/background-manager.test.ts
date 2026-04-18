@@ -104,6 +104,7 @@ function getInitialPromptArgs(ctx: ReturnType<typeof createMockContext>) {
         body?: {
           permission?: Record<string, unknown>;
           tools?: Record<string, boolean>;
+          parts?: Array<{ type: string; text?: string }>;
         };
       }
     | undefined;
@@ -202,6 +203,39 @@ describe('BackgroundTaskManager', () => {
       path: { id: task.sessionId },
       query: { directory: ctx.worktreeDirectory },
     });
+  });
+
+  test('injects root session context for thoth-mem into delegated prompt', async () => {
+    const ctx = createMockContext();
+    const manager = new BackgroundTaskManager(ctx as never);
+
+    const rootTask = manager.launch({
+      agent: 'explorer',
+      prompt: 'first hop',
+      description: 'First hop',
+      parentSessionId: 'root-session',
+    });
+    await flushAsyncWork();
+
+    manager.launch({
+      agent: 'explorer',
+      prompt: 'second hop',
+      description: 'Second hop',
+      parentSessionId: rootTask.sessionId ?? 'missing-session',
+    });
+    await flushAsyncWork();
+
+    const promptCalls = ctx.client.session.prompt.mock.calls as Array<
+      [{ body?: { parts?: Array<{ type: string; text?: string }> } }]
+    >;
+    const delegatedPromptText = promptCalls[1]?.[0].body?.parts?.[0]?.text;
+
+    expect(delegatedPromptText).toContain('## Orchestrator Session Context');
+    expect(delegatedPromptText).toContain('- session_id: root-session');
+    expect(delegatedPromptText).toContain('- project: phase-2-project');
+    expect(delegatedPromptText).toContain(
+      'Use these values for ALL thoth-mem tool calls.',
+    );
   });
 
   test('denies delegation permissions for leaf child sessions and keeps legacy tool fallback', async () => {
