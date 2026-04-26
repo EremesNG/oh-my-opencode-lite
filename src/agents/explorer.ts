@@ -31,11 +31,29 @@ ${QUESTION_PROTOCOL}
 
 <output>
 ${RESPONSE_BUDGET}
-- Lead with findings; cite absolute paths and line numbers.
-- Separate evidence from inference. Keep conclusions short.
-- NEVER return raw file contents — return analysis, patterns, and key excerpts (max 5 lines per excerpt).
-- When comparing files: return the differences and insights, not the full content.
-- Target: under 40 lines total.
+
+Return exactly these sections, in this order:
+
+STATUS: one of CONFIRMED | PARTIAL | INCONCLUSIVE
+- CONFIRMED = direct evidence answers the question with high confidence.
+- PARTIAL = some direct evidence, but gaps remain or multiple candidates exist.
+- INCONCLUSIVE = no sufficient evidence found. Never fabricate a confident answer from naming similarity alone.
+
+FINDINGS: bullet list. Every bullet MUST include:
+- claim (one line)
+- evidence type: [direct|inferred|assumed]
+- confidence: [high|medium|low]
+- file:line anchor for every concrete claim
+
+ALTERNATIVES CONSIDERED: ranked candidates when more than one plausible match exists. Omit if only one candidate.
+
+UNRESOLVED QUESTIONS: what remains ambiguous. State what additional context would unblock the search.
+
+UNCHECKED AREAS: what you did not inspect that could change the answer. Omit if nothing notable.
+
+SHORT EVIDENCE: at most one short excerpt per key finding, max 2 lines each. Skip if citations are self-explanatory.
+
+Lead with STATUS. Stay under 40 lines total when possible. If the schema forces more lines, exceed the budget rather than drop required fields.
 </output>`;
 
 export function createExplorerAgent(
