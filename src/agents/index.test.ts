@@ -13,7 +13,27 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
   string,
   NonNullable<AgentConfig['permission']>
 > = {
-  orchestrator: 'allow',
+  orchestrator: {
+    read: 'allow',
+    edit: 'allow',
+    write: 'allow',
+    glob: 'allow',
+    grep: 'allow',
+    list: 'allow',
+    bash: 'allow',
+    codesearch: 'allow',
+    lsp: 'allow',
+    skill: 'allow',
+    question: 'allow',
+    webfetch: 'allow',
+    websearch: 'allow',
+    todowrite: 'allow',
+    task: 'allow',
+    background_task: 'allow',
+    background_output: 'allow',
+    background_cancel: 'allow',
+    external_directory: 'allow',
+  },
   explorer: {
     read: 'allow',
     glob: 'allow',
@@ -220,8 +240,10 @@ describe('orchestrator agent', () => {
     expect(createAgents()[0]?.name).toBe('orchestrator');
   });
 
-  test('orchestrator has blanket allow permission', () => {
-    expect(getPermission('orchestrator')).toBe('allow');
+  test('orchestrator has explicit full-access permission map', () => {
+    expect(getPermission('orchestrator')).toEqual(
+      EXPECTED_DEFAULT_PERMISSIONS.orchestrator,
+    );
   });
 
   test('orchestrator accepts overrides', () => {
@@ -620,34 +642,26 @@ describe('semantic color values', () => {
 });
 
 describe('steps field for bounded execution', () => {
-  test('write-capable agents have steps field', () => {
+  test('write-capable agents do not set steps by default', () => {
     const designer = getAgentByName('designer');
     const quick = getAgentByName('quick');
     const deep = getAgentByName('deep');
 
-    expect(designer?.config.steps).toBeDefined();
-    expect(quick?.config.steps).toBeDefined();
-    expect(deep?.config.steps).toBeDefined();
+    expect(designer?.config.steps).toBeUndefined();
+    expect(quick?.config.steps).toBeUndefined();
+    expect(deep?.config.steps).toBeUndefined();
   });
 
-  test('orchestrator has steps field', () => {
+  test('orchestrator does not set steps by default', () => {
     const orchestrator = getAgentByName('orchestrator');
-    expect(orchestrator?.config.steps).toBeDefined();
+    expect(orchestrator?.config.steps).toBeUndefined();
   });
 
-  test('steps values are reasonable bounds', () => {
+  test('all agents omit steps unless explicitly configured later', () => {
     const agents = createAgents();
-    const stepsMap: Record<string, number> = {
-      orchestrator: 100,
-      designer: 50,
-      quick: 30,
-      deep: 80,
-    };
 
     for (const agent of agents) {
-      if (agent.name in stepsMap) {
-        expect(agent.config.steps).toBe(stepsMap[agent.name]);
-      }
+      expect(agent.config.steps).toBeUndefined();
     }
   });
 });
