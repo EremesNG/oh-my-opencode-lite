@@ -1,4 +1,5 @@
 import { statSync } from 'node:fs';
+import { spawn } from '../utils/subprocess';
 
 let cachedOpenCodePath: string | null = null;
 
@@ -77,7 +78,7 @@ export async function isOpenCodeInstalled(): Promise<boolean> {
 
   for (const opencodePath of paths) {
     try {
-      const proc = Bun.spawn([opencodePath, '--version'], {
+      const proc = spawn([opencodePath, '--version'], {
         stdout: 'pipe',
         stderr: 'pipe',
       });
@@ -95,7 +96,7 @@ export async function isOpenCodeInstalled(): Promise<boolean> {
 
 export async function isTmuxInstalled(): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['tmux', '-V'], {
+    const proc = spawn(['tmux', '-V'], {
       stdout: 'pipe',
       stderr: 'pipe',
     });
@@ -109,7 +110,7 @@ export async function isTmuxInstalled(): Promise<boolean> {
 export async function getOpenCodeVersion(): Promise<string | null> {
   const opencodePath = resolveOpenCodePath();
   try {
-    const proc = Bun.spawn([opencodePath, '--version'], {
+    const proc = spawn([opencodePath, '--version'], {
       stdout: 'pipe',
       stderr: 'pipe',
     });

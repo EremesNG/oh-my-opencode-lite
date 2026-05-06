@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { spawn } from 'bun';
+import { spawn } from '../../utils/subprocess';
 import {
   DEFAULT_MAX_MATCHES,
   DEFAULT_MAX_OUTPUT_BYTES,

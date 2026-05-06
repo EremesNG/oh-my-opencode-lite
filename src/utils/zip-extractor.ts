@@ -1,5 +1,5 @@
 import { release } from 'node:os';
-import { spawn, spawnSync } from 'bun';
+import { spawn, spawnSync } from './subprocess';
 
 const WINDOWS_BUILD_WITH_TAR = 17134;
 
@@ -96,7 +96,7 @@ export async function extractZip(
   const exitCode = await proc.exited;
 
   if (exitCode !== 0) {
-    const stderr = await new Response(proc.stderr as ReadableStream).text();
+    const stderr = await new Response(proc.stderr).text();
     throw new Error(`zip extraction failed (exit ${exitCode}): ${stderr}`);
   }
 }

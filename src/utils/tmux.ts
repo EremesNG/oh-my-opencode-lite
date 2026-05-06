@@ -1,6 +1,6 @@
-import { spawn } from 'bun';
 import type { TmuxConfig, TmuxLayout } from '../config/schema';
 import { log } from './logger';
+import { spawn } from './subprocess';
 
 let tmuxPath: string | null = null;
 let tmuxChecked = false;

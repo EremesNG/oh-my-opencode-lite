@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
 import { Readable, Writable } from 'node:stream';
 import { pathToFileURL } from 'node:url';
-import { type Subprocess, spawn } from 'bun';
 import {
   createMessageConnection,
   type MessageConnection,
@@ -12,6 +11,7 @@ import {
   StreamMessageWriter,
 } from 'vscode-jsonrpc/node';
 import { log } from '../../utils/logger';
+import { type ManagedSubprocess, spawn } from '../../utils/subprocess';
 import { getLanguageId } from './config';
 import type { Diagnostic, ResolvedServer } from './types';
 
@@ -198,7 +198,7 @@ class LSPServerManager {
 export const lspManager = LSPServerManager.getInstance();
 
 export class LSPClient {
-  private proc: Subprocess<'pipe', 'pipe', 'pipe'> | null = null;
+  private proc: ManagedSubprocess | null = null;
   private connection: MessageConnection | null = null;
   private openedFiles = new Set<string>();
   private stderrBuffer: string[] = [];

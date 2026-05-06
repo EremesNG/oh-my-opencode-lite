@@ -8,6 +8,15 @@ import {
   uniqueNamesGenerator,
 } from 'unique-names-generator';
 import type { DelegationConfig } from '../config';
+import {
+  readTextFile,
+  readTextFilePrefix,
+  writeTextFile,
+} from '../utils/file-io';
+import {
+  parseYamlRecord,
+  stringifyYamlRecord,
+} from '../utils/frontmatter-yaml';
 import { log } from '../utils/logger';
 import { ensureDelegationDirectories, resolvePaths } from './paths';
 import { getProjectId } from './project-id';
@@ -118,22 +127,18 @@ function buildRecord(
 }
 
 function serializeHeader(header: DelegationHeader): string {
-  return Bun.YAML.stringify(
-    {
-      id: header.id,
-      title: header.title,
-      summary: header.summary,
-      agent: header.agent,
-      status: header.status,
-      project_id: header.projectId,
-      root_session_id: header.rootSessionId,
-      started_at: header.startedAt,
-      completed_at: header.completedAt,
-      persisted_at: header.persistedAt,
-    },
-    null,
-    2,
-  ).trimEnd();
+  return stringifyYamlRecord({
+    id: header.id,
+    title: header.title,
+    summary: header.summary,
+    agent: header.agent,
+    status: header.status,
+    project_id: header.projectId,
+    root_session_id: header.rootSessionId,
+    started_at: header.startedAt,
+    completed_at: header.completedAt,
+    persisted_at: header.persistedAt,
+  });
 }
 
 function serializeRecord(header: DelegationHeader, content: string): string {
@@ -163,7 +168,7 @@ function parseHeaderFromMarkdown(markdown: string): DelegationHeader | null {
   }
 
   try {
-    const parsed = Bun.YAML.parse(frontmatter.headerText);
+    const parsed = parseYamlRecord(frontmatter.headerText);
     return parseHeaderValue(parsed);
   } catch {
     return null;
@@ -180,7 +185,7 @@ function parsePersistedRecord(
   }
 
   try {
-    const parsed = Bun.YAML.parse(frontmatter.headerText);
+    const parsed = parseYamlRecord(frontmatter.headerText);
     const header = parseHeaderValue(parsed);
     if (!header) {
       return null;
@@ -297,7 +302,7 @@ export class DelegationManager {
 
     try {
       await ensureDelegationDirectories(paths);
-      await Bun.write(
+      await writeTextFile(
         paths.taskFile,
         serializeRecord(header, input.record.content),
       );
@@ -337,7 +342,7 @@ export class DelegationManager {
     });
 
     try {
-      const markdown = await Bun.file(paths.taskFile).text();
+      const markdown = await readTextFile(paths.taskFile);
       return parsePersistedRecord(paths.taskFile, markdown);
     } catch {
       return null;
@@ -365,9 +370,10 @@ export class DelegationManager {
           .map(async (entry) => {
             const filePath = path.join(paths.sessionDir, entry.name);
             try {
-              const preview = await Bun.file(filePath)
-                .slice(0, HEADER_SCAN_BYTES)
-                .text();
+              const preview = await readTextFilePrefix(
+                filePath,
+                HEADER_SCAN_BYTES,
+              );
               const header = parseHeaderFromMarkdown(preview);
               if (!header) {
                 return null;
