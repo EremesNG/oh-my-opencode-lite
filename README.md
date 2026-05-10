@@ -7,8 +7,8 @@
 ---
 
 Delegate-first OpenCode plugin with a seven-agent roster, root-session
-`thoth_mem` persistence, disk-backed delegation records, bundled requirements-interview,
-and a full SDD workflow.
+`thoth_mem` persistence, native task delegation, bundled
+requirements-interview, and a full SDD workflow.
 
 oh-my-opencode-lite keeps the `orchestrator` lean, pushes discovery into
 specialists, persists important context, and ships the planning skills needed
@@ -79,9 +79,10 @@ setup flow.
 ## 🏛️ Seven-Agent Roster
 
 The delegate-first philosophy is simple: the `orchestrator` coordinates while
-specialists execute. Read-only discovery work goes to async specialists for
-context isolation. Advisory and write-capable work stays sync so review, undo
-safety, and verification remain straightforward.
+specialists execute. Independent specialists can be launched in parallel, but
+native OpenCode `task` calls are awaited before orchestration continues.
+Advisory and write-capable work stays bounded so review, undo safety, and
+verification remain straightforward.
 
 For blocking user decisions, the `orchestrator` uses a `question` tool —
 agents do not ask those questions in plain text. Independent work can be
@@ -129,7 +130,7 @@ retried once before being reported back to the user.
       <br>
       <b>Mode:</b> read-only
       <br>
-      <b>Dispatch:</b> async via <code>background_task</code>
+      <b>Dispatch:</b> <code>task</code>
       <br>
       <b>Recommended:</b>
       <br>
@@ -146,7 +147,7 @@ retried once before being reported back to the user.
       <br>
       <b>Mode:</b> read-only
       <br>
-      <b>Dispatch:</b> async via <code>background_task</code>
+      <b>Dispatch:</b> <code>task</code>
       <br>
       <b>Recommended:</b>
       <br>
@@ -229,7 +230,6 @@ retried once before being reported back to the user.
 
 - Delegate-first orchestration with context isolation across specialists
 - `thoth_mem` persistence for root-session memory workflows
-- Disk-persisted delegation results that survive compaction and in-memory loss
 - Bundled SDD pipeline: `sdd-propose`, `sdd-spec`, `sdd-design`, `sdd-tasks`,
   `sdd-apply`, `sdd-verify`, `sdd-archive`
 - Requirements-interview skill for clarifying ambiguous work before implementation
@@ -239,12 +239,6 @@ retried once before being reported back to the user.
 - Tmux integration for real-time agent monitoring
 - Configurable presets, fallback chains, prompt overriding, and artifact-store
   modes
-
-Delegation records persist under:
-
-```text
-~/.local/share/opencode/delegations/<project-id>/<root-session-id>/<task-id>.md
-```
 
 ## SDD Pipeline
 

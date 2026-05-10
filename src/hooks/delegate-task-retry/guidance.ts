@@ -34,7 +34,7 @@ export function buildRetryGuidance(errorInfo: DetectedError): string {
 
   lines.push(
     'Retry now with corrected parameters. Example:',
-    'task(description="...", prompt="...", category="unspecified-low", run_in_background=false, load_skills=[])',
+    'task(description="...", prompt="...", subagent_type="explorer")',
   );
 
   return lines.join('\n');

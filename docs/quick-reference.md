@@ -12,7 +12,7 @@ integration.
 - [SDD Pipeline](#sdd-pipeline)
 - [Artifact Store Policy](#artifact-store-policy)
 - [MCP Servers](#mcp-servers)
-- [Background Tasks](#background-tasks)
+- [Task Delegation](#task-delegation)
 - [Tmux Integration](#tmux-integration)
 - [Prompt Overriding](#prompt-overriding)
 - [Key Configuration Fields](#key-configuration-fields)
@@ -24,8 +24,8 @@ integration.
 | Agent | Role | Mode | Dispatch |
 | --- | --- | --- | --- |
 | `orchestrator` | Root coordinator and memory owner | primary, non-mutating | sync coordinator |
-| `explorer` | Local repository discovery | read-only | async via `background_task` |
-| `librarian` | External docs and example lookup | read-only | async via `background_task` |
+| `explorer` | Local repository discovery | read-only | `task` |
+| `librarian` | External docs and example lookup | read-only | `task` |
 | `oracle` | Diagnosis, review, architecture, plan review | read-only | sync via `task` |
 | `designer` | UX/UI implementation and browser verification | write-capable | sync via `task` |
 | `quick` | Narrow implementation work | write-capable | sync via `task` |
@@ -248,19 +248,16 @@ Disable any built-in MCP globally with `disabled_mcps`:
 }
 ```
 
-## Background Tasks
+## Task Delegation
 
-oh-my-opencode-lite uses OpenCode background task primitives for async
-specialists such as `explorer` and `librarian`.
+oh-my-opencode-lite uses OpenCode's native `task` tool for specialist
+dispatch. The native tool creates a child session and returns that subagent's
+result to the caller. Multiple independent `task` calls can be launched in the
+same model response for parallelism, but they are awaited before coordination
+continues.
 
-| Tool | Purpose |
-| --- | --- |
-| `background_task` | Launch a read-only specialist asynchronously |
-| `background_output` | Fetch or wait for a background result |
-| `background_cancel` | Cancel pending or running background work |
-
-Background delegation results are also persisted to disk so they can survive
-compaction and in-memory loss.
+The plugin no longer registers custom `background_task`, `background_output`,
+or `background_cancel` tools.
 
 ## Tmux Integration
 
@@ -318,13 +315,9 @@ If `preset` is set, the loader checks the preset subdirectory first:
 | `tmux.enabled` | boolean | `false` | Enables pane spawning |
 | `tmux.layout` | string | `main-vertical` | `main-horizontal`, `main-vertical`, `tiled`, `even-horizontal`, `even-vertical` |
 | `tmux.main_pane_size` | number | `60` | Main pane size percent |
-| `background.maxConcurrentStarts` | number | `10` | Parallel background launch limit |
-| `background.timeoutMs` | number | `300000` | Background task timeout |
 | `fallback.enabled` | boolean | `true` | Runtime model failover |
 | `fallback.timeoutMs` | number | `15000` | Timeout before trying next fallback |
 | `fallback.retryDelayMs` | number | `500` | Delay between failover attempts |
-| `delegation.storage_dir` | string | platform default | Delegation artifact location |
-| `delegation.timeout` | number | `900000` | Delegation timeout |
 | `thoth.command` | string[] | `['npx', '-y', 'thoth-mem@latest']` | Local thoth MCP command |
 | `thoth.data_dir` | string | unset | Custom thoth data directory |
 | `artifactStore.mode` | string | `hybrid` | SDD artifact persistence target |

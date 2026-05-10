@@ -112,27 +112,6 @@ describe('loadPluginConfig', () => {
     });
   });
 
-  test('accepts valid delegation configuration', () => {
-    const projectDir = path.join(tempDir, 'project');
-    const projectConfigDir = path.join(projectDir, '.opencode');
-    fs.mkdirSync(projectConfigDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
-      JSON.stringify({
-        delegation: {
-          storage_dir: '/tmp/oh-my-opencode-lite-delegations',
-          timeout: 30000,
-        },
-      }),
-    );
-
-    const config = loadPluginConfig(projectDir);
-    expect(config.delegation).toEqual({
-      storage_dir: '/tmp/oh-my-opencode-lite-delegations',
-      timeout: 30000,
-    });
-  });
-
   test('loads manual plan structure when configured', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');
@@ -277,22 +256,6 @@ describe('loadPluginConfig', () => {
       JSON.stringify({
         thoth: {
           command: 'npx -y thoth-mem@0.1.5',
-        },
-      }),
-    );
-
-    expect(loadPluginConfig(projectDir)).toEqual({});
-  });
-
-  test('rejects invalid delegation configuration', () => {
-    const projectDir = path.join(tempDir, 'project');
-    const projectConfigDir = path.join(projectDir, '.opencode');
-    fs.mkdirSync(projectConfigDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
-      JSON.stringify({
-        delegation: {
-          storage_dir: 123,
         },
       }),
     );
@@ -573,7 +536,7 @@ describe('deepMerge behavior', () => {
     expect(config.fallback?.chains.writing).toEqual(['openai/gpt-5.4']);
   });
 
-  test('merges thoth and delegation configs from user and project', () => {
+  test('merges thoth config from user and project', () => {
     const userOpencodeDir = path.join(userConfigDir, 'opencode');
     fs.mkdirSync(userOpencodeDir, { recursive: true });
     fs.writeFileSync(
@@ -586,9 +549,6 @@ describe('deepMerge behavior', () => {
           },
           timeout: 15000,
           http_port: 7438,
-        },
-        delegation: {
-          storage_dir: '/user/delegations',
         },
       }),
     );
@@ -606,9 +566,6 @@ describe('deepMerge behavior', () => {
           },
           http_port: 8123,
         },
-        delegation: {
-          timeout: 12345,
-        },
       }),
     );
 
@@ -623,31 +580,6 @@ describe('deepMerge behavior', () => {
       },
       timeout: 15000,
       http_port: 8123,
-    });
-    expect((config as PluginConfig).delegation).toEqual({
-      storage_dir: '/user/delegations',
-      timeout: 12345,
-    });
-  });
-
-  test('applies default delegation timeout when omitted', () => {
-    const projectDir = path.join(tempDir, 'project');
-    const projectConfigDir = path.join(projectDir, '.opencode');
-    fs.mkdirSync(projectConfigDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
-      JSON.stringify({
-        delegation: {
-          storage_dir: '/tmp/oh-my-opencode-lite-delegations',
-        },
-      }),
-    );
-
-    const config = loadPluginConfig(projectDir);
-
-    expect((config as PluginConfig).delegation).toEqual({
-      storage_dir: '/tmp/oh-my-opencode-lite-delegations',
-      timeout: 900000,
     });
   });
 });

@@ -3,9 +3,9 @@
 ## Project Overview
 
 **oh-my-opencode-lite** is an OpenCode plugin for delegate-first agent
-orchestration. It provides a seven-agent roster, async background delegation,
-disk-persisted delegation results, thoth-mem integration, bundled SDD
-skills, and a requirements-interview skill for clarifying ambiguous work.
+orchestration. It provides a seven-agent roster, native OpenCode task
+delegation, thoth-mem integration, bundled SDD skills, and a
+requirements-interview skill for clarifying ambiguous work.
 
 ## Commands
 
@@ -47,8 +47,8 @@ bun test -t "pattern"
 | Agent | Role | Mode | Dispatch | Tool access |
 | --- | --- | --- | --- | --- |
 | `orchestrator` | root coordinator, sequencing, memory ownership | primary, non-mutating | sync coordinator | delegation tools + `thoth_mem`; deny workspace mutation/inspection |
-| `explorer` | local codebase discovery | read-only | **async** via `background_task` | `read`, `glob`, `grep`, AST search, LSP read tools |
-| `librarian` | external docs and public examples | read-only | **async** via `background_task` | research MCPs + local read/search |
+| `explorer` | local codebase discovery | read-only | `task` | `read`, `glob`, `grep`, AST search, LSP read tools |
+| `librarian` | external docs and public examples | read-only | `task` | research MCPs + local read/search |
 | `oracle` | review, diagnosis, architecture, plan review | read-only | **sync** via `task` | local read/analysis tools |
 | `designer` | UX/UI decisions, implementation, visual verification, visual QA | write-capable | **sync** via `task` | local implementation tools; browser verification; exclusive owner of screenshots and visual QA |
 | `quick` | narrow, bounded implementation | write-capable | **sync** via `task` | local implementation tools |
@@ -59,16 +59,16 @@ bun test -t "pattern"
 - The orchestrator is **delegate-first** and must stay lean.
 - The orchestrator NEVER uses browser tools, takes screenshots, or processes
   images. All visual verification and UX/UI QA is delegated to `@designer`.
-- Default delegation primitive is **`background_task`**.
-- Use **`task`** only when the caller must block for a result or when the agent
-  is write-capable.
+- Default delegation primitive is OpenCode's native **`task`** tool.
+- Native `task` calls can be launched in parallel in the same response, but
+  they are not fire-and-forget; the orchestrator waits for all task results
+  before continuing coordination.
 - Read-only specialists do discovery; write-capable specialists change the repo.
 - The orchestrator owns root-session state and should retain summaries, not raw
   sub-agent context.
 - Independent delegations should be launched together in the same response.
-- If a `background_task` returns empty or contradictory results, retry once with
-  a more specific prompt; if the retry fails, report the limitation to the
-  user.
+- If a `task` result is empty or contradictory, retry once with a more
+  specific prompt; if the retry fails, report the limitation to the user.
 - Maximum retries per delegated task: one after the initial attempt.
 - **NEVER** request full file contents from sub-agents. Sub-agents analyze
   files internally and return insights — they do not relay raw content.
@@ -84,7 +84,7 @@ contract for interactive decisions.
 
 | Agent type | Mutates repo? | Default tool | Why |
 | --- | --- | --- | --- |
-| `explorer`, `librarian` | No | `background_task` | read-only work benefits from async isolation |
+| `explorer`, `librarian` | No | `task` | read-only discovery through native subagent sessions |
 | `oracle` | No | `task` | advisory output is blocking and interactive |
 | `designer`, `quick`, `deep` | Yes | `task` | sync execution preserves undo safety and reviewability |
 
@@ -135,18 +135,15 @@ Rule of thumb:
 - multi-file discovery, SDD work, or long investigations should delegate
 - large or multi-phase work should delegate by phase, not by file
 
-## Background Delegation
+## Task Delegation
 
-- Background results persist to
-  `~/.local/share/opencode/delegations/<project-id>/<root-session>/<task-id>.md`
-  unless overridden by config.
-- `project-id` is derived from git root + root commit; if git identity cannot be
-  resolved, in-memory results still work but persistence is unavailable.
-- `background_output` is the **waiter model**: launch now, continue working,
-  retrieve or wait later.
-- Persisted delegation records let results survive compaction and in-memory loss.
-- Compaction recovery injects a capped delegation digest from the current
-  root-session only.
+- Delegation uses OpenCode's native `task` tool.
+- Multiple independent `task` calls may be emitted together for parallelism,
+  but execution is still awaited before the orchestrator advances.
+- The plugin no longer registers custom `background_task`, `background_output`,
+  or `background_cancel` tools.
+- When tmux integration is enabled, child `task` sessions still get panes for
+  live monitoring and cleanup.
 
 ## SDD Pipeline
 
@@ -363,7 +360,7 @@ Rules:
 - Graceful shutdown sends `Ctrl+C`, waits briefly, then kills the pane.
 - Call `session.abort()` **after** extracting task output.
 - Keep both event handlers wired in `src/index.ts`:
-  - background manager cleanup
+  - tmux session manager cleanup
   - tmux session manager pane cleanup
 
 ## Project Structure
@@ -374,10 +371,8 @@ oh-my-opencode-lite/
 ├── openspec/
 ├── src/
 │   ├── agents/
-│   ├── background/
 │   ├── cli/
 │   ├── config/
-│   ├── delegation/
 │   ├── mcp/
 │   ├── skills/
 │   │   ├── _shared/
@@ -429,5 +424,5 @@ Before claiming completion:
 - The orchestrator is the **root-session** owner.
 - Delegation persistence, compaction recovery, and memory injection are scoped by
   `root-session`.
-- Child/background sessions do not own durable memory; they return results to the
+- Child task sessions do not own durable memory; they return results to the
   root-session.

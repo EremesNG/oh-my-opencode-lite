@@ -2,11 +2,10 @@
 
 ## Responsibility
 
-The `src/tools/` directory provides the core tool implementations for the oh-my-opencode-lite plugin. It exposes three main categories of tools:
+The `src/tools/` directory provides the core tool implementations for the oh-my-opencode-lite plugin. It exposes two main categories of tools:
 
 1. **AST-grep** - AST-aware structural code search and replacement across 25+ languages
 2. **LSP** - Language Server Protocol integration for code intelligence (definition, references, diagnostics, rename)
-3. **Background Tasks** - Fire-and-forget agent task management with automatic notification
 
 These tools are consumed by the OpenCode plugin system and exposed to AI agents for code navigation, analysis, and modification tasks.
 
@@ -19,7 +18,6 @@ These tools are consumed by the OpenCode plugin system and exposed to AI agents 
 ```
 src/tools/
 ├── index.ts              # Central export point
-├── background.ts         # Background task tools (3 tools)
 ├── ast-grep/
 │   ├── cli.ts            # CLI execution, path resolution, binary download
 │   ├── index.ts          # Module re-exports
@@ -170,34 +168,19 @@ stop()
   └─→ kill process
 ```
 
-### Background Task Flow
+### Native Task Delegation Flow
 
 ```
-User Request (background_task)
+User Request (task)
     ↓
-Tool definition (background.ts)
+OpenCode native task tool
     ↓
-manager.launch()
-    ├─→ Validate agent against delegation rules
-    ├─→ Create task with unique ID
-    ├─→ Store in BackgroundTaskManager
-    └─→ Return task_id immediately (~1ms)
+Child session created by OpenCode
     ↓
-[Background execution]
-    ├─→ Agent runs independently
-    ├─→ Completes with result/error
-    └─→ Auto-notify parent session
-    ↓
-User Request (background_output)
-    ↓
-manager.getResult(task_id)
-    ├─→ If timeout > 0: waitForCompletion()
-    └─→ Return status/result/error/duration
-    ↓
-User Request (background_cancel)
-    ↓
-manager.cancel(task_id) or manager.cancel(all)
-    └─→ Cancel pending/starting/running tasks only
+TmuxSessionManager
+    ├─→ Observes session.created
+    ├─→ Spawns pane when tmux is enabled
+    └─→ Closes pane on idle/deleted/missing/timeout
 ```
 
 ---
@@ -214,7 +197,6 @@ manager.cancel(task_id) or manager.cancel(all)
 - **which**: PATH resolution for CLI binaries
 
 #### Internal Dependencies
-- **src/background**: `BackgroundTaskManager` for background task tools
 - **src/config**: `SUBAGENT_NAMES`, `PluginConfig`, `TmuxConfig`
 - **src/utils**: `extractZip` for binary extraction
 - **src/utils/logger**: Logging utilities
@@ -228,7 +210,6 @@ manager.cancel(task_id) or manager.cancel(all)
 All tools are exported from `src/tools/index.ts`:
 ```typescript
 export { ast_grep_replace, ast_grep_search } from './ast-grep';
-export { createBackgroundTools } from './background';
 export {
   lsp_diagnostics,
   lsp_find_references,
@@ -271,7 +252,7 @@ export {
 - **Output truncation**: Prevent memory issues with large outputs
 - **Timeout enforcement**: All subprocess operations have timeouts
 - **Caching**: CLI paths cached to avoid repeated filesystem checks
-- **Background tasks**: Fire-and-forget pattern for long-running operations
+- **Native task delegation**: OpenCode handles specialist task execution; tmux panes are best-effort monitoring.
 
 ---
 
@@ -279,7 +260,6 @@ export {
 
 ### Root Level
 - **index.ts**: Central export point for all tools
-- **background.ts**: Background task management (3 tools: background_task, background_output, background_cancel)
 
 ### ast-grep/
 - **index.ts**: Re-exports ast-grep module and types

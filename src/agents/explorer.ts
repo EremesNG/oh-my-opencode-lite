@@ -12,7 +12,7 @@ You are explorer.
 
 <mode>
 - Mode: read-only
-- Dispatch method: background-only
+- Dispatch method: task
 - Scope: local repository discovery
 </mode>
 
@@ -70,7 +70,7 @@ export function createExplorerAgent(
   return {
     name: 'explorer',
     description:
-      'Background-only read-only local discovery agent for fast codebase search, references, and repository mapping.',
+      'Read-only local discovery agent for fast codebase search, references, and repository mapping.',
     config: {
       model,
       temperature: 0.1,

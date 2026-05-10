@@ -361,22 +361,6 @@
         }
       }
     },
-    "background": {
-      "type": "object",
-      "properties": {
-        "maxConcurrentStarts": {
-          "default": 10,
-          "type": "number",
-          "minimum": 1,
-          "maximum": 50
-        },
-        "timeoutMs": {
-          "default": 300000,
-          "type": "number",
-          "minimum": 0
-        }
-      }
-    },
     "fallback": {
       "type": "object",
       "properties": {
@@ -483,18 +467,6 @@
           "type": "number"
         },
         "http_port": {
-          "type": "number"
-        }
-      }
-    },
-    "delegation": {
-      "type": "object",
-      "properties": {
-        "storage_dir": {
-          "type": "string"
-        },
-        "timeout": {
-          "default": 900000,
           "type": "number"
         }
       }

@@ -16,7 +16,7 @@ Complete guide for using tmux integration with oh-my-opencode-lite to watch agen
 
 ## Overview
 
-**Watch your agents work in real-time.** When the Orchestrator launches sub-agents or initiates background tasks, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
+**Watch your agents work in real-time.** When the Orchestrator launches sub-agents with the native `task` tool, new tmux panes automatically spawn showing each agent's live progress. No more waiting in the dark.
 
 ### Key Benefits
 
@@ -238,7 +238,7 @@ Ctrl+B d      # detach from current session
 
 **To verify the fix is working:**
 ```bash
-# After running some background tasks, check for orphans
+# After running delegated task sessions, check for orphans
 ps aux | grep "opencode attach" | grep -v grep
 # Should return no results
 
@@ -363,7 +363,7 @@ See [AGENTS.md](../AGENTS.md) for implementation details.
    }
    ```
 
-2. **Limit background tasks:**
+2. **Limit parallel task sessions:**
    ```bash
    # In OpenCode, use fewer parallel operations
    # Or configure agents to be more sequential
@@ -414,19 +414,18 @@ watch -n 1 'tmux list-panes -a -F "#{pane_current_command} (#{pane_index})"'
 # Watch OpenCode output specifically
 tmux list-panes -a | grep opencode
 
-# Monitor background tasks
-tmux list-panes -a | grep background
+# Monitor delegated task sessions
+tmux list-panes -a | grep opencode
 ```
 
-### Integration with Background Tasks
+### Integration with Task Delegation
 
-The plugin provides background task tools that work seamlessly with tmux:
+The plugin watches OpenCode child `task` sessions and opens tmux panes for live
+monitoring when tmux integration is enabled:
 
 | Tool | Description | Tmux Integration |
 |------|-------------|------------------|
-| `background_task` | Launch agents asynchronously | Spawns panes for monitoring |
-| `background_output` | Check task results | Output appears in panes |
-| `background_cancel` | Stop running tasks | Cleans up panes |
+| `task` | Launch a specialist agent | Spawns panes for child sessions |
 
 ### Scripting and Automation
 
@@ -505,5 +504,5 @@ tmux load-buffer ~/my-layout.txt
 
 - **Official Tmux Documentation:** https://github.com/tmux/tmux/wiki
 - **Quick Reference:** [docs/quick-reference.md#tmux-integration](quick-reference.md#tmux-integration)
-- **Background Tasks:** [docs/quick-reference.md#background-tasks](quick-reference.md#background-tasks)
+- **Task Delegation:** [docs/quick-reference.md#task-delegation](quick-reference.md#task-delegation)
 - **OpenCode Documentation:** https://opencode.ai/docs

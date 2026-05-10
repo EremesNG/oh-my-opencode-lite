@@ -45,7 +45,6 @@ PluginConfig
 ├── agents?: Record<string, AgentOverrideConfig>
 ├── disabled_mcps?: string[]
 ├── tmux?: TmuxConfig
-├── background?: BackgroundTaskConfig
 └── fallback?: FailoverConfig
 
 AgentOverrideConfig
@@ -81,7 +80,6 @@ FailoverConfig
 - `Preset`: Named agent configuration presets
 - `AgentName`: Union type of all agent names
 - `McpName`: Union type of available MCPs (`'websearch'`, `'context7'`, `'grep_app'`)
-- `BackgroundTaskConfig`: Background task concurrency settings
 - `FailoverConfig`: Failover behavior configuration
 - `ModelEntry`: Normalized model entry with optional per-model variant (`{ id: string; variant?: string }`)
 - `ManualAgentName`: Union type for manual agent configuration
@@ -188,7 +186,7 @@ src/config/
 
 ### Polling Configuration
 - `POLL_INTERVAL_MS` (500ms): Standard polling interval
-- `POLL_INTERVAL_SLOW_MS` (1000ms): Slower polling for background tasks
+- `POLL_INTERVAL_SLOW_MS` (1000ms): Slower polling for long-running checks
 - `POLL_INTERVAL_BACKGROUND_MS` (2000ms): Background task polling
 
 ### Timeouts

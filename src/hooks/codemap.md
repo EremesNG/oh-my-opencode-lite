@@ -62,7 +62,7 @@ Acts as a single entry point that re-exports the factory functions and types for
   - `patterns.ts`: Defines error patterns and detection logic.
   - `guidance.ts`: Builds retry guidance messages with available options.
 - **Hook Point**: `'tool.execute.after'`
-- **Behavior**: Detects errors like missing `run_in_background`, invalid category/agent, unknown skills, and appends structured guidance.
+- **Behavior**: Detects errors like invalid category/agent, unknown skills, and appends structured guidance.
 - **Patterns**: 8 error types with specific fix hints and available options extraction.
 
 #### **foreground-fallback**
