@@ -1,8 +1,4 @@
 import { z } from 'zod';
-import {
-  BACKGROUND_TASK_TIMEOUT_MS,
-  DEFAULT_DELEGATION_TIMEOUT,
-} from './constants';
 
 const AGENT_NAMES = [
   'orchestrator',
@@ -148,13 +144,6 @@ export const ThothConfigSchema = z.object({
 
 export type ThothConfig = z.infer<typeof ThothConfigSchema>;
 
-export const DelegationConfigSchema = z.object({
-  storage_dir: z.string().optional(),
-  timeout: z.number().optional().default(DEFAULT_DELEGATION_TIMEOUT),
-});
-
-export type DelegationConfig = z.infer<typeof DelegationConfigSchema>;
-
 export const ArtifactStoreModeSchema = z.enum([
   'thoth-mem',
   'openspec',
@@ -166,14 +155,6 @@ export const ArtifactStoreConfigSchema = z.object({
 });
 
 export type ArtifactStoreConfig = z.infer<typeof ArtifactStoreConfigSchema>;
-
-// Background task configuration
-export const BackgroundTaskConfigSchema = z.object({
-  maxConcurrentStarts: z.number().min(1).max(50).default(10),
-  timeoutMs: z.number().min(0).default(BACKGROUND_TASK_TIMEOUT_MS),
-});
-
-export type BackgroundTaskConfig = z.infer<typeof BackgroundTaskConfigSchema>;
 
 export const FailoverConfigSchema = z.object({
   enabled: z.boolean().default(true),
@@ -195,10 +176,8 @@ export const PluginConfigSchema = z.object({
   agents: z.record(z.string(), AgentOverrideConfigSchema).optional(),
   disabled_mcps: z.array(z.string()).optional(),
   tmux: TmuxConfigSchema.optional(),
-  background: BackgroundTaskConfigSchema.optional(),
   fallback: FailoverConfigSchema.optional(),
   thoth: ThothConfigSchema.optional(),
-  delegation: DelegationConfigSchema.optional(),
   artifactStore: ArtifactStoreConfigSchema.optional(),
 });
 

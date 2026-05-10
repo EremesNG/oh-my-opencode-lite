@@ -6,12 +6,6 @@ export interface DelegateTaskErrorPattern {
 
 export const DELEGATE_TASK_ERROR_PATTERNS: DelegateTaskErrorPattern[] = [
   {
-    pattern: 'run_in_background',
-    errorType: 'missing_run_in_background',
-    fixHint:
-      'Add run_in_background=false (delegation) or run_in_background=true (parallel exploration).',
-  },
-  {
     pattern: 'load_skills',
     errorType: 'missing_load_skills',
     fixHint: 'Add load_skills=[] (empty array when no skill is needed).',

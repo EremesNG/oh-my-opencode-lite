@@ -2,9 +2,7 @@ import path from 'node:path';
 import type { Plugin } from '@opencode-ai/plugin';
 import type { Event, Model, Part } from '@opencode-ai/sdk';
 import { createAgents, getAgentConfigs } from './agents';
-import { BackgroundTaskManager, TmuxSessionManager } from './background';
 import { loadPluginConfig, type TmuxConfig } from './config';
-import { DelegationManager } from './delegation';
 import {
   createAutoUpdateCheckerHook,
   createChatHeadersHook,
@@ -20,7 +18,6 @@ import { createBuiltinMcps } from './mcp';
 import {
   ast_grep_replace,
   ast_grep_search,
-  createBackgroundTools,
   lsp_diagnostics,
   lsp_find_references,
   lsp_goto_definition,
@@ -29,6 +26,7 @@ import {
 } from './tools';
 import { startTmuxCheck } from './utils';
 import { log } from './utils/logger';
+import { TmuxSessionManager } from './utils/tmux-session-manager';
 
 type SessionContextModel = { providerID: string; modelID: string };
 
@@ -52,12 +50,9 @@ const OhMyOpenCodeLite: Plugin = async (
   ctx,
   _options?: Record<string, unknown>,
 ) => {
-  const { client, directory, project, worktree, $: shell, serverUrl } = ctx;
-  const worktreeDirectory = worktree || directory;
+  const { client, directory, project, $: shell } = ctx;
   const projectName = resolveProjectName(project, directory);
   const sessionContext = new Map<string, SessionContext>();
-  const getSessionContext = (sessionId: string): SessionContext | undefined =>
-    sessionContext.get(sessionId);
 
   const config = loadPluginConfig(directory);
   const agentDefs = createAgents(config);
@@ -121,37 +116,11 @@ const OhMyOpenCodeLite: Plugin = async (
     log('[plugin] Skill sync failed during initialization', error);
   }
 
-  // Start background tmux check if enabled
+  // Start tmux availability check if enabled.
   if (tmuxConfig.enabled) {
     startTmuxCheck();
   }
 
-  let backgroundManager: BackgroundTaskManager;
-  const delegationManager = new DelegationManager({
-    directory,
-    worktreeDirectory,
-    projectName,
-    shell,
-    config: config.delegation,
-    getActiveTaskIds: (rootSessionId) =>
-      backgroundManager?.getActiveTaskIds(rootSessionId) ?? [],
-  });
-
-  backgroundManager = new BackgroundTaskManager(
-    ctx,
-    tmuxConfig,
-    config,
-    delegationManager,
-    worktreeDirectory,
-    getSessionContext,
-  );
-  const backgroundTools = createBackgroundTools(
-    ctx,
-    backgroundManager,
-    tmuxConfig,
-    config,
-    getSessionContext,
-  );
   // Register built-in MCPs, including thoth_mem.
   const mcps = createBuiltinMcps(config.disabled_mcps, config.thoth);
 
@@ -196,8 +165,6 @@ const OhMyOpenCodeLite: Plugin = async (
     config.fallback?.enabled !== false && Object.keys(runtimeChains).length > 0,
   );
 
-  void serverUrl;
-
   // Hook input/output types for thoth-mem integration
   type ThothChatMessageInput = { sessionID: string };
   type ThothChatMessageOutput = {
@@ -226,7 +193,6 @@ const OhMyOpenCodeLite: Plugin = async (
     agent: agents,
 
     tool: {
-      ...backgroundTools,
       lsp_goto_definition,
       lsp_find_references,
       lsp_diagnostics,
@@ -398,15 +364,7 @@ const OhMyOpenCodeLite: Plugin = async (
         },
       );
 
-      // Handle session.status events for:
-      // 1. BackgroundTaskManager: completion detection
-      // 2. TmuxSessionManager: pane cleanup
-      await backgroundManager.handleSessionStatus(
-        input.event as {
-          type: string;
-          properties?: { sessionID?: string; status?: { type: string } };
-        },
-      );
+      // Handle session.status events for TmuxSessionManager pane cleanup.
       await tmuxSessionManager.onSessionStatus(
         input.event as {
           type: string;
@@ -414,15 +372,7 @@ const OhMyOpenCodeLite: Plugin = async (
         },
       );
 
-      // Handle session.deleted events for:
-      // 1. BackgroundTaskManager: task cleanup
-      // 2. TmuxSessionManager: pane cleanup
-      await backgroundManager.handleSessionDeleted(
-        input.event as {
-          type: string;
-          properties?: { info?: { id?: string }; sessionID?: string };
-        },
-      );
+      // Handle session.deleted events for TmuxSessionManager pane cleanup.
       await tmuxSessionManager.onSessionDeleted(
         input.event as {
           type: string;
@@ -503,13 +453,6 @@ const OhMyOpenCodeLite: Plugin = async (
           input as ThothCompactingInput,
           output as ThothCompactingOutput,
         );
-      }
-
-      const delegationSummary = await backgroundManager.getDelegationSummary(
-        (input as { sessionID: string }).sessionID,
-      );
-      if (delegationSummary) {
-        (output as { context: string[] }).context.push(delegationSummary);
       }
     },
 

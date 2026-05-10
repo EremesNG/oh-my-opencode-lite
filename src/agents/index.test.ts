@@ -29,9 +29,6 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     websearch: 'allow',
     todowrite: 'allow',
     task: 'allow',
-    background_task: 'allow',
-    background_output: 'allow',
-    background_cancel: 'allow',
     external_directory: 'allow',
   },
   explorer: {
@@ -48,9 +45,6 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
-    background_task: 'deny',
-    background_output: 'deny',
-    background_cancel: 'deny',
   },
   librarian: {
     read: 'allow',
@@ -66,9 +60,6 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
-    background_task: 'deny',
-    background_output: 'deny',
-    background_cancel: 'deny',
   },
   oracle: {
     read: 'allow',
@@ -86,9 +77,6 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     edit: 'deny',
     todowrite: 'deny',
     task: 'deny',
-    background_task: 'deny',
-    background_output: 'deny',
-    background_cancel: 'deny',
   },
   designer: {
     read: 'allow',
@@ -103,9 +91,6 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     question: 'allow',
     todowrite: 'deny',
     task: 'deny',
-    background_task: 'deny',
-    background_output: 'deny',
-    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     },
@@ -122,9 +107,6 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     lsp: 'allow',
     todowrite: 'deny',
     task: 'deny',
-    background_task: 'deny',
-    background_output: 'deny',
-    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     },
@@ -144,9 +126,6 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     websearch: 'allow',
     todowrite: 'deny',
     task: 'deny',
-    background_task: 'deny',
-    background_output: 'deny',
-    background_cancel: 'deny',
     external_directory: {
       '~/.config/opencode/skills/**': 'allow',
     },
@@ -429,9 +408,6 @@ describe('granular permission defaults', () => {
       websearch: 'allow',
       todowrite: 'deny',
       task: 'deny',
-      background_task: 'deny',
-      background_output: 'deny',
-      background_cancel: 'deny',
       external_directory: {
         '~/.config/opencode/skills/**': 'allow',
       },
@@ -440,16 +416,12 @@ describe('granular permission defaults', () => {
 });
 
 describe('prompt role markers', () => {
-  test('explorer prompt states background-only mode', () => {
-    expect(getAgentByName('explorer')?.config.prompt).toContain(
-      'background-only',
-    );
+  test('explorer prompt states read-only discovery mode', () => {
+    expect(getAgentByName('explorer')?.config.prompt).toContain('read-only');
   });
 
-  test('librarian prompt states background-only mode', () => {
-    expect(getAgentByName('librarian')?.config.prompt).toContain(
-      'background-only',
-    );
+  test('librarian prompt states read-only research mode', () => {
+    expect(getAgentByName('librarian')?.config.prompt).toContain('read-only');
   });
 
   test('oracle prompt states read-only mode', () => {

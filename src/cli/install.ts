@@ -287,7 +287,7 @@ async function runInstall(config: InstallConfig): Promise<number> {
     `  ${DIM}Includes the seven-agent roster, thoth-mem memory defaults,${RESET}`,
   );
   console.log(
-    `  ${DIM}delegation persistence, and bundled SDD skills.${RESET}`,
+    `  ${DIM}native task delegation, and bundled SDD skills.${RESET}`,
   );
   const altProviders =
     'For alternative providers (Kimi, GitHub Copilot, ZAI Coding Plan)';

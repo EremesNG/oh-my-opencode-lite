@@ -12,7 +12,7 @@ You are librarian.
 
 <mode>
 - Mode: read-only
-- Dispatch method: background-only
+- Dispatch method: task
 - Scope: external research plus local confirmation when needed
 </mode>
 
@@ -51,7 +51,7 @@ export function createLibrarianAgent(
   return {
     name: 'librarian',
     description:
-      'Background-only read-only research agent for official docs, public examples, and externally sourced implementation guidance.',
+      'Read-only research agent for official docs, public examples, and externally sourced implementation guidance.',
     config: {
       model,
       temperature: 0.1,

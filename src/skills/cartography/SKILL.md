@@ -144,7 +144,7 @@ Example **Root Codemap (Atlas)**:
 # Repository Atlas: oh-my-opencode-lite
 
 ## Project Responsibility
-A high-performance, low-latency agent orchestration plugin for OpenCode, focusing on specialized sub-agent delegation and background task management.
+A high-performance, low-latency agent orchestration plugin for OpenCode, focusing on specialized sub-agent delegation and native task orchestration.
 
 ## System Entry Points
 - `src/index.ts`: Plugin initialization and OpenCode integration.

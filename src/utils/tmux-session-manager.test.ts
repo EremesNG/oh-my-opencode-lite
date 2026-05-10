@@ -10,7 +10,7 @@ const mockCloseTmuxPane = mock(async () => true);
 const mockIsInsideTmux = mock(() => true);
 
 // Mock the tmux utils module
-mock.module('../utils/tmux', () => ({
+mock.module('./tmux', () => ({
   spawnTmuxPane: mockSpawnTmuxPane,
   closeTmuxPane: mockCloseTmuxPane,
   isInsideTmux: mockIsInsideTmux,

@@ -42,7 +42,7 @@ Options:
   -h, --help             Show this help message
 
 oh-my-opencode-lite installs the seven-agent roster, thoth-mem defaults,
-delegation persistence, and bundled SDD skills for OpenCode.
+native task delegation, and bundled SDD skills for OpenCode.
 
 Bundled oh-my-opencode-lite skills are always installed.
 Use --skills=no to skip only recommended external skills.
