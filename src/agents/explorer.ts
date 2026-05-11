@@ -1,6 +1,8 @@
 import type { AgentDefinition } from './orchestrator';
 import {
+  appendPromptSections,
   composeAgentPrompt,
+  getModelFamilyPromptSection,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
   SUBAGENT_RULES_READONLY,
@@ -64,7 +66,10 @@ export function createExplorerAgent(
   const prompt = composeAgentPrompt({
     basePrompt: EXPLORER_PROMPT,
     customPrompt,
-    customAppendPrompt,
+    customAppendPrompt: appendPromptSections(
+      getModelFamilyPromptSection('explorer', model),
+      customAppendPrompt,
+    ),
   });
 
   return {

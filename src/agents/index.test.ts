@@ -3,6 +3,8 @@ import type { AgentConfig } from '@opencode-ai/sdk/v2';
 import type { PluginConfig } from '../config';
 import { SUBAGENT_NAMES } from '../config';
 import { createAgents, getAgentConfigs, isSubagent } from './index';
+import { createOrchestratorAgent } from './orchestrator';
+import { composeAgentPrompt } from './prompt-utils';
 
 type PermissionRecord = Exclude<
   NonNullable<AgentConfig['permission']>,
@@ -317,6 +319,21 @@ describe('per-model variant in array config', () => {
     expect(explorer?.config.model).toBeUndefined();
   });
 
+  test('subagent model-family guidance follows configured model override', () => {
+    const config: PluginConfig = {
+      agents: {
+        explorer: {
+          model: 'anthropic/claude-sonnet-4.6',
+        },
+      },
+    };
+
+    const prompt = getAgentByName('explorer', config)?.config.prompt;
+
+    expect(prompt).toContain('<model-profile family="claude">');
+    expect(prompt).not.toContain('<model-profile family="openai">');
+  });
+
   test('top-level variant preserved alongside per-model variants', () => {
     const config: PluginConfig = {
       agents: {
@@ -416,6 +433,93 @@ describe('granular permission defaults', () => {
 });
 
 describe('prompt role markers', () => {
+  test('composeAgentPrompt replaces placeholders in base, replacement, and append prompts', () => {
+    expect(
+      composeAgentPrompt({
+        basePrompt: 'Base {{name}}',
+        customAppendPrompt: 'Append {{name}}',
+        placeholders: { name: 'Ada' },
+      }),
+    ).toBe('Base Ada\n\nAppend Ada');
+
+    expect(
+      composeAgentPrompt({
+        basePrompt: 'Base {{name}}',
+        customPrompt: 'Replacement {{name}}',
+        customAppendPrompt: 'Append {{name}}',
+        placeholders: { name: 'Ada' },
+      }),
+    ).toBe('Replacement Ada');
+  });
+
+  test('model-family guidance composes with user append prompts', () => {
+    const prompt =
+      createOrchestratorAgent(
+        'openai/gpt-5.4',
+        undefined,
+        'Project-specific append prompt.',
+      ).config.prompt ?? '';
+
+    expect(prompt).toContain('<model-profile family="openai">');
+    expect(prompt).toContain('Project-specific append prompt.');
+    expect(prompt.indexOf('<model-profile family="openai">')).toBeLessThan(
+      prompt.indexOf('Project-specific append prompt.'),
+    );
+  });
+
+  test('replacement custom prompts do not receive built-in model-family guidance', () => {
+    const prompt = createOrchestratorAgent(
+      'openai/gpt-5.4',
+      'Full replacement prompt.',
+      'Append ignored by replacement.',
+    ).config.prompt;
+
+    expect(prompt).toBe('Full replacement prompt.');
+  });
+
+  test('default OpenAI agents include model-family prompt guidance', () => {
+    for (const agentName of [
+      'explorer',
+      'librarian',
+      'oracle',
+      'designer',
+      'quick',
+      'deep',
+    ]) {
+      expect(getAgentByName(agentName)?.config.prompt).toContain(
+        '<model-profile family="openai">',
+      );
+    }
+  });
+
+  test('orchestrator uses Claude-specific guidance when configured with Claude', () => {
+    const config: PluginConfig = {
+      agents: {
+        orchestrator: { model: 'anthropic/claude-opus-4.7' },
+      },
+    };
+
+    const prompt = getAgentByName('orchestrator', config)?.config.prompt;
+
+    expect(prompt).toContain('<model-profile family="claude">');
+    expect(prompt).toContain('Use XML-like sections');
+    expect(prompt).toContain('delegate aggressively');
+  });
+
+  test('orchestrator uses OpenAI-specific guidance when configured with GPT', () => {
+    const config: PluginConfig = {
+      agents: {
+        orchestrator: { model: 'openai/gpt-5.4' },
+      },
+    };
+
+    const prompt = getAgentByName('orchestrator', config)?.config.prompt;
+
+    expect(prompt).toContain('<model-profile family="openai">');
+    expect(prompt).toContain('Plan briefly, then act');
+    expect(prompt).toContain('Keep tool dispatch explicit');
+  });
+
   test('explorer prompt states read-only discovery mode', () => {
     expect(getAgentByName('explorer')?.config.prompt).toContain('read-only');
   });

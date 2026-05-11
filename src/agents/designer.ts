@@ -1,6 +1,8 @@
 import type { AgentDefinition } from './orchestrator';
 import {
+  appendPromptSections,
   composeAgentPrompt,
+  getModelFamilyPromptSection,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
   SUBAGENT_RULES_WRITABLE,
@@ -47,7 +49,10 @@ export function createDesignerAgent(
   const prompt = composeAgentPrompt({
     basePrompt: DESIGNER_PROMPT,
     customPrompt,
-    customAppendPrompt,
+    customAppendPrompt: appendPromptSections(
+      getModelFamilyPromptSection('designer', model),
+      customAppendPrompt,
+    ),
   });
 
   return {

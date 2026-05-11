@@ -1,6 +1,8 @@
 import type { AgentDefinition } from './orchestrator';
 import {
+  appendPromptSections,
   composeAgentPrompt,
+  getModelFamilyPromptSection,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
   SUBAGENT_RULES_WRITABLE,
@@ -46,7 +48,10 @@ export function createQuickAgent(
   const prompt = composeAgentPrompt({
     basePrompt: QUICK_PROMPT,
     customPrompt,
-    customAppendPrompt,
+    customAppendPrompt: appendPromptSections(
+      getModelFamilyPromptSection('quick', model),
+      customAppendPrompt,
+    ),
   });
 
   return {

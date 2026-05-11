@@ -1,6 +1,8 @@
 import type { AgentDefinition } from './orchestrator';
 import {
+  appendPromptSections,
   composeAgentPrompt,
+  getModelFamilyPromptSection,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
   SUBAGENT_RULES_WRITABLE,
@@ -45,7 +47,10 @@ export function createDeepAgent(
   const prompt = composeAgentPrompt({
     basePrompt: DEEP_PROMPT,
     customPrompt,
-    customAppendPrompt,
+    customAppendPrompt: appendPromptSections(
+      getModelFamilyPromptSection('deep', model),
+      customAppendPrompt,
+    ),
   });
 
   return {

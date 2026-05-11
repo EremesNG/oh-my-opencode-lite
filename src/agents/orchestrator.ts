@@ -1,5 +1,10 @@
 import type { AgentConfig } from '@opencode-ai/sdk/v2';
-import { composeAgentPrompt, QUESTION_PROTOCOL } from './prompt-utils';
+import {
+  appendPromptSections,
+  composeAgentPrompt,
+  getModelFamilyPromptSection,
+  QUESTION_PROTOCOL,
+} from './prompt-utils';
 
 export interface AgentDefinition {
   name: string;
@@ -258,7 +263,10 @@ export function createOrchestratorAgent(
   const prompt = composeAgentPrompt({
     basePrompt: ORCHESTRATOR_PROMPT,
     customPrompt,
-    customAppendPrompt,
+    customAppendPrompt: appendPromptSections(
+      getModelFamilyPromptSection('orchestrator', model),
+      customAppendPrompt,
+    ),
   });
 
   const definition: AgentDefinition = {

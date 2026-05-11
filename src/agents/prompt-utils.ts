@@ -5,6 +5,19 @@ interface ComposeAgentPromptOptions {
   placeholders?: Record<string, string | number | undefined>;
 }
 
+export type AgentPromptRole =
+  | 'orchestrator'
+  | 'explorer'
+  | 'librarian'
+  | 'oracle'
+  | 'designer'
+  | 'quick'
+  | 'deep';
+
+type ModelFamily = 'openai' | 'claude' | 'gemini' | 'kimi' | 'glm';
+
+type ModelEntry = string | { id: string; variant?: string };
+
 export const QUESTION_PROTOCOL = `<questions>
 Use the \`question\` tool for blocking decisions. NEVER ask in plain text.
 
@@ -53,6 +66,122 @@ export function appendPromptSections(
   ...sections: Array<string | undefined>
 ): string {
   return sections.map(trimPromptSection).filter(Boolean).join('\n\n');
+}
+
+function getPrimaryModelId(model?: string | ModelEntry[]): string | undefined {
+  if (Array.isArray(model)) {
+    const first = model[0];
+    return typeof first === 'string' ? first : first?.id;
+  }
+
+  return model;
+}
+
+function detectModelFamily(
+  model?: string | ModelEntry[],
+): ModelFamily | undefined {
+  const id = getPrimaryModelId(model)?.toLowerCase();
+
+  if (!id) {
+    return undefined;
+  }
+
+  if (id.includes('claude') || id.startsWith('anthropic/')) {
+    return 'claude';
+  }
+
+  if (id.includes('gpt') || id.startsWith('openai/')) {
+    return 'openai';
+  }
+
+  if (id.includes('gemini') || id.startsWith('google/')) {
+    return 'gemini';
+  }
+
+  if (id.includes('kimi') || id.includes('k2')) {
+    return 'kimi';
+  }
+
+  if (id.includes('glm') || id.startsWith('zai-')) {
+    return 'glm';
+  }
+
+  return undefined;
+}
+
+function getRoleModelProfile(role: AgentPromptRole): string {
+  switch (role) {
+    case 'orchestrator':
+      return '- Exploit your role by selecting the right specialist category, launching independent tasks together, and synthesizing facts/inferences/unknowns before the next dispatch.';
+    case 'explorer':
+      return '- Exploit your role by scanning broadly first, then narrowing to symbol/path evidence with ranked candidates and confidence.';
+    case 'librarian':
+      return '- Exploit your role by prioritizing official docs, dates, versions, and source quality before summarizing public examples.';
+    case 'oracle':
+      return '- Exploit your role by challenging assumptions, identifying risk, and giving a decision-ready recommendation backed by evidence.';
+    case 'designer':
+      return '- Exploit your role by making concrete UX choices, implementing them, and verifying the visible result instead of stopping at code review.';
+    case 'quick':
+      return '- Exploit your role by applying the smallest clear edit, avoiding broad exploration, and returning immediately after focused verification.';
+    case 'deep':
+      return '- Exploit your role by building a complete mental model of shared behavior, writing tests first when behavior changes, and verifying edge cases.';
+  }
+}
+
+export function getModelFamilyPromptSection(
+  role: AgentPromptRole,
+  model?: string | ModelEntry[],
+): string | undefined {
+  const family = detectModelFamily(model);
+
+  if (!family) {
+    return undefined;
+  }
+
+  const roleGuidance = getRoleModelProfile(role);
+
+  if (family === 'claude') {
+    return `<model-profile family="claude">
+- Use XML-like sections for dense instructions, constraints, evidence, and final output.
+- Prefer explicit role framing, careful decomposition, and uncertainty labels.
+- When the task is agentic, delegate aggressively or use tools explicitly instead of only suggesting changes.
+${roleGuidance}
+</model-profile>`;
+  }
+
+  if (family === 'openai') {
+    return `<model-profile family="openai">
+- Put the operative instruction first, separate context from requirements, and obey the requested output shape exactly.
+- Plan briefly, then act; keep hidden reasoning private and expose only concise decisions, evidence, and next steps.
+- Keep tool dispatch explicit: name the action, the target, and the expected return shape.
+${roleGuidance}
+</model-profile>`;
+  }
+
+  if (family === 'gemini') {
+    return `<model-profile family="gemini">
+- Use long-context strength deliberately: build an index of relevant files or sources before detailed analysis.
+- Ground conclusions in exact anchors and avoid over-weighting broad pattern matches.
+- Keep the final response compact even when the investigation context is large.
+${roleGuidance}
+</model-profile>`;
+  }
+
+  if (family === 'kimi') {
+    return `<model-profile family="kimi">
+- Favor repository-scale reading and resilient code navigation before editing.
+- Keep edits mechanically grounded in the current file state; verify line targets before patching.
+- Return concise structured progress so the orchestrator can continue without absorbing raw context.
+${roleGuidance}
+</model-profile>`;
+  }
+
+  return `<model-profile family="glm">
+- Use explicit checklists and decision gates for complex tasks.
+- Prefer conservative implementation steps, clear verification, and concrete blockers over broad speculation.
+- Keep outputs structured so orchestration remains predictable across model fallbacks.
+${roleGuidance}
+</model-profile>`;
 }
 
 export function replacePromptPlaceholders(

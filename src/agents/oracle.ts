@@ -1,6 +1,8 @@
 import type { AgentDefinition } from './orchestrator';
 import {
+  appendPromptSections,
   composeAgentPrompt,
+  getModelFamilyPromptSection,
   QUESTION_PROTOCOL,
   RESPONSE_BUDGET,
   SUBAGENT_RULES_READONLY,
@@ -45,7 +47,10 @@ export function createOracleAgent(
   const prompt = composeAgentPrompt({
     basePrompt: ORACLE_PROMPT,
     customPrompt,
-    customAppendPrompt,
+    customAppendPrompt: appendPromptSections(
+      getModelFamilyPromptSection('oracle', model),
+      customAppendPrompt,
+    ),
   });
 
   return {

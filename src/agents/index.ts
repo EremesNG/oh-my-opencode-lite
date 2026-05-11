@@ -7,7 +7,6 @@ import {
   type PluginConfig,
   SUBAGENT_NAMES,
 } from '../config';
-
 import { createDeepAgent } from './deep';
 import { createDesignerAgent } from './designer';
 import { createExplorerAgent } from './explorer';
@@ -226,6 +225,17 @@ function getExplicitPermissionOverride(
   return (override as AgentOverrideWithPermission | undefined)?.permission;
 }
 
+function getPrimaryModelForPrompt(
+  model: AgentOverrideConfig['model'] | string | undefined,
+): string | undefined {
+  if (Array.isArray(model)) {
+    const first = model[0];
+    return typeof first === 'string' ? first : first?.id;
+  }
+
+  return model;
+}
+
 export type SubagentName = (typeof SUBAGENT_NAMES)[number];
 
 export function isSubagent(name: string): name is SubagentName {
@@ -245,12 +255,13 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
   const protoSubAgents = (
     Object.entries(SUBAGENT_FACTORIES) as [SubagentName, AgentFactory][]
   ).map(([name, factory]) => {
+    const override = getAgentOverride(config, name);
     const prompts = loadAgentPrompt(name, config?.preset);
-    return factory(
-      DEFAULT_MODELS[name] as string,
-      prompts.prompt,
-      prompts.appendPrompt,
-    );
+    const model =
+      getPrimaryModelForPrompt(override?.model) ??
+      (DEFAULT_MODELS[name] as string);
+
+    return factory(model, prompts.prompt, prompts.appendPrompt);
   });
 
   const allSubAgents = protoSubAgents.map((agent) => {
