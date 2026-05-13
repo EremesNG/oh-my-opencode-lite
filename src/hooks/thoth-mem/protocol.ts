@@ -45,6 +45,11 @@ Always pass these values when calling memory tools that accept them (mem_session
 ### CORE TOOLS
 mem_save, mem_search, mem_context, mem_session_summary, mem_get_observation, mem_save_prompt, mem_update, mem_suggest_topic_key, mem_timeline, mem_capture_passive
 
+### SUBAGENT HANDOFF
+- When dispatching subagents for thoth-mem work, load the bundled \`thoth-mem-agents\` skill.
+- Orchestrator owns \`mem_session_start\`, \`mem_session_summary\`, and \`mem_save_prompt\`.
+- Do not ask subagents to save prompts or session summaries; pass parent \`session_id\` and \`project\` instead.
+
 ### WHEN TO SAVE
 Call \`mem_save\` IMMEDIATELY after ANY of these:
 - Architecture, design, or workflow decision made

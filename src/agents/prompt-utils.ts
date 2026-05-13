@@ -19,43 +19,28 @@ type ModelFamily = 'openai' | 'claude' | 'gemini' | 'kimi' | 'glm';
 type ModelEntry = string | { id: string; variant?: string };
 
 export const QUESTION_PROTOCOL = `<questions>
-Use the \`question\` tool for blocking decisions. NEVER ask in plain text.
-
-Ask only when one of these is true:
-1. The request is ambiguous in a way that materially changes the result AND you cannot resolve it by reading the codebase.
-2. The action is destructive/irreversible, touches production, or changes security posture.
-3. You need a secret, credential, or value that cannot be inferred.
-
-When you must ask: do all non-blocked work first, then ask exactly one targeted question. Include your recommended default and state what changes based on the answer.
-Put the recommended option first with "(Recommended)". Short headers (<=30 chars).
-After calling question, STOP — do not continue execution.
+Use \`question\` only for blocking choices: unresolved ambiguity that changes the result, destructive/security-sensitive actions, or missing secrets. Do all non-blocked work first, ask one targeted question with a recommended default first, then stop.
 </questions>`;
 
-export const SUBAGENT_RULES = `- You are a single-task execution agent. NEVER attempt to launch sub-agents, delegate work to other agents, manage SDD pipeline phases, or act as an orchestrator. Execute ONLY your assigned task and return structured results.
-- Do not call \`todowrite\` — task progress tracking is exclusively orchestrator-owned.
-- Use \`question\` tool for blocking decisions, never plain text.
-- NEVER run destructive git commands that discard working-tree changes: \`git restore\`, \`git checkout -- <path>\`, \`git reset --hard\`, \`git clean\`, \`git stash\`. During SDD execution, files modified by prior tasks are intentional progress — reverting them destroys the pipeline.
-- NEVER run \`git restore\` to "clean up" tracked file changes you did not make. Those changes belong to earlier tasks in the same pipeline.
-- NEVER run blocking, interactive, or long-running commands that do not terminate on their own (dev servers, file watchers, interactive UIs, REPLs). Examples to avoid: \`playwright test --ui\`, \`vite\`, \`next dev\`, \`npm run dev\`, \`tsc --watch\`, \`jest --watch\`. Use non-interactive, terminating equivalents instead (e.g. \`playwright test\` without \`--ui\`, single-run test commands, \`tsc --noEmit\`).`;
+export const SUBAGENT_RULES = `- Single-task leaf agent: do not delegate, manage SDD phases, act as orchestrator, or call \`todowrite\`.
+- Use \`question\` only for local blocking decisions.
+- Never discard working-tree changes: no \`git restore\`, \`git checkout -- <path>\`, \`git reset --hard\`, \`git clean\`, or \`git stash\`.
+- Avoid blocking/watch commands; use terminating checks only.`;
 
 export const SUBAGENT_RULES_READONLY = `${SUBAGENT_RULES}
-- You have READ-ONLY access to thoth-mem for context retrieval via the 3-layer recall protocol:
-  1. \`mem_search\` with compact index (default) — scan IDs + titles to identify promising observations
-  2. \`mem_timeline\` — get chronological context around candidates to disambiguate
-  3. \`mem_get_observation\` — retrieve full content only for records you need
-- Use \`mode: "preview"\` only when compact results are insufficient to disambiguate.
-- ALWAYS use the session_id and project values provided in your dispatch prompt for all thoth-mem calls. If none provided, do NOT call thoth-mem tools.
-- Do NOT call any thoth-mem write tools (mem_save, mem_update, mem_delete, mem_session_summary, mem_capture_passive, mem_save_prompt). Memory writes are exclusively orchestrator-owned.`;
+- Use read-only thoth-mem only when dispatch gives session_id/project: \`mem_search\` -> \`mem_timeline\` -> \`mem_get_observation\`.
+- Never call \`mem_session_start\`, \`mem_session_summary\`, or \`mem_save_prompt\`; those tools are orchestrator-owned.
+- Never write memory; memory writes are orchestrator-owned.`;
 
 export const SUBAGENT_RULES_WRITABLE = `${SUBAGENT_RULES}
-- You have access to thoth-mem tools (mem_save, mem_search, mem_context, mem_get_observation, mem_timeline, mem_suggest_topic_key).
-- ALWAYS use the session_id and project values provided in your dispatch prompt for ALL thoth-mem calls. Never use your own session ID — your observations must be linked to the orchestrator's root session.
-- If no session_id or project is provided in the dispatch, do NOT call thoth-mem tools.`;
+- Use delegated thoth-mem tools only (mem_save, mem_search, mem_get_observation, mem_timeline, mem_suggest_topic_key).
+- Never call \`mem_session_start\`, \`mem_session_summary\`, or \`mem_save_prompt\`; those tools are orchestrator-owned.
+- Always use the parent session_id/project from dispatch for every thoth-mem call.
+- If either is missing, do NOT call thoth-mem.
+- For reads, use only \`mem_search\` -> \`mem_timeline\` -> \`mem_get_observation\`.
+- You do not own durable memory of your own; \`mem_save\` writes under the orchestrator's session/project only.`;
 
-export const RESPONSE_BUDGET = `Your response returns to an expensive orchestrator model. Be ruthlessly concise:
-- Return insights and conclusions, NEVER raw file contents or full code blocks.
-- Structured results (status, summary, files, issues) over prose.
-- If the orchestrator needs more detail, it will ask in a follow-up.`;
+export const RESPONSE_BUDGET = `Return concise structured results: status, summary, files, verification/issues. Never return raw file dumps.`;
 
 function trimPromptSection(section?: string): string | undefined {
   const trimmed = section?.trim();
@@ -142,44 +127,34 @@ export function getModelFamilyPromptSection(
 
   if (family === 'claude') {
     return `<model-profile family="claude">
-- Use XML-like sections for dense instructions, constraints, evidence, and final output.
-- Prefer explicit role framing, careful decomposition, and uncertainty labels.
-- When the task is agentic, delegate aggressively or use tools explicitly instead of only suggesting changes.
+- Use XML-like sections, label uncertainty, and delegate aggressively when agentic.
 ${roleGuidance}
 </model-profile>`;
   }
 
   if (family === 'openai') {
     return `<model-profile family="openai">
-- Put the operative instruction first, separate context from requirements, and obey the requested output shape exactly.
-- Plan briefly, then act; keep hidden reasoning private and expose only concise decisions, evidence, and next steps.
-- Keep tool dispatch explicit: name the action, the target, and the expected return shape.
+- Plan briefly, then act. Keep tool dispatch explicit: action, target, return shape.
 ${roleGuidance}
 </model-profile>`;
   }
 
   if (family === 'gemini') {
     return `<model-profile family="gemini">
-- Use long-context strength deliberately: build an index of relevant files or sources before detailed analysis.
-- Ground conclusions in exact anchors and avoid over-weighting broad pattern matches.
-- Keep the final response compact even when the investigation context is large.
+- Use long-context breadth deliberately, then ground conclusions in exact anchors.
 ${roleGuidance}
 </model-profile>`;
   }
 
   if (family === 'kimi') {
     return `<model-profile family="kimi">
-- Favor repository-scale reading and resilient code navigation before editing.
-- Keep edits mechanically grounded in the current file state; verify line targets before patching.
-- Return concise structured progress so the orchestrator can continue without absorbing raw context.
+- Favor repository-scale navigation before edits; keep patches grounded in current file state.
 ${roleGuidance}
 </model-profile>`;
   }
 
   return `<model-profile family="glm">
-- Use explicit checklists and decision gates for complex tasks.
-- Prefer conservative implementation steps, clear verification, and concrete blockers over broad speculation.
-- Keep outputs structured so orchestration remains predictable across model fallbacks.
+- Use compact checklists, conservative steps, clear verification, and concrete blockers.
 ${roleGuidance}
 </model-profile>`;
 }

@@ -54,6 +54,21 @@ export const CUSTOM_SKILLS: CustomSkill[] = [
     sourcePath: 'src/skills/cartography',
   },
   {
+    name: 'thoth-mem-agents',
+    description:
+      'Orchestrator/subagent thoth-mem workflow contract for parent session_id/project ownership, prompt-save prohibitions, and safe durable memory usage',
+    allowedAgents: [
+      'orchestrator',
+      'explorer',
+      'librarian',
+      'oracle',
+      'designer',
+      'quick',
+      'deep',
+    ],
+    sourcePath: 'src/skills/thoth-mem-agents',
+  },
+  {
     name: 'plan-reviewer',
     description:
       'Review SDD task plans for execution blockers and valid references',

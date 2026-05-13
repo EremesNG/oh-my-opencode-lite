@@ -47,6 +47,16 @@ async function createRootSession(
   await hook.event(createMockEvent('session.created', { id: sessionID }));
 }
 
+async function createChildSession(
+  hook: ReturnType<typeof createThothMemHook>,
+  sessionID = 'child-session',
+  parentID = 'root-session',
+) {
+  await hook.event(
+    createMockEvent('session.created', { id: sessionID, parentID }),
+  );
+}
+
 async function compactSession(
   hook: ReturnType<typeof createThothMemHook>,
   sessionID = 'root-session',
@@ -163,13 +173,16 @@ describe('createThothMemHook', () => {
       enabled: true,
     });
 
+    await createRootSession(hook);
+    memSessionStartMock.mockClear();
+
     const output = { context: [] as string[] };
     await hook['experimental.session.compacting']?.(
       { sessionID: 'root-session' },
       output,
     );
 
-    expect(memSessionStartMock).toHaveBeenCalledWith('root-session');
+    expect(memSessionStartMock).not.toHaveBeenCalled();
     expect(output.context[0]).toContain('CRITICAL INSTRUCTION');
     expect(output.context[0]).toContain("Use project: 'oh-my-opencode-lite'.");
     expect(output.context).toContain('## Memory Context\n- Prior decision');
@@ -181,21 +194,19 @@ describe('createThothMemHook', () => {
       enabled: true,
     });
 
-    await hook.event(
-      createMockEvent('session.created', {
-        id: 'child-session',
-        parentID: 'root-session',
-      }),
-    );
+    await createChildSession(hook);
 
     expect(memSessionStartMock).not.toHaveBeenCalled();
   });
 
-  test('captures user prompts from chat.message', async () => {
+  test('saves root prompts only after the root session is created', async () => {
     const hook = createThothMemHook({
       project: 'oh-my-opencode-lite',
       enabled: true,
     });
+
+    await createRootSession(hook);
+    memSessionStartMock.mockClear();
 
     await hook['chat.message']?.(
       { sessionID: 'root-session' },
@@ -205,11 +216,61 @@ describe('createThothMemHook', () => {
       },
     );
 
-    expect(memSessionStartMock).toHaveBeenCalledWith('root-session');
+    expect(memSessionStartMock).not.toHaveBeenCalled();
     expect(memSavePromptMock).toHaveBeenCalledWith(
       'root-session',
       'User prompt content',
     );
+  });
+
+  test('does not save child prompts or enroll child sessions from chat.message', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    await createRootSession(hook);
+    await createChildSession(hook);
+    memSessionStartMock.mockClear();
+
+    await hook['chat.message']?.(
+      { sessionID: 'child-session' },
+      {
+        parts: [
+          {
+            type: 'text',
+            text: 'Generated subagent scaffolding prompt',
+          } as never,
+        ],
+        message: {},
+      },
+    );
+
+    expect(memSessionStartMock).not.toHaveBeenCalled();
+    expect(memSavePromptMock).not.toHaveBeenCalled();
+  });
+
+  test('fails closed for unknown sessions in chat.message', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    await hook['chat.message']?.(
+      { sessionID: 'unknown-session' },
+      {
+        parts: [
+          {
+            type: 'text',
+            text: 'Unknown session prompt should not be saved',
+          } as never,
+        ],
+        message: {},
+      },
+    );
+
+    expect(memSessionStartMock).not.toHaveBeenCalled();
+    expect(memSavePromptMock).not.toHaveBeenCalled();
   });
 
   test('strips private tags before saving prompts', async () => {
@@ -217,6 +278,8 @@ describe('createThothMemHook', () => {
       project: 'oh-my-opencode-lite',
       enabled: true,
     });
+
+    await createRootSession(hook);
 
     await hook['chat.message']?.(
       { sessionID: 'root-session' },
@@ -243,6 +306,8 @@ describe('createThothMemHook', () => {
       enabled: true,
     });
 
+    await createRootSession(hook);
+
     await hook['chat.message']?.(
       { sessionID: 'root-session' },
       {
@@ -261,6 +326,8 @@ describe('createThothMemHook', () => {
       enabled: true,
     });
 
+    await createRootSession(hook);
+
     await hook['chat.message']?.(
       { sessionID: 'root-session' },
       {
@@ -278,6 +345,8 @@ describe('createThothMemHook', () => {
       enabled: true,
     });
 
+    await createRootSession(hook);
+
     await hook['chat.message']?.(
       { sessionID: 'root-session' },
       {
@@ -294,6 +363,8 @@ describe('createThothMemHook', () => {
       project: 'oh-my-opencode-lite',
       enabled: true,
     });
+
+    await createRootSession(hook);
 
     await hook['chat.message']?.(
       { sessionID: 'root-session' },
@@ -314,6 +385,8 @@ describe('createThothMemHook', () => {
       project: 'oh-my-opencode-lite',
       enabled: true,
     });
+
+    await createRootSession(hook);
 
     await hook['chat.message']?.(
       { sessionID: 'root-session' },
@@ -541,6 +614,25 @@ describe('createThothMemHook', () => {
     expect(instructions).toContain('mem_save_prompt');
     expect(instructions).toContain('dale');
     expect(instructions).toContain('sounds good');
+    expect(instructions).toContain('thoth-mem-agents');
+  });
+
+  test('does not inject memory instructions for child or unknown sessions', async () => {
+    const hook = createThothMemHook({
+      project: 'oh-my-opencode-lite',
+      enabled: true,
+    });
+
+    await createRootSession(hook);
+    await createChildSession(hook);
+
+    const childOutput = await transformSystem(hook, 'child-session');
+    const unknownOutput = await transformSystem(hook, 'unknown-session');
+
+    expect(childOutput.system[0]).toBe('Base system prompt');
+    expect(unknownOutput.system[0]).toBe('Base system prompt');
+    expect(childOutput.system[0]).not.toContain('<memory_protocol>');
+    expect(unknownOutput.system[0]).not.toContain('<memory_protocol>');
   });
 
   test('buildSaveNudge returns a non-empty reminder message', () => {

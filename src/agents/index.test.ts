@@ -107,6 +107,7 @@ const EXPECTED_DEFAULT_PERMISSIONS: Record<
     question: 'allow',
     codesearch: 'allow',
     lsp: 'allow',
+    skill: 'allow',
     todowrite: 'deny',
     task: 'deny',
     external_directory: {
@@ -295,6 +296,7 @@ describe('orchestrator agent', () => {
     expect(prompt).toContain('requirements-interview');
     expect(prompt).toMatch(/propose\s*->\s*spec\s*->\s*design\s*->\s*tasks/i);
     expect(prompt).toContain('dispatch sdd-init first');
+    expect(prompt).toContain('Never require a build after changes');
   });
 });
 
@@ -433,6 +435,24 @@ describe('granular permission defaults', () => {
 });
 
 describe('prompt role markers', () => {
+  test('built-in prompts stay compact enough for delegation efficiency', () => {
+    const maxPromptChars: Record<string, number> = {
+      orchestrator: 11_000,
+      explorer: 3_000,
+      librarian: 3_000,
+      oracle: 3_000,
+      designer: 3_100,
+      quick: 3_000,
+      deep: 3_000,
+    };
+
+    for (const agent of createAgents()) {
+      expect(agent.config.prompt?.length).toBeLessThanOrEqual(
+        maxPromptChars[agent.name],
+      );
+    }
+  });
+
   test('composeAgentPrompt replaces placeholders in base, replacement, and append prompts', () => {
     expect(
       composeAgentPrompt({
@@ -492,6 +512,29 @@ describe('prompt role markers', () => {
     }
   });
 
+  test('read-only subagent prompts forbid session and prompt thoth-mem writes', () => {
+    const explorerPrompt = getAgentByName('explorer')?.config.prompt ?? '';
+
+    expect(explorerPrompt).toContain('mem_search` -> `mem_timeline` -> `mem_get_observation`');
+    expect(explorerPrompt).toContain('Never call `mem_session_start`, `mem_session_summary`, or `mem_save_prompt`');
+  });
+
+  test('write-capable subagent prompts require parent thoth-mem ownership rules', () => {
+    const deepPrompt = getAgentByName('deep')?.config.prompt ?? '';
+    const quickPrompt = getAgentByName('quick')?.config.prompt ?? '';
+
+    expect(deepPrompt).toContain('Never call `mem_session_start`, `mem_session_summary`, or `mem_save_prompt`');
+    expect(deepPrompt).toContain('Always use the parent session_id/project from dispatch');
+    expect(deepPrompt).toContain('`mem_search` -> `mem_timeline` -> `mem_get_observation`');
+    expect(deepPrompt).not.toContain('mem_context');
+    expect(deepPrompt).toContain('You do not own durable memory of your own');
+    expect(quickPrompt).toContain('Never call `mem_session_start`, `mem_session_summary`, or `mem_save_prompt`');
+  });
+
+  test('quick agent can load bundled workflow skills', () => {
+    expect(getPermissionRecord('quick').skill).toBe('allow');
+  });
+
   test('orchestrator uses Claude-specific guidance when configured with Claude', () => {
     const config: PluginConfig = {
       agents: {
@@ -547,7 +590,7 @@ describe('prompt role markers', () => {
       const prompt = getAgentByName(agentName)?.config.prompt;
 
       // Should include read-only access instructions
-      expect(prompt).toContain('READ-ONLY access to thoth-mem');
+      expect(prompt).toContain('read-only thoth-mem');
 
       // Should include the 3-layer recall protocol
       expect(prompt).toContain('mem_search');
@@ -555,13 +598,7 @@ describe('prompt role markers', () => {
       expect(prompt).toContain('mem_get_observation');
 
       // Should ban write tools
-      expect(prompt).toContain('mem_save');
-      expect(prompt).toContain('mem_update');
-      expect(prompt).toContain('mem_delete');
-      expect(prompt).toContain('mem_session_summary');
-      expect(prompt).toContain(
-        'Memory writes are exclusively orchestrator-owned',
-      );
+      expect(prompt).toContain('Never write memory');
 
       // Should NOT contain the old blanket ban
       expect(prompt).not.toContain(
@@ -572,13 +609,13 @@ describe('prompt role markers', () => {
 
   test('write-capable subagents require root session/project for thoth-mem calls', () => {
     expect(getAgentByName('designer')?.config.prompt).toContain(
-      'You have access to thoth-mem tools',
+      'Use delegated thoth-mem tools only',
     );
     expect(getAgentByName('quick')?.config.prompt).toContain(
-      'ALWAYS use the session_id and project values provided in your dispatch prompt for ALL thoth-mem calls.',
+      'Always use the parent session_id/project from dispatch for every thoth-mem call.',
     );
     expect(getAgentByName('deep')?.config.prompt).toContain(
-      'If no session_id or project is provided in the dispatch, do NOT call thoth-mem tools.',
+      'If either is missing, do NOT call thoth-mem.',
     );
   });
 });

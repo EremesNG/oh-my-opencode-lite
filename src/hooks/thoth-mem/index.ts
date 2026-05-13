@@ -103,35 +103,12 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
 
   const trackedRootSessions = new Set<string>();
   const needsCompactionFollowUp = new Set<string>();
-  const ensuredRootSessions = new Map<string, Promise<void>>();
   const sessionCreatedAt = new Map<string, number>();
   const lastMemSaveAt = new Map<string, number>();
   const nudgePending = new Set<string>();
 
-  async function ensureRootSession(sessionId: string): Promise<void> {
-    if (!enabled || trackedRootSessions.has(sessionId)) {
-      return;
-    }
-
-    const existing = ensuredRootSessions.get(sessionId);
-    if (existing) {
-      await existing;
-      return;
-    }
-
-    const pending = (async () => {
-      const started = await thoth.memSessionStart(sessionId);
-      if (started) {
-        trackedRootSessions.add(sessionId);
-      } else {
-        log('[thoth] session start unavailable, skipping tracking:', sessionId);
-      }
-    })().finally(() => {
-      ensuredRootSessions.delete(sessionId);
-    });
-
-    ensuredRootSessions.set(sessionId, pending);
-    await pending;
+  function isTrackedRootSession(sessionId?: string): sessionId is string {
+    return typeof sessionId === 'string' && trackedRootSessions.has(sessionId);
   }
 
   function shouldInjectSaveNudge(sessionId: string): boolean {
@@ -181,7 +158,6 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
   function handleSessionDeleted(session: RootSessionLike): void {
     trackedRootSessions.delete(session.id);
     needsCompactionFollowUp.delete(session.id);
-    ensuredRootSessions.delete(session.id);
     sessionCreatedAt.delete(session.id);
     lastMemSaveAt.delete(session.id);
     nudgePending.delete(session.id);
@@ -233,7 +209,9 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
         return;
       }
 
-      await ensureRootSession(input.sessionID);
+      if (!isTrackedRootSession(input.sessionID)) {
+        return;
+      }
 
       const promptText = extractPromptText(output.parts);
       if (!promptText) {
@@ -258,7 +236,7 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
         return;
       }
 
-      if (!trackedRootSessions.has(input.sessionID)) {
+      if (!isTrackedRootSession(input.sessionID)) {
         return;
       }
 
@@ -315,7 +293,10 @@ export function createThothMemHook(options: CreateThothMemHookOptions) {
         return;
       }
 
-      await ensureRootSession(input.sessionID);
+      if (!isTrackedRootSession(input.sessionID)) {
+        return;
+      }
+
       needsCompactionFollowUp.add(input.sessionID);
 
       output.context.push(buildCompactorInstruction(options.project));

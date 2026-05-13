@@ -136,6 +136,7 @@ const BUILTIN_PERMISSION_PRESETS = {
     question: 'allow',
     codesearch: 'allow',
     lsp: 'allow',
+    skill: 'allow',
     todowrite: 'deny',
     task: 'deny',
     external_directory: {

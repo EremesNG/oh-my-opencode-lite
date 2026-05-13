@@ -157,8 +157,8 @@ Between every task:
 
 After the task list is complete:
 
-1. Run full verification: build, typecheck, tests, and lint using the project's
-   configured commands.
+1. Run full verification without build: typecheck, tests, and lint using the
+   project's configured commands.
 2. Report a completion summary with evidence.
 3. If the work is SDD-backed, suggest `sdd-verify` as the next step.
 

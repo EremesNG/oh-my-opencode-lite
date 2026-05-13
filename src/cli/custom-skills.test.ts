@@ -92,6 +92,41 @@ describe('CUSTOM_SKILLS', () => {
     });
   });
 
+  test('registers the thoth-mem-agents skill for orchestrator and subagents', () => {
+    expect(CUSTOM_SKILLS).toContainEqual({
+      name: 'thoth-mem-agents',
+      description:
+        'Orchestrator/subagent thoth-mem workflow contract for parent session_id/project ownership, prompt-save prohibitions, and safe durable memory usage',
+      allowedAgents: [
+        'orchestrator',
+        'explorer',
+        'librarian',
+        'oracle',
+        'designer',
+        'quick',
+        'deep',
+      ],
+      sourcePath: 'src/skills/thoth-mem-agents',
+    });
+  });
+
+  test('bundled thoth-mem-agents skill encodes critical ownership rules', () => {
+    const skillPath = join(
+      import.meta.dir,
+      '..',
+      'skills',
+      'thoth-mem-agents',
+      'SKILL.md',
+    );
+    const skill = readFileSync(skillPath, 'utf-8');
+
+    expect(skill).toContain('Subagents MUST NOT call them.');
+    expect(skill).toContain('Do not call `mem_context`');
+    expect(skill).toContain('You do not own durable memory of your own.');
+    expect(skill).toContain('Writable subagent calls `mem_context`');
+    expect(skill).toContain('Never save a subagent prompt.');
+  });
+
   test('findPackageRoot walks up from a bundled dist directory', () => {
     expect(findPackageRoot(join(packageRoot, 'dist'))).toBe(packageRoot);
   });
