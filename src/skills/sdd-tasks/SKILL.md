@@ -116,8 +116,12 @@ rules per mode.
 9. After `tasks.md` is generated, the workflow proceeds to an optional oracle
    plan review via the `plan-reviewer` skill. This is managed outside the scope
    of this skill.
-10. The orchestrator handles the `[OKAY]` / `[REJECT]` review loop and any
-    necessary fixes before proceeding to execution.
+10. The artifact governance validator may run **after** `sdd-tasks` as a
+    report-only handoff. It captures placement guidance for the future
+    pre-`sdd-apply` entrypoint, but it does not enforce execution or overlap
+    with plan review.
+11. The orchestrator handles the `[OKAY]` / `[REJECT]` review loop and any
+     necessary fixes before proceeding to execution.
 
 ## Output Format
 
@@ -136,6 +140,9 @@ Return:
 - Order tasks by dependency.
 - Include testing and verification work explicitly.
 - Do not create vague tasks such as "implement feature".
+- The governance validator is advisory only at this stage; it documents
+  handoff placement and report findings, but it does not block task generation
+  or replace execution planning.
 - **Every task MUST include a `Verification` sub-block** with:
   - `Run:` — the exact command(s) to verify this task (e.g., `bun test`, `bun run typecheck`, `bun run lint`)
   - `Expected:` — the specific observable outcome that confirms success

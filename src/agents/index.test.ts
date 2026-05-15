@@ -298,6 +298,33 @@ describe('orchestrator agent', () => {
     expect(prompt).toContain('dispatch sdd-init first');
     expect(prompt).toContain('Never require a build after changes');
   });
+
+  test('orchestrator prompt places artifact governance after sdd-tasks in report-only mode', () => {
+    const prompt = getAgentByName('orchestrator')?.config.prompt ?? '';
+
+    expect(prompt).toContain(
+      'After `sdd-tasks`, you may surface report-only artifact governance findings',
+    );
+    expect(prompt).toContain('before execution preparation starts');
+    expect(prompt).toContain(
+      'Do not treat governance findings as an execution gate',
+    );
+    expect(prompt).toContain(
+      'Do not let governance validation replace `plan-reviewer`',
+    );
+  });
+
+  test('orchestrator prompt keeps governance findings inside delegate-first and root-memory ownership boundaries', () => {
+    const prompt = getAgentByName('orchestrator')?.config.prompt ?? '';
+
+    expect(prompt).toContain(
+      'Delegate governance inspection; do not inspect repository artifacts inline.',
+    );
+    expect(prompt).toContain('Root thoth-mem ownership stays with you');
+    expect(prompt).toContain(
+      'sub-agents may surface findings but must not own session memory, prompts, or progress checkpoints',
+    );
+  });
 });
 
 describe('per-model variant in array config', () => {
@@ -515,20 +542,32 @@ describe('prompt role markers', () => {
   test('read-only subagent prompts forbid session and prompt thoth-mem writes', () => {
     const explorerPrompt = getAgentByName('explorer')?.config.prompt ?? '';
 
-    expect(explorerPrompt).toContain('mem_search` -> `mem_timeline` -> `mem_get_observation`');
-    expect(explorerPrompt).toContain('Never call `mem_session_start`, `mem_session_summary`, or `mem_save_prompt`');
+    expect(explorerPrompt).toContain(
+      'mem_search` -> `mem_timeline` -> `mem_get_observation`',
+    );
+    expect(explorerPrompt).toContain(
+      'Never call `mem_session_start`, `mem_session_summary`, or `mem_save_prompt`',
+    );
   });
 
   test('write-capable subagent prompts require parent thoth-mem ownership rules', () => {
     const deepPrompt = getAgentByName('deep')?.config.prompt ?? '';
     const quickPrompt = getAgentByName('quick')?.config.prompt ?? '';
 
-    expect(deepPrompt).toContain('Never call `mem_session_start`, `mem_session_summary`, or `mem_save_prompt`');
-    expect(deepPrompt).toContain('Always use the parent session_id/project from dispatch');
-    expect(deepPrompt).toContain('`mem_search` -> `mem_timeline` -> `mem_get_observation`');
+    expect(deepPrompt).toContain(
+      'Never call `mem_session_start`, `mem_session_summary`, or `mem_save_prompt`',
+    );
+    expect(deepPrompt).toContain(
+      'Always use the parent session_id/project from dispatch',
+    );
+    expect(deepPrompt).toContain(
+      '`mem_search` -> `mem_timeline` -> `mem_get_observation`',
+    );
     expect(deepPrompt).not.toContain('mem_context');
     expect(deepPrompt).toContain('You do not own durable memory of your own');
-    expect(quickPrompt).toContain('Never call `mem_session_start`, `mem_session_summary`, or `mem_save_prompt`');
+    expect(quickPrompt).toContain(
+      'Never call `mem_session_start`, `mem_session_summary`, or `mem_save_prompt`',
+    );
   });
 
   test('quick agent can load bundled workflow skills', () => {

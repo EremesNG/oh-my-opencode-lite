@@ -24,6 +24,10 @@ the persistence mode: read `openspec/changes/{change-name}/tasks.md` for
 openspec/hybrid modes, use thoth-mem 3-layer recall for thoth-mem/hybrid modes,
 or read from inline context for none mode.
 
+The artifact governance validator is not part of this review. Plan-reviewer is
+only the pre-execution approval gate for the task plan; it does not run the
+validator, enforce its findings, or manage the future pre-`sdd-apply` handoff.
+
 Focus on whether the plan can be executed as written, not whether you would have
 designed it differently.
 

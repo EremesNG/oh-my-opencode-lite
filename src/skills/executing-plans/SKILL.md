@@ -34,6 +34,10 @@ The orchestrator owns task progress tracking.
 - Persistence mode determines target stores: `openspec` → file only,
   `thoth-mem` → memory only, `hybrid` → both. Never skip a store that the
   active mode requires.
+- The artifact governance validator is outside this skill's responsibility.
+  If present, it is a report-only checkpoint after `sdd-tasks` and before a
+  future `sdd-apply` entrypoint; it does not change checkbox state or task
+  ownership.
 - `openspec/` files are coordination artifacts, not source code. The
   orchestrator may read and edit them directly for progress tracking and state
   management only when the active mode includes openspec artifacts.

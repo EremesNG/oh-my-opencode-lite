@@ -115,6 +115,17 @@ Always complete the 3-layer recall before using content as source material.
 - `sdd-archive` persists `sdd/{change-name}/archive-report`
 - `state` persists `sdd/{change-name}/state`
 
+## Governance Placement
+
+- The artifact governance validator is **report-only**.
+- It runs after `sdd-tasks` produces the canonical checklist and before any
+  future `sdd-apply` entrypoint consumes the report.
+- It does **not** replace `plan-reviewer` or `executing-plans`.
+- It does **not** mark task state, enforce execution, or alter review gating.
+- Root-session memory and progress checkpoints remain orchestrator-owned;
+  sub-agents may surface governance findings, but they must stay within the
+  active artifact store mode and delegate-first boundaries.
+
 ## Pipeline Type Impact on Prerequisites
 
 The orchestrator passes `pipeline-type` (`accelerated` or `full`) alongside the
