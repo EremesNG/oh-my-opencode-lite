@@ -10,6 +10,11 @@
       "type": "remote",
       "url": "http://127.0.0.1:29193/debugger-mcp/streamable-http",
       "enabled": true
+    },
+    "mcp-steroid": {
+      "type": "remote",
+      "url": "http://127.0.0.1:6315/mcp",
+      "enabled": true
     }
   }
 }

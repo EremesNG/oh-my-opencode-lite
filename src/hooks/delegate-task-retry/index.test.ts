@@ -15,18 +15,21 @@ describe('delegate-task-retry hook', () => {
     expect(output.output).toContain('missing_category_or_agent');
   });
 
-  test('ignores retired background task output', async () => {
+  test('appends background-policy guidance for native task allowlist errors', async () => {
     const hook = createDelegateTaskRetryHook({} as never);
     const output = {
       output:
         "Agent 'oracle' is not allowed. Allowed agents: explorer, librarian",
     };
 
-    await hook['tool.execute.after']({ tool: 'background_task' }, output);
+    await hook['tool.execute.after']({ tool: 'task' }, output);
 
-    expect(output.output).toBe(
-      "Agent 'oracle' is not allowed. Allowed agents: explorer, librarian",
+    expect(output.output).toContain('[delegate-task retry suggestion]');
+    expect(output.output).toContain('background_agent_not_allowed');
+    expect(output.output).toContain(
+      'Use `background=true` only for `explorer` or `librarian`',
     );
+    expect(output.output).toContain('Available: explorer, librarian');
   });
 
   test('does nothing for unrelated tool output', async () => {

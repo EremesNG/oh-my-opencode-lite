@@ -32,6 +32,19 @@ export function buildRetryGuidance(errorInfo: DetectedError): string {
     lines.push(`Available: ${available}`);
   }
 
+  if (errorInfo.errorType === 'background_agent_not_allowed') {
+    lines.push(
+      'Retry now with corrected parameters.',
+      'Use `background=true` only for `explorer` or `librarian`; otherwise retry without background.',
+      'If the host enables `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true`, collect results with `task_status` before reporting completion.',
+      'Examples:',
+      'task(description="...", prompt="...", subagent_type="explorer", background=true)',
+      'task_status(task_id="ses_...", wait=true)',
+    );
+
+    return lines.join('\n');
+  }
+
   lines.push(
     'Retry now with corrected parameters. Example:',
     'task(description="...", prompt="...", subagent_type="explorer")',
