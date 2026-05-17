@@ -297,6 +297,16 @@ describe('orchestrator agent', () => {
     expect(prompt).toMatch(/propose\s*->\s*spec\s*->\s*design\s*->\s*tasks/i);
     expect(prompt).toContain('dispatch sdd-init first');
     expect(prompt).toContain('Never require a build after changes');
+    expect(prompt).toContain(
+      'Experimental background `task(background=true)` is allowed only for @explorer and @librarian',
+    );
+    expect(prompt).toContain(
+      '`OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true`',
+    );
+    expect(prompt).toContain('Use `task_status` to wait, poll, and collect');
+    expect(prompt).toContain(
+      '@oracle, @designer, @quick, and @deep always use normal synchronous `task` execution',
+    );
   });
 
   test('orchestrator prompt places artifact governance after sdd-tasks in report-only mode', () => {

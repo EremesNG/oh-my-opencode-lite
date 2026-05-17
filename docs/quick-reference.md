@@ -24,8 +24,8 @@ integration.
 | Agent | Role | Mode | Dispatch |
 | --- | --- | --- | --- |
 | `orchestrator` | Root coordinator and memory owner | primary, non-mutating | sync coordinator |
-| `explorer` | Local repository discovery | read-only | `task` |
-| `librarian` | External docs and example lookup | read-only | `task` |
+| `explorer` | Local repository discovery | read-only | `task`; experimental `background=true` allowed |
+| `librarian` | External docs and example lookup | read-only | `task`; experimental `background=true` allowed |
 | `oracle` | Diagnosis, review, architecture, plan review | read-only | sync via `task` |
 | `designer` | UX/UI implementation and browser verification | write-capable | sync via `task` |
 | `quick` | Narrow implementation work | write-capable | sync via `task` |
@@ -252,9 +252,19 @@ Disable any built-in MCP globally with `disabled_mcps`:
 
 oh-my-opencode-lite uses OpenCode's native `task` tool for specialist
 dispatch. The native tool creates a child session and returns that subagent's
-result to the caller. Multiple independent `task` calls can be launched in the
-same model response for parallelism, but they are awaited before coordination
-continues.
+result to the caller.
+
+Default behavior is synchronous: multiple independent `task` calls can be
+launched in the same model response for parallelism, but they are still awaited
+before coordination continues.
+
+Experimental background execution is narrower:
+
+- `task(background=true)` is allowed only for `explorer` and `librarian`
+- it requires the OpenCode host to enable
+  `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true`
+- when unavailable, the orchestrator falls back to normal synchronous `task`
+- background results must be collected through native `task_status`
 
 The plugin no longer registers custom `background_task`, `background_output`,
 or `background_cancel` tools.

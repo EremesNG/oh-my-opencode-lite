@@ -49,8 +49,8 @@ bun test -t "pattern"
 | Agent | Role | Mode | Dispatch | Tool access |
 | --- | --- | --- | --- | --- |
 | `orchestrator` | root coordinator, sequencing, memory ownership | primary, non-mutating | sync coordinator | delegation tools + `thoth_mem`; deny workspace mutation/inspection |
-| `explorer` | local codebase discovery | read-only | `task` | `read`, `glob`, `grep`, AST search, LSP read tools |
-| `librarian` | external docs and public examples | read-only | `task` | research MCPs + local read/search |
+| `explorer` | local codebase discovery | read-only | `task`; experimental `background=true` allowed | `read`, `glob`, `grep`, AST search, LSP read tools |
+| `librarian` | external docs and public examples | read-only | `task`; experimental `background=true` allowed | research MCPs + local read/search |
 | `oracle` | review, diagnosis, architecture, plan review | read-only | **sync** via `task` | local read/analysis tools |
 | `designer` | UX/UI decisions, implementation, visual verification, visual QA | write-capable | **sync** via `task` | local implementation tools; browser verification; exclusive owner of screenshots and visual QA |
 | `quick` | narrow, bounded implementation | write-capable | **sync** via `task` | local implementation tools |
@@ -62,9 +62,14 @@ bun test -t "pattern"
 - The orchestrator NEVER uses browser tools, takes screenshots, or processes
   images. All visual verification and UX/UI QA is delegated to `@designer`.
 - Default delegation primitive is OpenCode's native **`task`** tool.
-- Native `task` calls can be launched in parallel in the same response, but
-  they are not fire-and-forget; the orchestrator waits for all task results
-  before continuing coordination.
+- Default behavior is normal synchronous `task` execution.
+- Experimental `task(background=true)` is allowed only for `@explorer` and
+  `@librarian`, and only when the OpenCode host enables
+  `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true`.
+- For experimental background tasks, the orchestrator must use `task_status` to
+  wait, poll, and collect results before continuing coordination.
+- `@oracle`, `@designer`, `@quick`, and `@deep` remain synchronous-only via
+  native `task`.
 - Read-only specialists do discovery; write-capable specialists change the repo.
 - The orchestrator owns root-session state and should retain summaries, not raw
   sub-agent context.
@@ -86,7 +91,7 @@ contract for interactive decisions.
 
 | Agent type | Mutates repo? | Default tool | Why |
 | --- | --- | --- | --- |
-| `explorer`, `librarian` | No | `task` | read-only discovery through native subagent sessions |
+| `explorer`, `librarian` | No | `task` | read-only discovery through native subagent sessions; may use experimental `background=true` when host-enabled |
 | `oracle` | No | `task` | advisory output is blocking and interactive |
 | `designer`, `quick`, `deep` | Yes | `task` | sync execution preserves undo safety and reviewability |
 
@@ -140,8 +145,12 @@ Rule of thumb:
 ## Task Delegation
 
 - Delegation uses OpenCode's native `task` tool.
-- Multiple independent `task` calls may be emitted together for parallelism,
-  but execution is still awaited before the orchestrator advances.
+- Default delegation is synchronous and awaited.
+- Experimental `task(background=true)` is allowed only for `explorer` and
+  `librarian`, only when the OpenCode host enables
+  `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true`.
+- When using experimental background tasks, the orchestrator must track them via
+  native `task_status` until a terminal result is collected.
 - The plugin no longer registers custom `background_task`, `background_output`,
   or `background_cancel` tools.
 - When tmux integration is enabled, child `task` sessions still get panes for
