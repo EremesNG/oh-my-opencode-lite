@@ -279,14 +279,26 @@ describe('orchestrator agent', () => {
     const prompt = getAgentByName('orchestrator')?.config.prompt;
     expect(prompt).toContain('delegate-first');
 
-    // Forbid inline repo work (read/search/patch/verify) to keep delegation model intact.
-    expect(prompt).toMatch(
-      /NEVER\s+read\s+or\s+write\s+any\s+file\s+in\s+the\s+workspace/i,
-    );
     expect(prompt).toContain(
       'Delegate all inspection, writing, searching, debugging, and verification.',
     );
+    expect(prompt).toContain('Own the thinking');
+    expect(prompt).toContain(
+      'Use sub-agents for evidence and action, not for outsourcing your architecture',
+    );
     expect(prompt).toContain('Verify through delegation, not inline.');
+    expect(prompt).toContain('<internal-handoff>');
+    expect(prompt).toContain('Internal handoff fields');
+    expect(prompt).toContain(
+      'Write-capable dispatches must include the internal handoff',
+    );
+    expect(prompt).toContain('Never mention the internal handoff to the user');
+    expect(prompt).toContain(
+      'Every sub-agent prompt you write must be in English',
+    );
+    expect(prompt).toContain(
+      'Prefer 2-3 surgical discovery probes over one broad exploration',
+    );
 
     // Openspec is explicitly allowed for coordination artifacts.
     expect(prompt).toContain('openspec/');
@@ -300,12 +312,15 @@ describe('orchestrator agent', () => {
     expect(prompt).toContain(
       'Experimental background `task(background=true)` is allowed only for @explorer and @librarian',
     );
-    expect(prompt).toContain(
-      '`OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true`',
-    );
     expect(prompt).toContain('Use `task_status` to wait, poll, and collect');
     expect(prompt).toContain(
       '@oracle, @designer, @quick, and @deep always use normal synchronous `task` execution',
+    );
+    expect(prompt).toContain(
+      'If @oracle returns [OKAY], ask the user with `question` whether to proceed to implementation',
+    );
+    expect(prompt).toContain(
+      'Do not dispatch `sdd-apply` after oracle approval until the user confirms implementation',
     );
   });
 
@@ -665,6 +680,28 @@ describe('prompt role markers', () => {
     );
     expect(getAgentByName('deep')?.config.prompt).toContain(
       'If either is missing, do NOT call thoth-mem.',
+    );
+  });
+
+  test('write-capable subagents consume orchestrator handoffs instead of redoing broad discovery', () => {
+    expect(getAgentByName('designer')?.config.prompt).toContain(
+      "Treat the orchestrator's internal handoff",
+    );
+    expect(getAgentByName('quick')?.config.prompt).toContain(
+      'Do not redo broad discovery',
+    );
+    expect(getAgentByName('deep')?.config.prompt).toContain(
+      'do not restart upstream discovery unless evidence contradicts it',
+    );
+  });
+
+  test('read-only subagents return decision-ready evidence for internal handoffs', () => {
+    expect(getAgentByName('explorer')?.config.prompt).toContain(
+      'decision-ready evidence',
+    );
+    expect(getAgentByName('explorer')?.config.prompt).toContain('edit targets');
+    expect(getAgentByName('librarian')?.config.prompt).toContain(
+      'helps the orchestrator make implementation decisions',
     );
   });
 });

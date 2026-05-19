@@ -204,9 +204,10 @@ Flow:
 
 1. Generate `tasks.md`
 2. Dispatch oracle with `plan-reviewer`
-3. If result is `[OKAY]`, continue to execution
-4. If result is `[REJECT]`, fix only the blocking issues
-5. Re-run review until `[OKAY]`
+3. If result is `[OKAY]`, ask the user whether to proceed to implementation
+4. Do not run `sdd-apply` until the user confirms implementation
+5. If result is `[REJECT]`, fix only the blocking issues
+6. Re-run review until `[OKAY]`, then ask for implementation confirmation
 
 `plan-reviewer` is intentionally narrow. It checks executability, not style.
 

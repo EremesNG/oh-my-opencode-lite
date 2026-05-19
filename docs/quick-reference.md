@@ -31,8 +31,10 @@ integration.
 | `quick` | Narrow implementation work | write-capable | sync via `task` |
 | `deep` | Thorough multi-file implementation and verification | write-capable | sync via `task` |
 
-The project is delegate-first: discovery and research go to specialists, while
-the `orchestrator` keeps root-session state and durable memory.
+The project is delegate-first, but the `orchestrator` is still the decision
+engine. `explorer` and `librarian` gather facts; the orchestrator turns those
+facts into a concrete internal handoff before handing implementation to
+`designer`, `quick`, or `deep`.
 
 ## Presets
 
@@ -142,6 +144,7 @@ actually executable.
 - Returns `[OKAY]` when the plan is executable
 - Returns `[REJECT]` only for real blockers
 - Limits rejections to at most 3 blocking issues
+- After `[OKAY]`, the orchestrator asks the user before starting `sdd-apply`
 
 ### Executing-Plans
 
@@ -253,6 +256,21 @@ Disable any built-in MCP globally with `disabled_mcps`:
 oh-my-opencode-lite uses OpenCode's native `task` tool for specialist
 dispatch. The native tool creates a child session and returns that subagent's
 result to the caller.
+
+Delegation should reduce repeated investigation:
+
+- write every sub-agent prompt in English, even when replying to the user in
+  another language
+- send `explorer`/`librarian` narrow fact-finding prompts that ask for files,
+  symbols, constraints, examples, and verification targets
+- prefer 2-3 independent surgical probes over one broad exploration when the
+  questions can be answered separately
+- synthesize the returned evidence into an internal handoff with goal, decision,
+  scope, ordered steps, non-goals, verification, and uncertainty
+- keep that handoff transparent to the user; user-facing replies should describe
+  actual work and decisions, not the handoff mechanism
+- pass that handoff to write-capable agents so they can implement instead
+  of rediscovering the plan
 
 Default behavior is synchronous: multiple independent `task` calls can be
 launched in the same model response for parallelism, but they are still awaited

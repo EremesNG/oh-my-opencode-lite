@@ -58,19 +58,38 @@ bun test -t "pattern"
 
 ## delegate-first Rules
 
-- The orchestrator is **delegate-first** and must stay lean.
+- The orchestrator is **delegate-first** and must stay lean, but it is also the
+  decision engine: it owns analysis, architecture, sequencing, and synthesis.
+- Sub-agents provide evidence and perform actions; they do not replace the
+  orchestrator's reasoning responsibility.
 - The orchestrator NEVER uses browser tools, takes screenshots, or processes
   images. All visual verification and UX/UI QA is delegated to `@designer`.
 - Default delegation primitive is OpenCode's native **`task`** tool.
 - Default behavior is normal synchronous `task` execution.
+- All prompts sent to sub-agents MUST be written in English, regardless of the
+  user's language. The orchestrator may reply to the user in their language, but
+  delegated task prompts, internal handoffs, SDD envelopes, and verification
+  requests stay English for token efficiency and consistency.
 - Experimental `task(background=true)` is allowed only for `@explorer` and
-  `@librarian`, and only when the OpenCode host enables
-  `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true`.
+  `@librarian` for asynchronous delegation.
 - For experimental background tasks, the orchestrator must use `task_status` to
   wait, poll, and collect results before continuing coordination.
 - `@oracle`, `@designer`, `@quick`, and `@deep` remain synchronous-only via
   native `task`.
 - Read-only specialists do discovery; write-capable specialists change the repo.
+- Use `@explorer` and `@librarian` to fill specific knowledge gaps before
+  implementation. Their output should be decision-ready: anchors, candidate
+  files, constraints, risks, examples, and verification targets.
+- Prefer 2-3 surgical `@explorer`/`@librarian` probes over one broad exploration
+  when the questions are independent. Each probe should answer one narrow
+  decision question and return only the anchors needed by the orchestrator.
+- Before dispatching `@designer`, `@quick`, or `@deep` after discovery, the
+  orchestrator MUST synthesize an internal handoff with goal, decision, evidence,
+  scope, ordered steps, non-goals, verification, and remaining uncertainty.
+- The internal handoff is NOT user-facing. Never ask the user to prepare it,
+  describe it as the next step, or expose the label in user-facing replies.
+- Never hand a write-capable agent only the user's broad objective when prior
+  discovery was needed; that causes repeated project exploration.
 - The orchestrator owns root-session state and should retain summaries, not raw
   sub-agent context.
 - Independent delegations should be launched together in the same response.
@@ -147,8 +166,7 @@ Rule of thumb:
 - Delegation uses OpenCode's native `task` tool.
 - Default delegation is synchronous and awaited.
 - Experimental `task(background=true)` is allowed only for `explorer` and
-  `librarian`, only when the OpenCode host enables
-  `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true`.
+  `librarian` for asynchronous delegation.
 - When using experimental background tasks, the orchestrator must track them via
   native `task_status` until a terminal result is collected.
 - The plugin no longer registers custom `background_task`, `background_output`,
@@ -178,7 +196,8 @@ Rule of thumb:
 
 1. Dispatch `@deep` with skill `sdd-propose`. Wait for result. Verify artifact.
 2. Dispatch `@deep` with skill `sdd-tasks`. Wait for result. Verify artifact.
-3. Plan-review gate (see "Oracle Plan Review Gate" below).
+3. Plan-review gate and implementation confirmation (see
+   "Oracle Plan Review Gate" below).
 4. **Load the `executing-plans` skill** via the skill tool. This is mandatory
    and must happen before any task dispatch.
 5. Proceed to execution with `sdd-apply`.
@@ -189,7 +208,8 @@ Rule of thumb:
 2. Dispatch `@deep` with skill `sdd-spec`. Wait for result. Verify artifact.
 3. Dispatch `@deep` with skill `sdd-design`. Wait for result. Verify artifact.
 4. Dispatch `@deep` with skill `sdd-tasks`. Wait for result. Verify artifact.
-5. Plan-review gate (see "Oracle Plan Review Gate" below).
+5. Plan-review gate and implementation confirmation (see
+   "Oracle Plan Review Gate" below).
 6. **Load the `executing-plans` skill** via the skill tool. This is mandatory
    and must happen before any task dispatch.
 7. Proceed to execution with `sdd-apply`.
@@ -275,11 +295,15 @@ After SDD tasks are generated, the orchestrator uses `question` to ask the user:
 If the user chooses review:
 1. Dispatch `@oracle` (the ONLY SDD phase that uses oracle) with `plan-reviewer`
    skill.
-2. If `[OKAY]`: proceed to execution via `@deep` or `@quick` with `sdd-apply`.
-3. If `[REJECT]`: dispatch `@deep` to fix the blocking issues listed by oracle,
+2. If `[OKAY]`: ask the user with `question` whether to proceed to
+   implementation or stop with the approved plan.
+3. Do NOT dispatch `sdd-apply` after oracle approval until the user confirms
+   implementation.
+4. If `[REJECT]`: dispatch `@deep` to fix the blocking issues listed by oracle,
    then re-dispatch `@oracle` for another review.
-4. Repeat the review loop until `@oracle` returns `[OKAY]`. Do NOT proceed to
-   execution while the plan is `[REJECT]`.
+5. Repeat the review loop until `@oracle` returns `[OKAY]`. Do NOT proceed to
+   execution while the plan is `[REJECT]`, and still require user confirmation
+   after `[OKAY]`.
 
 ### Task Progress Tracking
 

@@ -19,6 +19,14 @@ describe('createPhaseReminderHook', () => {
     expect(output.messages[0].parts[0].text).toBe(
       `${PHASE_REMINDER}\n\n---\n\nhello`,
     );
+    expect(PHASE_REMINDER).not.toContain('Context Packet');
+    expect(PHASE_REMINDER).toContain('internal handoff');
+    expect(PHASE_REMINDER).toContain('concrete scope, anchors, steps');
+    expect(PHASE_REMINDER).toContain('write sub-agent prompts in English');
+    expect(PHASE_REMINDER).toContain('split discovery into surgical probes');
+    expect(PHASE_REMINDER).toContain(
+      'after oracle returns [OKAY], ask the user before implementation',
+    );
   });
 
   test('skips non-orchestrator sessions', async () => {

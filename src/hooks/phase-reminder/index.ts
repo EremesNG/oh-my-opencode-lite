@@ -11,8 +11,10 @@
 import { LITE_INTERNAL_INITIATOR_MARKER } from '../../utils';
 
 export const PHASE_REMINDER = `<reminder>Recall Workflow Rules:
-Understand → find the best path (delegate based on rules and parallelize independent work) → execute → verify.
-If delegating, launch the specialist in the same turn you mention it. If multiple delegations are independent, emit all tool calls in a single response — never serialize independent work across turns.</reminder>`;
+Understand → split discovery into surgical probes with explorer/librarian → synthesize the decision and internal handoff → execute → verify.
+If delegating, write sub-agent prompts in English and launch the specialist in the same turn you mention it. If multiple delegations are independent, emit all tool calls in a single response.
+Before write-capable dispatch, give concrete scope, anchors, steps, non-goals, and verification.
+In SDD, after oracle returns [OKAY], ask the user before implementation.</reminder>`;
 
 interface MessageInfo {
   role: string;

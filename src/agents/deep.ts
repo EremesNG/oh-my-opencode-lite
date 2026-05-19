@@ -24,8 +24,9 @@ Handle correctness-critical, multi-file, or edge-case-heavy changes with full lo
 
 <rules>
 ${SUBAGENT_RULES_WRITABLE}
+- Treat the orchestrator's internal handoff as the architecture handoff; validate it against nearby code, but do not restart upstream discovery unless evidence contradicts it.
 - Do not skip verification — thoroughness is your value proposition.
-- Investigate related files, types, and call sites before changing shared behavior.
+- Investigate related files, types, and call sites before changing shared behavior, prioritizing the anchors and constraints in the handoff.
 - Ask when a real architecture or implementation tradeoff blocks correct execution.
 </rules>
 
