@@ -56,11 +56,6 @@ export function spawn(
   command: string[],
   options: SpawnOptions = {},
 ): ManagedSubprocess {
-  const bun = (globalThis as { Bun?: { spawn?: typeof Bun.spawn } }).Bun;
-  if (bun?.spawn) {
-    return bun.spawn(command, options) as unknown as ManagedSubprocess;
-  }
-
   const child = nodeSpawn(command[0], command.slice(1), {
     cwd: options.cwd,
     env: options.env,
@@ -98,12 +93,6 @@ export function spawnSync(
   command: string[],
   options: SpawnOptions = {},
 ): ManagedSpawnSyncResult {
-  const bun = (globalThis as { Bun?: { spawnSync?: typeof Bun.spawnSync } })
-    .Bun;
-  if (bun?.spawnSync) {
-    return bun.spawnSync(command, options) as ManagedSpawnSyncResult;
-  }
-
   const result = nodeSpawnSync(command[0], command.slice(1), {
     cwd: options.cwd,
     env: options.env,
