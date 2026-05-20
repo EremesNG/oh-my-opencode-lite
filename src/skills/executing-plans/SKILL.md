@@ -28,7 +28,11 @@ The orchestrator owns task progress tracking.
   fails after escalation.
 - Sub-agents execute assigned work and return structured results. They do not
   own checkbox updates.
-- Never batch-update multiple checkboxes at once.
+- Same-agent execution batches are allowed when consecutive ready tasks share
+  dependencies, scope, and verification context.
+- For a same-agent batch, keep checkbox state per task: mark each batched task
+  `- [~]` before dispatch, and later mark each task `- [x]` or `- [-]` only
+  from task-specific evidence in the returned result.
 - Never proceed without updating the current task state first.
 - Re-read the canonical tasks artifact after each edit to confirm persistence.
 - Persistence mode determines target stores: `openspec` → file only,
@@ -45,8 +49,9 @@ The orchestrator owns task progress tracking.
   real-time as execution proceeds.
 - Every state transition (pending→in-progress, in-progress→completed,
   in-progress→skipped) MUST be persisted BEFORE moving on.
-- Real-time tracking is a hard invariant, not a best practice. Deferred or
-  batched updates are a protocol violation.
+- Real-time tracking is a hard invariant, not a best practice. Deferred updates
+  are a protocol violation, and batch dispatches must still record each task's
+  state transition before and after the delegated work.
 
 ## When to Use
 
@@ -72,17 +77,19 @@ The orchestrator owns task progress tracking.
 5. Load remaining SDD context using mode-aware retrieval in
    `~/.config/opencode/skills/_shared/persistence-contract.md`.
 
-### Phase 2: Execute Each Task
+### Phase 2: Execute Ready Work
 
 #### A. Mark In-Progress
 
-Before dispatching a task:
+Before dispatching a task or same-agent batch:
 
-1. Edit the canonical tasks artifact and change the current task from
+1. Select the next ready task, or the next consecutive ready tasks that target
+   the same execution agent and can safely be handled in one dispatch.
+2. Edit the canonical tasks artifact and change each selected task from
    `- [ ]` to `- [~]`.
-2. If the mode is `thoth-mem` or `hybrid`, re-persist the updated tasks
+3. If the mode is `thoth-mem` or `hybrid`, re-persist the updated tasks
    artifact with topic key `sdd/{change-name}/tasks`.
-3. Re-read `tasks.md` after the edit to confirm the change persisted.
+4. Re-read `tasks.md` after the edit to confirm the change persisted.
 
 #### B. Dispatch
 
@@ -97,9 +104,13 @@ Choose the execution agent based on task type:
 | Simple, precise changes | `@quick` |
 | Complex, multi-file changes | `@deep` |
 
+Prefer one dispatch for consecutive ready tasks assigned to the same execution
+agent, especially repeated UI/UX work for `@designer`, repeated narrow edits for
+`@quick`, or related implementation tasks for `@deep`.
+
 Every dispatch prompt MUST include these 6 parts:
 
-1. `TASK` — exact task number and title
+1. `TASKS` — exact task number(s) and title(s)
 2. `CONTEXT` — relevant proposal, spec, design, and prior-task state
 3. `REQUIREMENTS` — concrete outcomes and constraints
 4. `BOUNDARIES` — files, scope limits, and non-goals
@@ -111,7 +122,7 @@ Every dispatch prompt MUST include these 6 parts:
 Read the sub-agent return envelope and respond by status:
 
 - `completed`: inspect the reported file changes, run verification checks, and
-  confirm the task acceptance criteria were actually met.
+  confirm every task's acceptance criteria were actually met.
 - `failed`: assess the blocker, decide whether to retry with sharper guidance,
   switch agents, or escalate.
 - `partial`: assess what is already done, preserve that context, and dispatch a
@@ -121,8 +132,10 @@ Read the sub-agent return envelope and respond by status:
 
 After verified completion:
 
-1. Edit the canonical tasks artifact and change the task from `- [~]` to
-   `- [x]`.
+1. Edit the canonical tasks artifact and change each verified task from
+   `- [~]` to `- [x]`. If a batched result only completed some tasks, update
+   only those tasks and keep the rest in progress, skipped, or retryable based
+   on evidence.
 2. If the mode is `thoth-mem` or `hybrid`, re-persist the updated tasks
    artifact under `sdd/{change-name}/tasks`.
 3. Persist a progress checkpoint under `sdd/{change-name}/apply-progress` when
@@ -138,11 +151,11 @@ true:
 
 - the work is truly blocked
 - a critical failure prevents safe continuation
-- the current task has failed 3 consecutive times
+- the current task or batch has failed 3 consecutive times
 
 ### Phase 3: Between Tasks
 
-Between every task:
+Between every task or same-agent batch:
 
 1. Re-read `tasks.md` because later tasks may depend on earlier outputs.
 2. Re-check that assumptions still hold.
@@ -161,8 +174,9 @@ Between every task:
 
 After the task list is complete:
 
-1. Run full verification without build: typecheck, tests, and lint using the
-   project's configured commands.
+1. Run final verification using the project's configured instructions and the
+   smallest sufficient checks: typecheck, tests, lint, and build when
+   appropriate.
 2. Report a completion summary with evidence.
 3. If the work is SDD-backed, suggest `sdd-verify` as the next step.
 
@@ -174,11 +188,14 @@ Every execution sub-agent MUST return this exact structure:
 ## Task Result
 
 **Status**: completed | failed | partial
-**Task**: {task number and name}
+**Tasks**: {task number(s) and name(s)}
 
 ### What was done
 - {concrete change 1}
 - {concrete change 2}
+
+### Per-task outcome
+- `{task number}` — completed | failed | partial: {task-specific evidence}
 
 ### Files changed
 - `path/to/file.ts` — {what changed}

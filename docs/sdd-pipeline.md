@@ -234,10 +234,11 @@ results.
 
 Rules:
 
-1. Mark a task `- [~]` before dispatching work
-2. Mark a task `- [x]` only after verification succeeds
+1. Mark a task or same-agent batch `- [~]` before dispatching work
+2. Mark each task `- [x]` only after verification succeeds
 3. Mark a task `- [-]` only with a clear skip or escalation reason
-4. Do not batch-flip multiple tasks at once
+4. Group consecutive ready tasks for the same execution agent into one dispatch
+   when dependencies, scope, and verification can be handled together
 5. Update both tracking layers before dispatch and after results return
 6. Re-read `tasks.md` after each update to confirm persistence
 
