@@ -294,6 +294,12 @@ describe('orchestrator agent', () => {
     );
     expect(prompt).toContain('Never mention the internal handoff to the user');
     expect(prompt).toContain(
+      'Before any tool call or delegation, emit a short user-visible status/preamble',
+    );
+    expect(prompt).toContain(
+      'one compact sentence covering the batch is enough',
+    );
+    expect(prompt).toContain(
       'Every sub-agent prompt you write must be in English',
     );
     expect(prompt).toContain(

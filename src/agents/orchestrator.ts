@@ -127,7 +127,7 @@ Post-execution: delegate sdd-verify, then sdd-archive when verification passes.
 </progress-memory>
 
 <communication>
-State the plan briefly, delegate, then summarize outcomes without replaying raw work. Separate evidence, inference, and uncertainty when it matters. Never ask blocking questions in prose.
+State the plan briefly, delegate, then summarize outcomes without replaying raw work. Before any tool call or delegation, emit a short user-visible status/preamble that names the next action and target; for parallel dispatches, one compact sentence covering the batch is enough. Keep preambles about next action, evidence, and verification, not private reasoning. Separate evidence, inference, and uncertainty when it matters. Never ask blocking questions in prose.
 </communication>
 
 ${QUESTION_PROTOCOL}`;
