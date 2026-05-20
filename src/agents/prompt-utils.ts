@@ -62,7 +62,7 @@ function getPrimaryModelId(model?: string | ModelEntry[]): string | undefined {
   return model;
 }
 
-function detectModelFamily(
+export function detectModelFamily(
   model?: string | ModelEntry[],
 ): ModelFamily | undefined {
   const id = getPrimaryModelId(model)?.toLowerCase();
@@ -92,6 +92,18 @@ function detectModelFamily(
   }
 
   return undefined;
+}
+
+export function getStepBudgetPromptSection(steps?: number): string | undefined {
+  if (steps === undefined || !Number.isInteger(steps) || steps <= 0) {
+    return undefined;
+  }
+
+  return `<step-budget>
+- You have a hard execution budget of ${steps} steps.
+- Plan your tool use before acting, prioritize the highest-signal checks first, and stop once you have enough evidence to answer.
+- Avoid repeated searches or reads. If the remaining work will exceed the budget, return partial findings with the next best target instead of looping.
+</step-budget>`;
 }
 
 function getRoleModelProfile(role: AgentPromptRole): string {

@@ -51,6 +51,23 @@ describe('loadPluginConfig', () => {
     expect(config.agents?.oracle?.model).toBe('test/model');
   });
 
+  test('loads per-agent steps from project config', () => {
+    const projectDir = path.join(tempDir, 'project');
+    const projectConfigDir = path.join(projectDir, '.opencode');
+    fs.mkdirSync(projectConfigDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectConfigDir, 'oh-my-opencode-lite.json'),
+      JSON.stringify({
+        agents: {
+          explorer: { model: 'openai/gpt-5.4-mini', steps: 75 },
+        },
+      }),
+    );
+
+    const config = loadPluginConfig(projectDir);
+    expect(config.agents?.explorer?.steps).toBe(75);
+  });
+
   test('loads scoringEngineVersion flag when configured', () => {
     const projectDir = path.join(tempDir, 'project');
     const projectConfigDir = path.join(projectDir, '.opencode');

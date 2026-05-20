@@ -308,7 +308,15 @@ describe('orchestrator agent', () => {
     expect(prompt).toContain('requirements-interview');
     expect(prompt).toMatch(/propose\s*->\s*spec\s*->\s*design\s*->\s*tasks/i);
     expect(prompt).toContain('dispatch sdd-init first');
-    expect(prompt).toContain('Never require a build after changes');
+    const forbiddenBuildPolicy = [
+      'Never require',
+      'a build after changes',
+    ].join(' ');
+
+    expect(prompt).not.toContain(forbiddenBuildPolicy);
+    expect(prompt).toContain(
+      "Verification should follow the user's project instructions",
+    );
     expect(prompt).toContain(
       'Experimental background `task(background=true)` is allowed only for @explorer and @librarian',
     );
@@ -321,6 +329,9 @@ describe('orchestrator agent', () => {
     );
     expect(prompt).toContain(
       'Do not dispatch `sdd-apply` after oracle approval until the user confirms implementation',
+    );
+    expect(prompt).toContain(
+      'Group consecutive ready SDD tasks for the same execution agent into one dispatch',
     );
   });
 
@@ -841,7 +852,7 @@ describe('semantic color values', () => {
 });
 
 describe('steps field for bounded execution', () => {
-  test('write-capable agents do not set steps by default', () => {
+  test('non-Gemini subagents do not set steps by default', () => {
     const designer = getAgentByName('designer');
     const quick = getAgentByName('quick');
     const deep = getAgentByName('deep');
@@ -856,12 +867,62 @@ describe('steps field for bounded execution', () => {
     expect(orchestrator?.config.steps).toBeUndefined();
   });
 
-  test('all agents omit steps unless explicitly configured later', () => {
-    const agents = createAgents();
+  test('Gemini subagents receive default bounded steps', () => {
+    const config: PluginConfig = {
+      agents: {
+        explorer: { model: 'google/gemini-3-flash' },
+        quick: { model: 'google/gemini-3-flash' },
+      },
+    };
 
-    for (const agent of agents) {
-      expect(agent.config.steps).toBeUndefined();
-    }
+    expect(getAgentByName('explorer', config)?.config.steps).toBe(120);
+    expect(getAgentByName('quick', config)?.config.steps).toBe(40);
+  });
+
+  test('configured steps apply regardless of model family', () => {
+    const config: PluginConfig = {
+      agents: {
+        explorer: { model: 'openai/gpt-5.4-mini', steps: 77 },
+        deep: { model: 'anthropic/claude-sonnet-4.6', steps: 88 },
+      },
+    };
+
+    expect(getAgentByName('explorer', config)?.config.steps).toBe(77);
+    expect(getAgentByName('deep', config)?.config.steps).toBe(88);
+  });
+
+  test('orchestrator ignores Gemini default steps but accepts explicit steps', () => {
+    const geminiConfig: PluginConfig = {
+      agents: {
+        orchestrator: { model: 'google/gemini-3-pro' },
+      },
+    };
+    const explicitConfig: PluginConfig = {
+      agents: {
+        orchestrator: { model: 'google/gemini-3-pro', steps: 200 },
+      },
+    };
+
+    expect(
+      getAgentByName('orchestrator', geminiConfig)?.config.steps,
+    ).toBeUndefined();
+    expect(getAgentByName('orchestrator', explicitConfig)?.config.steps).toBe(
+      200,
+    );
+  });
+
+  test('bounded subagents receive step budget guidance in the prompt', () => {
+    const config: PluginConfig = {
+      agents: {
+        explorer: { model: 'google/gemini-3-flash' },
+      },
+    };
+
+    const prompt = getAgentByName('explorer', config)?.config.prompt ?? '';
+
+    expect(prompt).toContain('<step-budget>');
+    expect(prompt).toContain('You have a hard execution budget of 120 steps.');
+    expect(prompt).toContain('Plan your tool use before acting');
   });
 });
 

@@ -272,6 +272,11 @@
               "minimum": 0,
               "maximum": 2
             },
+            "steps": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
             "variant": {
               "type": "string"
             }
@@ -322,6 +327,11 @@
             "type": "number",
             "minimum": 0,
             "maximum": 2
+          },
+          "steps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
           },
           "variant": {
             "type": "string"

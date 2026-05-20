@@ -13,6 +13,11 @@ import { createExplorerAgent } from './explorer';
 import { createLibrarianAgent } from './librarian';
 import { createOracleAgent } from './oracle';
 import { type AgentDefinition, createOrchestratorAgent } from './orchestrator';
+import {
+  appendPromptSections,
+  detectModelFamily,
+  getStepBudgetPromptSection,
+} from './prompt-utils';
 import { createQuickAgent } from './quick';
 
 export type { AgentDefinition } from './orchestrator';
@@ -41,6 +46,15 @@ type BuiltinPermissionPresetName =
 
 type AgentOverrideWithPermission = AgentOverrideConfig & {
   permission?: SDKAgentConfig['permission'];
+};
+
+const GEMINI_DEFAULT_STEPS: Record<SubagentName, number> = {
+  explorer: 120,
+  librarian: 80,
+  oracle: 80,
+  designer: 80,
+  quick: 40,
+  deep: 120,
 };
 
 const BUILTIN_PERMISSION_PRESETS = {
@@ -195,6 +209,35 @@ function applyOverrides(
   if (override.temperature !== undefined) {
     agent.config.temperature = override.temperature;
   }
+
+  if (override.steps !== undefined) {
+    agent.config.steps = override.steps;
+  }
+}
+
+function applyStepBudgetPrompt(agent: AgentDefinition): void {
+  const stepBudgetPrompt = getStepBudgetPromptSection(agent.config.steps);
+
+  if (!stepBudgetPrompt) {
+    return;
+  }
+
+  agent.config.prompt = appendPromptSections(
+    agent.config.prompt,
+    stepBudgetPrompt,
+  );
+}
+
+function applyGeminiDefaultSteps(agent: AgentDefinition): void {
+  if (!isSubagent(agent.name) || agent.config.steps !== undefined) {
+    return;
+  }
+
+  if (detectModelFamily(agent._modelArray ?? agent.config.model) !== 'gemini') {
+    return;
+  }
+
+  agent.config.steps = GEMINI_DEFAULT_STEPS[agent.name];
 }
 
 function clonePermissionConfig(
@@ -270,6 +313,8 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
     if (override) {
       applyOverrides(agent, override);
     }
+    applyGeminiDefaultSteps(agent);
+    applyStepBudgetPrompt(agent);
     return agent;
   });
 
@@ -284,6 +329,7 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
   if (orchestratorOverride) {
     applyOverrides(orchestrator, orchestratorOverride);
   }
+  applyStepBudgetPrompt(orchestrator);
 
   return [orchestrator, ...allSubAgents];
 }

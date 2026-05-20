@@ -92,6 +92,7 @@ export const AgentOverrideConfigSchema = z.object({
     ])
     .optional(),
   temperature: z.number().min(0).max(2).optional(),
+  steps: z.number().int().min(1).optional(),
   variant: z.string().optional().catch(undefined),
 });
 
