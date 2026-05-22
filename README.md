@@ -1,3 +1,8 @@
+> [!WARNING]
+> **This repository is archived**
+>
+> This repository is archived. Development continues in the multi-harness ecosystem at [EremesNG/thoth-agents](https://github.com/EremesNG/thoth-agents).
+
 <div align="center">
   <img src="img/team.png" alt="oh-my-opencode-lite agents" width="420">
   <p><i>Seven specialized agents, one orchestrator — delegate any task to the right specialist and ship faster.</i></p>
